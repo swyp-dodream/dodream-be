@@ -36,4 +36,11 @@ out/
 ### VS Code ###
 .vscode/
 
-application.yml
+### Application Config ###
+application-dev.yml
+application-prod.yml
+application-*.yml
+!application.yml
+
+### Docker & Environment ###
+.env

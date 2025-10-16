@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  dodream-app:
+    # Docker Hub에서 최신 이미지 사용 (johoon/dodream-backend:latest)
+    image: ${DOCKER_USERNAME}/dodream-backend:latest
+    container_name: dodream-app
+    # 컨테이너가 예상치 못하게 종료되면 자동 재시작
+    restart: unless-stopped
+    ports:
+      # 호스트:컨테이너 포트 매핑 (외부 8080 → 내부 8080)
+      - "8080:8080"
+    environment:
+      # Spring Boot 프로파일 설정 (운영 환경)
+      - SPRING_PROFILES_ACTIVE=prod
+      # NCP Cloud MySQL 연결 정보 (.env 파일에서 주입)
+      - SPRING_DATASOURCE_URL=jdbc:mysql://${DB_HOST}:3306/${DB_NAME}?useSSL=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+      - SPRING_DATASOURCE_USERNAME=${DB_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD}
+      # JPA 설정 (운영 환경)
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=validate  # 운영에서는 validate 사용 (스키마 변경 방지)
+      - SPRING_JPA_SHOW_SQL=false  # 운영에서는 SQL 로그 비활성화
+    networks:
+      - dodream-network
+    healthcheck:
+      # 헬스체크: 30초마다 애플리케이션 상태 확인
+      # 애플리케이션이 응답하지 않으면 자동으로 재시작됨
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080 || exit 1"]
+      interval: 30s       # 30초마다 체크
+      timeout: 10s        # 10초 안에 응답 없으면 실패
+      retries: 3          # 3번 연속 실패하면 unhealthy 상태
+      start_period: 40s   # 시작 후 40초 동안은 실패해도 카운트 안 함
+
+networks:
+  dodream-network:
+    driver: bridge
