@@ -108,6 +108,9 @@ jobs:
           # GitHub에서 docker-compose.yml 다운로드
           curl -o docker-compose.yml https://raw.githubusercontent.com/${{ github.repository }}/${{ github.ref_name }}/docker-compose.yml
           
+          # Docker Hub 로그인 (Private Repository 접근용)
+          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+          
           # 최신 Docker 이미지 pull
           docker compose pull || docker-compose pull
           
