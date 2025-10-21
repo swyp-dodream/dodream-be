@@ -4,11 +4,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import swyp.dodream.common.exception.ExceptionType;
+import swyp.dodream.jwt.service.TokenService;
+import swyp.dodream.jwt.util.JwtUtil;
 import swyp.dodream.login.domain.User;
 import swyp.dodream.login.domain.UserRepository;
 import swyp.dodream.login.dto.TokenResponse;
 import swyp.dodream.login.dto.UserResponse;
-import swyp.dodream.login.util.JwtUtil;
 
 @Service
 @RequiredArgsConstructor

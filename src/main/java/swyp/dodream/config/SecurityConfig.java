@@ -7,10 +7,10 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import swyp.dodream.login.filter.JwtAuthenticationFilter;
+import swyp.dodream.jwt.filter.JwtAuthenticationFilter;
+import swyp.dodream.jwt.util.JwtUtil;
 import swyp.dodream.login.handler.OAuth2SuccessHandler;
 import swyp.dodream.login.service.CustomOAuth2UserService;
-import swyp.dodream.login.util.JwtUtil;
 
 import java.util.Arrays;
 import java.util.stream.Stream;

@@ -1,4 +1,4 @@
-package swyp.dodream.login.service;
+package swyp.dodream.jwt.service;
 
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;

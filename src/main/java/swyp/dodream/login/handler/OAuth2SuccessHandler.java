@@ -9,12 +9,12 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 import swyp.dodream.common.exception.ExceptionType;
+import swyp.dodream.jwt.service.TokenService;
+import swyp.dodream.jwt.util.JwtUtil;
 import swyp.dodream.login.domain.AuthProvider;
 import swyp.dodream.login.domain.User;
 import swyp.dodream.login.domain.UserRepository;
 import swyp.dodream.login.dto.LoginResponse;
-import swyp.dodream.login.service.TokenService;
-import swyp.dodream.login.util.JwtUtil;
 
 import java.io.IOException;
 

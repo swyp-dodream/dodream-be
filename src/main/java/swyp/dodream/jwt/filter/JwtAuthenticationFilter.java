@@ -1,4 +1,4 @@
-package swyp.dodream.login.filter;
+package swyp.dodream.jwt.filter;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -9,7 +9,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
-import swyp.dodream.login.util.JwtUtil;
+import swyp.dodream.jwt.util.JwtUtil;
 
 import java.io.IOException;
 import java.util.List;

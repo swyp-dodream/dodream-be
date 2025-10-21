@@ -1,4 +1,4 @@
-package swyp.dodream.login.util;
+package swyp.dodream.jwt.util;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
