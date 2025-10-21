@@ -1,12 +1,30 @@
 version: '3.8'
 
 services:
+  redis:
+    # Redis 컨테이너 (Refresh Token 저장용)
+    image: redis:7-alpine
+    container_name: dodream-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    networks:
+      - dodream-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
   dodream-app:
     # Docker Hub에서 최신 이미지 사용 (johoon/dodream-backend:latest)
     image: ${DOCKER_USERNAME}/dodream-backend:latest
     container_name: dodream-app
     # 컨테이너가 예상치 못하게 종료되면 자동 재시작
     restart: unless-stopped
+    depends_on:
+      - redis
     ports:
       # 호스트:컨테이너 포트 매핑 (외부 8080 → 내부 8080)
       - "8080:8080"
@@ -20,9 +38,16 @@ services:
       # JPA 설정 (운영 환경)
       - SPRING_JPA_HIBERNATE_DDL_AUTO=validate  # 운영에서는 validate 사용 (스키마 변경 방지)
       - SPRING_JPA_SHOW_SQL=false  # 운영에서는 SQL 로그 비활성화
+      # Redis 설정
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
       # OAuth2 설정
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      # JWT 설정
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_ACCESS_TOKEN_EXPIRATION=1800000
+      - JWT_REFRESH_TOKEN_EXPIRATION=604800000
     networks:
       - dodream-network
     healthcheck:

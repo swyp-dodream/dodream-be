@@ -105,6 +105,7 @@ jobs:
           DB_PASSWORD=${{ secrets.DB_PASSWORD }}
           GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
           EOF
           
           # GitHub에서 docker-compose.yml 다운로드
