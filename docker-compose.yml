@@ -8,7 +8,11 @@ services:
     restart: unless-stopped
     ports:
       - "6379:6379"
-    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    # Redis 데이터 영속화 (배포 시에도 데이터 유지)
+    volumes:
+      - redis-data:/data
+    # AOF(Append Only File) 활성화로 데이터 영속성 보장
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     networks:
       - dodream-network
     healthcheck:
@@ -62,3 +66,7 @@ services:
 networks:
   dodream-network:
     driver: bridge
+
+volumes:
+  redis-data:
+    driver: local
