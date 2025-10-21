@@ -4,8 +4,13 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import swyp.dodream.login.filter.JwtAuthenticationFilter;
+import swyp.dodream.login.handler.OAuth2SuccessHandler;
 import swyp.dodream.login.service.CustomOAuth2UserService;
+import swyp.dodream.login.util.JwtUtil;
 
 import java.util.Arrays;
 import java.util.stream.Stream;
@@ -15,12 +20,14 @@ import java.util.stream.Stream;
 public class SecurityConfig {
 
     private final CustomOAuth2UserService customOAuth2UserService;
+    private final OAuth2SuccessHandler oAuth2SuccessHandler;
+    private final JwtUtil jwtUtil;
 
     // 인증 없이 접근 가능한 URL 목록
     private static final String[] WHITE_LIST = {
-            "/api/login/success",
-            "/api/oauth2/authorization/**",
-            "/login/oauth2/code/**"
+            "/oauth2/authorization/**",
+            "/login/oauth2/code/**",
+            "/api/auth/reissue"
     };
 
     private static final String[] WHITE_LIST_SWAGGER = {
@@ -30,8 +37,12 @@ public class SecurityConfig {
             "/v3/api-docs/**"
     };
 
-    public SecurityConfig(CustomOAuth2UserService customOAuth2UserService) {
+    public SecurityConfig(CustomOAuth2UserService customOAuth2UserService,
+                         OAuth2SuccessHandler oAuth2SuccessHandler,
+                         JwtUtil jwtUtil) {
         this.customOAuth2UserService = customOAuth2UserService;
+        this.oAuth2SuccessHandler = oAuth2SuccessHandler;
+        this.jwtUtil = jwtUtil;
     }
 
     @Bean
@@ -39,6 +50,14 @@ public class SecurityConfig {
         http
                 // CSRF 비활성화 (REST API용)
                 .csrf(csrf -> csrf.disable())
+                
+                // 세션 사용하지 않음 (JWT 사용)
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+                
+                // JWT 인증 필터 추가
+                .addFilterBefore(new JwtAuthenticationFilter(jwtUtil), UsernamePasswordAuthenticationFilter.class)
                 
                 // 요청 권한 설정
                 .authorizeHttpRequests(auth -> auth
@@ -57,10 +76,11 @@ public class SecurityConfig {
                         .userInfoEndpoint(userInfo -> userInfo
                                 .userService(customOAuth2UserService)
                         )
-                        .defaultSuccessUrl("/api/login/success", true)
+                        .successHandler(oAuth2SuccessHandler)
                 );
 
         return http.build();
     }
 }
+
 
