@@ -20,6 +20,9 @@ services:
       # JPA 설정 (운영 환경)
       - SPRING_JPA_HIBERNATE_DDL_AUTO=validate  # 운영에서는 validate 사용 (스키마 변경 방지)
       - SPRING_JPA_SHOW_SQL=false  # 운영에서는 SQL 로그 비활성화
+      # OAuth2 설정
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
     networks:
       - dodream-network
     healthcheck:
