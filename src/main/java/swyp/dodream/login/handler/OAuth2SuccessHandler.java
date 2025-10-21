@@ -38,12 +38,12 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         User user = userRepository.findByProviderAndProviderId(AuthProvider.GOOGLE, providerId)
                 .orElseThrow(() -> ExceptionType.NOT_FOUND_USER.of());
 
-        // JWT 토큰 생성
-        String accessToken = jwtUtil.generateAccessToken(user.getId(), user.getEmail());
+        // JWT 토큰 생성 (userId, email, name 포함)
+        String accessToken = jwtUtil.generateAccessToken(user.getId(), user.getEmail(), user.getName());
         String refreshToken = jwtUtil.generateRefreshToken(user.getId());
 
-        // Refresh Token을 Redis에 저장
-        tokenService.saveRefreshToken(user.getId(), refreshToken);
+        // Refresh Token을 Redis에 저장 (이름 포함)
+        tokenService.saveRefreshToken(user.getId(), user.getName(), refreshToken);
 
         // 응답 헤더에 토큰 추가
         response.setHeader("Authorization", "Bearer " + accessToken);

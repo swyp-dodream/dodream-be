@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import swyp.dodream.common.exception.ExceptionType;
+import swyp.dodream.jwt.dto.UserPrincipal;
 import swyp.dodream.login.dto.TokenResponse;
 import swyp.dodream.login.dto.UserResponse;
 import swyp.dodream.login.service.AuthService;
@@ -35,8 +36,8 @@ public class AuthController {
             throw ExceptionType.UNAUTHORIZED_NO_AUTHENTICATION.of();
         }
 
-        Long userId = (Long) authentication.getPrincipal();
-        authService.logout(userId);
+        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+        authService.logout(userPrincipal.getUserId(), userPrincipal.getName());
 
         return ResponseEntity.ok(Map.of("message", "로그아웃 성공"));
     }
@@ -48,8 +49,8 @@ public class AuthController {
             throw ExceptionType.UNAUTHORIZED_NO_AUTHENTICATION.of();
         }
 
-        Long userId = (Long) authentication.getPrincipal();
-        UserResponse response = authService.getCurrentUser(userId);
+        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+        UserResponse response = authService.getCurrentUser(userPrincipal.getUserId());
 
         return ResponseEntity.ok(response);
     }

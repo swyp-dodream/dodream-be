@@ -9,6 +9,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
+import swyp.dodream.jwt.dto.UserPrincipal;
 import swyp.dodream.jwt.util.JwtUtil;
 
 import java.io.IOException;
@@ -33,11 +34,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (token != null && jwtUtil.validateToken(token)) {
             Long userId = jwtUtil.getUserIdFromToken(token);
             String email = jwtUtil.getEmailFromToken(token);
+            String name = jwtUtil.getNameFromToken(token);
+
+            // UserPrincipal 객체 생성 (userId, email, name 포함)
+            UserPrincipal userPrincipal = new UserPrincipal(userId, email, name);
 
             // Spring Security 컨텍스트에 인증 정보 저장
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(
-                            userId,
+                            userPrincipal,
                             null,
                             List.of(new SimpleGrantedAuthority("ROLE_USER"))
                     );

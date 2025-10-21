@@ -26,13 +26,14 @@ public class JwtUtil {
     }
 
     // Access Token 생성
-    public String generateAccessToken(Long userId, String email) {
+    public String generateAccessToken(Long userId, String email, String name) {
         Date now = new Date();
         Date expiry = new Date(now.getTime() + accessTokenExpiration);
 
         return Jwts.builder()
                 .subject(String.valueOf(userId))
                 .claim("email", email)
+                .claim("name", name)
                 .claim("type", "access")
                 .issuedAt(now)
                 .expiration(expiry)
@@ -62,6 +63,11 @@ public class JwtUtil {
     // 토큰에서 이메일 추출
     public String getEmailFromToken(String token) {
         return getClaims(token).get("email", String.class);
+    }
+
+    // 토큰에서 이름 추출
+    public String getNameFromToken(String token) {
+        return getClaims(token).get("name", String.class);
     }
 
     // 토큰 유효성 검증

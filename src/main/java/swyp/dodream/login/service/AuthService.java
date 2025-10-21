@@ -29,26 +29,26 @@ public class AuthService {
 
         Long userId = jwtUtil.getUserIdFromToken(refreshToken);
         
-        // Redis에 저장된 Refresh Token과 비교
-        if (!tokenService.validateRefreshToken(userId, refreshToken)) {
-            throw ExceptionType.UNAUTHORIZED_REFRESH_TOKEN_INVALID.of("만료되었거나 유효하지 않은 토큰입니다");
-        }
-
         // 사용자 조회
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> ExceptionType.NOT_FOUND_USER.of());
+        
+        // Redis에 저장된 Refresh Token과 비교 (이름 포함)
+        if (!tokenService.validateRefreshToken(userId, user.getName(), refreshToken)) {
+            throw ExceptionType.UNAUTHORIZED_REFRESH_TOKEN_INVALID.of("만료되었거나 유효하지 않은 토큰입니다");
+        }
 
-        // 새로운 Access Token 발급
-        String newAccessToken = jwtUtil.generateAccessToken(user.getId(), user.getEmail());
+        // 새로운 Access Token 발급 (이름 포함)
+        String newAccessToken = jwtUtil.generateAccessToken(user.getId(), user.getEmail(), user.getName());
 
         return TokenResponse.of(newAccessToken);
     }
 
     // 로그아웃
     @Transactional
-    public void logout(Long userId) {
-        // Redis에서 Refresh Token 삭제
-        tokenService.deleteRefreshToken(userId);
+    public void logout(Long userId, String name) {
+        // Redis에서 Refresh Token 삭제 (이름 포함)
+        tokenService.deleteRefreshToken(userId, name);
     }
 
     // 현재 사용자 정보 조회
