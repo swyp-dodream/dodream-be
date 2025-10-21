@@ -10,6 +10,10 @@
 
 ## 🚀 시작하기
 
+### 사전 요구사항
+- Java 21
+- Docker (MySQL 컨테이너용)
+- Google OAuth 2.0 Client ID & Secret
 
 ### 설치 및 실행
 
@@ -17,7 +21,21 @@
 ```bash
 git clone https://github.com/swyp-dodream/dodream-be.git
 cd dodream
-./gradlew bootRun
+```
+
+
+3. **MySQL 컨테이너 실행**
+```bash
+docker run --name dodream \
+  -e MYSQL_ROOT_PASSWORD=dodream123 \
+  -e MYSQL_DATABASE=dodream \
+  -p 3306:3306 -d mysql:latest
+```
+
+4. **Redis 컨테이너 실행**
+```bash
+docker run --name dodream-redis \
+  -p 6379:6379 -d redis:7-alpine
 ```
 
 ## 📊 ERD
@@ -27,8 +45,8 @@ cd dodream
 ## 👥 팀원
 
 - **김소희** - Server, 검색, 채팅
-- **최현우** - 로그인, 프로필 관리, 알림, AI 프로필 작성
-- **조훈** - 인프라, AI 매칭, API 문서화
+- **최현우** - 프로필 관리, 알림, AI 프로필 작성
+- **조훈** - 로그인, 인프라, AI 매칭, API 문서화
 
 ## 📝 API 문서
 
