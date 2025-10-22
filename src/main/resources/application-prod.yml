@@ -7,7 +7,7 @@ spring:
   
   jpa:
     hibernate:
-      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:validate}  # 운영에서는 validate 권장
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:update}  # 운영에서도 테이블 자동 생성
     show-sql: ${SPRING_JPA_SHOW_SQL:false}  # 운영에서는 SQL 로그 비활성화
   
   data:
