@@ -14,11 +14,7 @@ public class SwaggerConfig {
     @Bean
     public OpenAPI openAPI() {
         return new OpenAPI()
-                .info(apiInfo())
-                .servers(List.of(
-                        new Server().url("http://localhost:8080").description("로컬 개발 서버"),
-                        new Server().url("http://49.50.132.63:8080").description("운영 서버")
-                ));
+                .info(apiInfo());
     }
 
     private Info apiInfo() {
