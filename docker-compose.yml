@@ -65,7 +65,7 @@ services:
       - SPRING_DATASOURCE_USERNAME=${MYSQL_USER}
       - SPRING_DATASOURCE_PASSWORD=${MYSQL_PASSWORD}
       # JPA 설정 (운영 환경)
-      - SPRING_JPA_HIBERNATE_DDL_AUTO=validate  # 운영에서는 validate 사용 (스키마 변경 방지)
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update  # 운영에서도 테이블 자동 생성
       - SPRING_JPA_SHOW_SQL=false  # 운영에서는 SQL 로그 비활성화
       # Redis 설정
       - SPRING_DATA_REDIS_HOST=redis
