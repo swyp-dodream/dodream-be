@@ -24,6 +24,10 @@ cd dodream
 ```
 
 
+2. **환경 변수 설정**
+프로젝트 루트에 `.env` 파일을 생성하고 다음 환경 변수들을 설정하세요:
+
+
 3. **MySQL 컨테이너 실행**
 ```bash
 docker run --name dodream \
@@ -36,6 +40,11 @@ docker run --name dodream \
 ```bash
 docker run --name dodream-redis \
   -p 6379:6379 -d redis:7-alpine
+```
+
+5. **애플리케이션 실행**
+```bash
+./gradlew bootRun
 ```
 
 ## 📊 ERD

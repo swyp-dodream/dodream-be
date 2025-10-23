@@ -33,9 +33,24 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
         
         // OAuth2 사용자 정보에서 사용자 조회
-        String providerId = oAuth2User.getAttribute("sub");
+        String providerId;
+        AuthProvider provider;
         
-        User user = userRepository.findByProviderAndProviderId(AuthProvider.GOOGLE, providerId)
+        // Google과 Naver의 providerId 추출 방식이 다름
+        if (oAuth2User.getAttribute("sub") != null) {
+            // Google
+            providerId = oAuth2User.getAttribute("sub");
+            provider = AuthProvider.GOOGLE;
+        } else if (oAuth2User.getAttribute("response") != null) {
+            // Naver
+            java.util.Map<String, Object> naverResponse = oAuth2User.getAttribute("response");
+            providerId = (String) naverResponse.get("id");
+            provider = AuthProvider.NAVER;
+        } else {
+            throw ExceptionType.NOT_FOUND_USER.of();
+        }
+        
+        User user = userRepository.findByProviderAndProviderId(provider, providerId)
                 .orElseThrow(() -> ExceptionType.NOT_FOUND_USER.of());
 
         // JWT 토큰 생성 (userId, email, name 포함)
