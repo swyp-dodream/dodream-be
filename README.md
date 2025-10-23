@@ -27,21 +27,6 @@ cd dodream
 2. **환경 변수 설정**
 프로젝트 루트에 `.env` 파일을 생성하고 다음 환경 변수들을 설정하세요:
 
-```bash
-# Google OAuth
-GOOGLE_CLIENT_ID=your_google_client_id_here
-GOOGLE_CLIENT_SECRET=your_google_client_secret_here
-
-# Naver OAuth
-NAVER_CLIENT_ID=your_naver_client_id_here
-NAVER_CLIENT_SECRET=your_naver_client_secret_here
-
-# JWT Secret
-JWT_SECRET=your_jwt_secret_here
-
-# Spring Profile
-SPRING_PROFILES_ACTIVE=dev
-```
 
 3. **MySQL 컨테이너 실행**
 ```bash
