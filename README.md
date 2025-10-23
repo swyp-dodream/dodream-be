@@ -27,6 +27,35 @@ cd dodream
 2. **환경 변수 설정**
 프로젝트 루트에 `.env` 파일을 생성하고 다음 환경 변수들을 설정하세요:
 
+```bash
+# Spring Profile
+SPRING_PROFILES_ACTIVE=dev
+
+# Database Configuration
+DB_HOST=localhost
+DB_PORT=3306
+DB_NAME=dodream
+DB_USERNAME=root
+DB_PASSWORD=your_database_password
+
+# Redis Configuration
+REDIS_HOST=localhost
+REDIS_PORT=6379
+
+# Server Configuration
+SERVER_PORT=8080
+
+# OAuth Configuration
+GOOGLE_CLIENT_ID=your_google_client_id_here
+GOOGLE_CLIENT_SECRET=your_google_client_secret_here
+NAVER_CLIENT_ID=your_naver_client_id_here
+NAVER_CLIENT_SECRET=your_naver_client_secret_here
+
+# JWT Configuration
+JWT_SECRET=your_jwt_secret_here
+```
+
+**중요**: `.env` 파일은 절대 Git에 커밋하지 마세요. 민감한 정보가 포함되어 있습니다.
 
 3. **MySQL 컨테이너 실행**
 ```bash
