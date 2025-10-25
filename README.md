@@ -49,7 +49,8 @@ docker run --name dodream-redis \
 
 ## 📊 ERD
 
-[ERD Cloud 링크](https://www.erdcloud.com/d/fZNNYLXx5ggoB7DNe)
+[ERD Cloud 링크](https://www.erdcloud.com/d/MWtoCFWtryAdgCrYc)
+
 
 ## 👥 팀원
 
