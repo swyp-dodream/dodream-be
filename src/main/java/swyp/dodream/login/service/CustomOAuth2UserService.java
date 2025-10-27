@@ -6,17 +6,25 @@ import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import swyp.dodream.common.snowflake.SnowflakeIdService;
+import swyp.dodream.domain.user.domain.OAuthAccount;
+import swyp.dodream.domain.user.domain.User;
+import swyp.dodream.domain.user.repository.OAuthAccountRepository;
+import swyp.dodream.domain.user.repository.UserRepository;
 import swyp.dodream.login.domain.AuthProvider;
-import swyp.dodream.login.domain.User;
-import swyp.dodream.login.domain.UserRepository;
 
 @Service
 public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
     private final UserRepository userRepository;
+    private final OAuthAccountRepository oAuthAccountRepository;
+    private final SnowflakeIdService snowflakeIdService;
 
-    public CustomOAuth2UserService(UserRepository userRepository) {
+    public CustomOAuth2UserService(UserRepository userRepository, OAuthAccountRepository oAuthAccountRepository, SnowflakeIdService snowflakeIdService) {
         this.userRepository = userRepository;
+        this.oAuthAccountRepository = oAuthAccountRepository;
+        this.snowflakeIdService = snowflakeIdService;
     }
 
     @Override
@@ -50,16 +58,28 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
             throw new OAuth2AuthenticationException("지원하지 않는 OAuth 제공자입니다: " + provider);
         }
         
-        // DB에서 사용자 조회 또는 생성
-        User user = userRepository.findByProviderAndProviderId(provider, providerId)
+        // OAuth 계정 조회 또는 생성
+        OAuthAccount oAuthAccount = oAuthAccountRepository.findByEmailAndProvider(email, provider)
                 .orElseGet(() -> {
-                    User newUser = new User(email, name, picture, provider, providerId);
-                    return userRepository.save(newUser);
+                    // 새 사용자 생성 (스노우플레이크 ID 사용)
+                    Long snowflakeId = snowflakeIdService.generateId();
+                    User newUser = new User(snowflakeId, name, picture);
+                    User savedUser = userRepository.save(newUser);
+                    
+                    // OAuth 계정 생성 (스노우플레이크 ID 사용)
+                    Long oauthSnowflakeId = snowflakeIdService.generateId();
+                    OAuthAccount newOAuthAccount = new OAuthAccount(oauthSnowflakeId, savedUser.getId(), provider, email);
+                    return oAuthAccountRepository.save(newOAuthAccount);
                 });
         
-        // 프로필 정보 업데이트 (이름, 프로필 이미지가 변경되었을 수 있음)
+        // 사용자 정보 업데이트
+        User user = userRepository.findById(oAuthAccount.getUserId()).orElseThrow();
         user.updateProfile(name, picture);
         userRepository.save(user);
+        
+        // 최근 로그인 시간 업데이트
+        oAuthAccount.updateLastLoginAt();
+        oAuthAccountRepository.save(oAuthAccount);
         
         return oAuth2User;
     }

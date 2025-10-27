@@ -28,9 +28,11 @@ public enum ExceptionType {
     // NOT_FOUND(404)
     NOT_FOUND(HttpStatus.NOT_FOUND, "데이터가 존재하지 않음"),
     NOT_FOUND_USER(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다"),
+    USER_NOT_FOUND(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다"),
 
     // Conflict(409)
     CONFLICT_DUPLICATE(HttpStatus.CONFLICT, "이미 존재하는 데이터입니다"),
+    USER_ALREADY_WITHDRAWN(HttpStatus.CONFLICT, "이미 탈퇴한 사용자입니다"),
 
     // Internal Server Error(500)
     SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 에러"),
