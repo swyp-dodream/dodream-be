@@ -5,8 +5,11 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import swyp.dodream.domain.profile.domain.Profile;
 import swyp.dodream.domain.profile.enums.*;
+import swyp.dodream.domain.url.dto.ProfileUrlResponse;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Getter
 @NoArgsConstructor
@@ -18,15 +21,19 @@ public class ProfileResponse {
     private Gender gender;
     private AgeBand ageBand;
     private Experience experience;
-    private Long roleId;
     private ActivityMode activityMode;
     private String introText;
     private Boolean introIsAi;
     private Boolean isPublic;
+    private List<ProfileUrlResponse> profileUrls;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
     public static ProfileResponse from(Profile profile) {
+        List<ProfileUrlResponse> profileUrls = profile.getProfileUrls().stream()
+                .map(ProfileUrlResponse::from)
+                .collect(Collectors.toList());
+        
         return new ProfileResponse(
                 profile.getId(),
                 profile.getUserId(),
@@ -34,11 +41,11 @@ public class ProfileResponse {
                 profile.getGender(),
                 profile.getAgeBand(),
                 profile.getExperience(),
-                profile.getRoleId(),
                 profile.getActivityMode(),
                 profile.getIntroText(),
                 profile.getIntroIsAi(),
                 profile.getIsPublic(),
+                profileUrls,
                 profile.getCreatedAt(),
                 profile.getUpdatedAt()
         );

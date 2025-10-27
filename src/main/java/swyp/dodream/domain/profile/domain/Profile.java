@@ -2,17 +2,22 @@ package swyp.dodream.domain.profile.domain;
 
 import jakarta.persistence.*;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import swyp.dodream.domain.profile.enums.*;
+import swyp.dodream.domain.url.domain.ProfileUrl;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "profiles")
 @EntityListeners(AuditingEntityListener.class)
 @Getter
+@NoArgsConstructor
 public class Profile {
 
     @Id
@@ -37,9 +42,6 @@ public class Profile {
     @Column(nullable = false)
     private Experience experience;
 
-    @Column(name = "role_id")
-    private Long roleId;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "activity_mode", nullable = false)
     private ActivityMode activityMode;
@@ -53,6 +55,9 @@ public class Profile {
     @Column(name = "is_public", nullable = false)
     private Boolean isPublic = true;
 
+    @OneToMany(mappedBy = "profile", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<ProfileUrl> profileUrls = new ArrayList<>();
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -60,8 +65,6 @@ public class Profile {
     @LastModifiedDate
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-
-    protected Profile() {}
 
     public Profile(Long userId, String nickname, Experience experience, ActivityMode activityMode) {
         this.userId = userId;
@@ -72,16 +75,26 @@ public class Profile {
 
     // 전체 프로필 업데이트
     public void updateProfile(String nickname, Gender gender, AgeBand ageBand, 
-                            Experience experience, Long roleId, ActivityMode activityMode,
+                            Experience experience, ActivityMode activityMode,
                             String introText, Boolean introIsAi, Boolean isPublic) {
         this.nickname = nickname;
         this.gender = gender;
         this.ageBand = ageBand;
         this.experience = experience;
-        this.roleId = roleId;
         this.activityMode = activityMode;
         this.introText = introText;
         this.introIsAi = introIsAi;
         this.isPublic = isPublic;
+    }
+
+    // ProfileUrl 관리 메서드들
+    public void addProfileUrl(ProfileUrl profileUrl) {
+        this.profileUrls.add(profileUrl);
+        profileUrl.setProfile(this);
+    }
+
+    public void removeProfileUrl(ProfileUrl profileUrl) {
+        this.profileUrls.remove(profileUrl);
+        profileUrl.setProfile(null);
     }
 }

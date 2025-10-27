@@ -15,9 +15,7 @@ public class UserService {
     
     private final UserRepository userRepository;
     
-    /**
-     * 회원탈퇴 (소프트 딜리션)
-     */
+    // 회원탈퇴 (소프트 딜리션)
     @Transactional
     public void withdrawUser(Long userId) {
         User user = userRepository.findById(userId)
@@ -31,9 +29,7 @@ public class UserService {
         userRepository.save(user);
     }
     
-    /**
-     * 활성 사용자 조회
-     */
+    // 활성 사용자 조회
     public User findActiveUserById(Long userId) {
         return userRepository.findById(userId)
                 .filter(User::getStatus)

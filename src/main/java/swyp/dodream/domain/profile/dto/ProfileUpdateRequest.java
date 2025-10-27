@@ -13,7 +13,6 @@ public class ProfileUpdateRequest {
     private Gender gender;
     private AgeBand ageBand;
     private Experience experience;
-    private Long roleId;
     private ActivityMode activityMode;
     private String introText;
     private Boolean introIsAi;
