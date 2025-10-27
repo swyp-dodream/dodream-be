@@ -7,6 +7,7 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import swyp.dodream.common.snowflake.SnowflakeIdService;
 import swyp.dodream.domain.user.domain.OAuthAccount;
 import swyp.dodream.domain.user.domain.User;
 import swyp.dodream.domain.user.repository.OAuthAccountRepository;
@@ -18,10 +19,12 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
     private final UserRepository userRepository;
     private final OAuthAccountRepository oAuthAccountRepository;
+    private final SnowflakeIdService snowflakeIdService;
 
-    public CustomOAuth2UserService(UserRepository userRepository, OAuthAccountRepository oAuthAccountRepository) {
+    public CustomOAuth2UserService(UserRepository userRepository, OAuthAccountRepository oAuthAccountRepository, SnowflakeIdService snowflakeIdService) {
         this.userRepository = userRepository;
         this.oAuthAccountRepository = oAuthAccountRepository;
+        this.snowflakeIdService = snowflakeIdService;
     }
 
     @Override
@@ -58,12 +61,14 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         // OAuth 계정 조회 또는 생성
         OAuthAccount oAuthAccount = oAuthAccountRepository.findByEmailAndProvider(email, provider)
                 .orElseGet(() -> {
-                    // 새 사용자 생성
-                    User newUser = new User(name, picture);
+                    // 새 사용자 생성 (스노우플레이크 ID 사용)
+                    Long snowflakeId = snowflakeIdService.generateId();
+                    User newUser = new User(snowflakeId, name, picture);
                     User savedUser = userRepository.save(newUser);
                     
-                    // OAuth 계정 생성
-                    OAuthAccount newOAuthAccount = new OAuthAccount(savedUser.getId(), provider, email);
+                    // OAuth 계정 생성 (스노우플레이크 ID 사용)
+                    Long oauthSnowflakeId = snowflakeIdService.generateId();
+                    OAuthAccount newOAuthAccount = new OAuthAccount(oauthSnowflakeId, savedUser.getId(), provider, email);
                     return oAuthAccountRepository.save(newOAuthAccount);
                 });
         

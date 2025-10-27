@@ -2,9 +2,11 @@ package swyp.dodream.domain.user.domain;
 
 import jakarta.persistence.*;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import swyp.dodream.common.snowflake.SnowflakeIdService;
 
 import java.time.LocalDateTime;
 
@@ -12,10 +14,10 @@ import java.time.LocalDateTime;
 @Table(name = "users")
 @EntityListeners(AuditingEntityListener.class)
 @Getter
+@NoArgsConstructor
 public class User {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false)
@@ -33,9 +35,14 @@ public class User {
     @LastModifiedDate
     private LocalDateTime updatedAt;
 
-    protected User() {}
-
     public User(String name, String profileImageUrl) {
+        this.name = name;
+        this.profileImageUrl = profileImageUrl;
+    }
+    
+    // Snowflake ID를 사용하는 생성자
+    public User(Long id, String name, String profileImageUrl) {
+        this.id = id;
         this.name = name;
         this.profileImageUrl = profileImageUrl;
     }

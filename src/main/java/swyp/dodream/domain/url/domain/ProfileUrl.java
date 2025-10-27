@@ -19,7 +19,6 @@ import java.time.LocalDateTime;
 public class ProfileUrl {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -42,6 +41,14 @@ public class ProfileUrl {
     private LocalDateTime updatedAt;
 
     public ProfileUrl(Profile profile, UrlLabel label, String url) {
+        this.profile = profile;
+        this.label = label;
+        this.url = url;
+    }
+    
+    // Snowflake ID를 사용하는 생성자
+    public ProfileUrl(Long id, Profile profile, UrlLabel label, String url) {
+        this.id = id;
         this.profile = profile;
         this.label = label;
         this.url = url;

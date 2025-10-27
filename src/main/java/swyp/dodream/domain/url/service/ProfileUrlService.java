@@ -4,13 +4,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import swyp.dodream.common.exception.ExceptionType;
+import swyp.dodream.common.snowflake.SnowflakeIdService;
 import swyp.dodream.domain.profile.domain.Profile;
 import swyp.dodream.domain.profile.repository.ProfileRepository;
 import swyp.dodream.domain.url.domain.ProfileUrl;
 import swyp.dodream.domain.url.dto.ProfileUrlCreateRequest;
 import swyp.dodream.domain.url.dto.ProfileUrlResponse;
 import swyp.dodream.domain.url.dto.ProfileUrlUpdateRequest;
-import swyp.dodream.domain.url.enums.UrlLabel;
 import swyp.dodream.domain.url.repository.ProfileUrlRepository;
 
 import java.util.List;
@@ -23,6 +23,7 @@ public class ProfileUrlService {
     
     private final ProfileUrlRepository profileUrlRepository;
     private final ProfileRepository profileRepository;
+    private final SnowflakeIdService snowflakeIdService;
     
     // URL 추가
     @Transactional
@@ -34,7 +35,8 @@ public class ProfileUrlService {
             throw ExceptionType.CONFLICT_DUPLICATE.of("이미 등록된 " + request.getLabel().getDisplayName() + " URL이 있습니다");
         }
         
-        ProfileUrl profileUrl = new ProfileUrl(profile, request.getLabel(), request.getUrl());
+        Long snowflakeId = snowflakeIdService.generateId();
+        ProfileUrl profileUrl = new ProfileUrl(snowflakeId, profile, request.getLabel(), request.getUrl());
         profile.addProfileUrl(profileUrl);
         
         ProfileUrl savedUrl = profileUrlRepository.save(profileUrl);

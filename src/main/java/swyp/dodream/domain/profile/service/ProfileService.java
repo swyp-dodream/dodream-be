@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import swyp.dodream.common.exception.ExceptionType;
+import swyp.dodream.common.snowflake.SnowflakeIdService;
 import swyp.dodream.domain.profile.domain.Profile;
 import swyp.dodream.domain.profile.dto.ProfileCreateRequest;
 import swyp.dodream.domain.profile.dto.ProfileResponse;
@@ -16,6 +17,7 @@ import swyp.dodream.domain.profile.repository.ProfileRepository;
 public class ProfileService {
     
     private final ProfileRepository profileRepository;
+    private final SnowflakeIdService snowflakeIdService;
     
     // 프로필 생성 (온보딩)
     @Transactional
@@ -88,7 +90,9 @@ public class ProfileService {
     
     // 새 프로필 생성
     private Profile createNewProfile(Long userId, ProfileCreateRequest request) {
+        Long snowflakeId = snowflakeIdService.generateId();
         Profile profile = new Profile(
+                snowflakeId,
                 userId,
                 request.getNickname(),
                 request.getExperience(),

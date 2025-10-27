@@ -16,7 +16,6 @@ import java.time.LocalDateTime;
 public class OAuthAccount {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(name = "user_id", nullable = false)
@@ -42,6 +41,15 @@ public class OAuthAccount {
     protected OAuthAccount() {}
 
     public OAuthAccount(Long userId, AuthProvider provider, String email) {
+        this.userId = userId;
+        this.provider = provider;
+        this.email = email;
+        this.lastLoginAt = LocalDateTime.now();
+    }
+    
+    // Snowflake ID를 사용하는 생성자
+    public OAuthAccount(Long id, Long userId, AuthProvider provider, String email) {
+        this.id = id;
         this.userId = userId;
         this.provider = provider;
         this.email = email;

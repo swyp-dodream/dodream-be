@@ -21,7 +21,6 @@ import java.util.List;
 public class Profile {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(name = "user_id", nullable = false, unique = true)
@@ -67,6 +66,15 @@ public class Profile {
     private LocalDateTime updatedAt;
 
     public Profile(Long userId, String nickname, Experience experience, ActivityMode activityMode) {
+        this.userId = userId;
+        this.nickname = nickname;
+        this.experience = experience;
+        this.activityMode = activityMode;
+    }
+    
+    // Snowflake ID를 사용하는 생성자
+    public Profile(Long id, Long userId, String nickname, Experience experience, ActivityMode activityMode) {
+        this.id = id;
         this.userId = userId;
         this.nickname = nickname;
         this.experience = experience;
