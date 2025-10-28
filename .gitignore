@@ -39,4 +39,3 @@ out/
 
 ### Docker & Environment ###
 .env
-env
