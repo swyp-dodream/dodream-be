@@ -2,8 +2,8 @@ package swyp.dodream.domain.master.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import swyp.dodream.domain.master.TechCategory;
-import swyp.dodream.domain.master.TechSkill;
+import swyp.dodream.domain.master.domain.TechCategory;
+import swyp.dodream.domain.master.domain.TechSkill;
 import swyp.dodream.domain.master.dto.TechCategoryResponse;
 import swyp.dodream.domain.master.dto.TechSkillResponse;
 import swyp.dodream.domain.master.repository.TechCategoryRepository;

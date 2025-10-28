@@ -2,7 +2,7 @@ package swyp.dodream.domain.master.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import swyp.dodream.domain.master.TechSkill;
+import swyp.dodream.domain.master.domain.TechSkill;
 
 @Getter
 @AllArgsConstructor

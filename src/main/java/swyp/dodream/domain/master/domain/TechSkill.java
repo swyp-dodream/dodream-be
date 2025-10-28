@@ -1,4 +1,4 @@
-package swyp.dodream.domain.master;
+package swyp.dodream.domain.master.domain;
 
 import jakarta.persistence.*;
 import lombok.Getter;
