@@ -3,6 +3,7 @@ package swyp.dodream.domain.master;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(
@@ -12,11 +13,11 @@ import lombok.NoArgsConstructor;
         }
 )
 @Getter
+@Setter
 @NoArgsConstructor
 public class TechSkill {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -25,5 +26,10 @@ public class TechSkill {
 
     @Column(nullable = false, length = 50)
     private String name; // React, Spring, Figma 등
+
+    public TechSkill(TechCategory category, String name) {
+        this.category = category;
+        this.name = name;
+    }
 }
 

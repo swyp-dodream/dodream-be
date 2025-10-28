@@ -1,6 +1,10 @@
 package swyp.dodream.domain.post.domain;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 import swyp.dodream.domain.post.common.ActivityMode;
@@ -13,11 +17,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
+@Builder
+@Getter
 @Table(name = "post")
+@AllArgsConstructor
+@NoArgsConstructor
 public class Post {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -60,8 +67,19 @@ public class Post {
     private List<PostStack> stacks = new ArrayList<>();
 
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<PostRoleRequirement> roleRequirements = new ArrayList<>();
+    private List<PostRole> roleRequirements = new ArrayList<>();
 
     @OneToOne(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     private PostView postView;
+
+    public void increaseViewCount() {
+        if (this.postView != null) {
+            this.postView.increment(); // PostView 내부에서 count += 1 하는 메서드
+        }
+    }
+
+    public void closeRecruitment() {
+        this.status = PostStatus.COMPLETED;
+        this.updatedAt = LocalDateTime.now();
+    }
 }
