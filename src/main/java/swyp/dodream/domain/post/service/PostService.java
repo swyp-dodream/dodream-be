@@ -2,17 +2,21 @@ package swyp.dodream.domain.post.service;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import swyp.dodream.common.snowflake.SnowflakeIdService;
 import swyp.dodream.domain.master.domain.Role;
 import swyp.dodream.domain.master.domain.TechSkill;
+import swyp.dodream.domain.post.common.ActivityMode;
 import swyp.dodream.domain.post.common.PostStatus;
+import swyp.dodream.domain.post.common.ProjectType;
 import swyp.dodream.domain.post.domain.*;
-import swyp.dodream.domain.post.dto.ApplicationRequest;
-import swyp.dodream.domain.post.dto.PostCreateRequest;
-import swyp.dodream.domain.post.dto.PostResponse;
-import swyp.dodream.domain.post.dto.PostRoleDto;
+import swyp.dodream.domain.post.dto.*;
 import swyp.dodream.domain.post.repository.*;
 import swyp.dodream.domain.user.domain.User;
 import swyp.dodream.domain.user.repository.UserRepository;
@@ -30,6 +34,51 @@ public class PostService {
     private final PostFieldRepository postFieldRepository;
     private final ApplicationRepository applicationRepository;
 
+    // 홈 목록 조회 (필터 + 검색 + 페이지네이션)
+    public Page<PostSummaryResponse> getHomePosts(
+            ProjectType type,
+            String keyword,
+            String role,
+            String tech,
+            String interest,
+            ActivityMode activityMode,
+            boolean onlyRecruiting,
+            String sort,
+            Pageable pageable
+    ) {
+        Specification<Post> spec = Specification.where(PostSpecification.hasType(type));
+
+        if (keyword != null && !keyword.isBlank())
+            spec = spec.and(PostSpecification.containsKeyword(keyword));
+
+        if (role != null)
+            spec = spec.and(PostSpecification.hasRole(role));
+
+        if (tech != null)
+            spec = spec.and(PostSpecification.hasTech(tech));
+
+        if (interest != null)
+            spec = spec.and(PostSpecification.hasInterest(interest));
+
+        if (activityMode != null)
+            spec = spec.and(PostSpecification.hasActivityMode(activityMode));
+
+        if (onlyRecruiting)
+            spec = spec.and(PostSpecification.onlyRecruiting());
+
+        Sort sorting = switch (sort) {
+            case "popular" -> Sort.by(Sort.Direction.DESC, "viewCount");
+            case "deadline" -> Sort.by(Sort.Direction.ASC, "recruitEndDate");
+            default -> Sort.by(Sort.Direction.DESC, "createdAt");
+        };
+
+        Page<Post> posts = postRepository.findAll(
+                spec,
+                PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sorting)
+        );
+
+        return posts.map(PostSummaryResponse::fromEntity);
+    }
 
     // 모집글 생성
     @Transactional
@@ -123,7 +172,5 @@ public class PostService {
         Application application = new Application(post, user, role, request.getMessage());
         applicationRepository.save(application);
     }
-
-
 }
 

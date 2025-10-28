@@ -2,11 +2,13 @@ package swyp.dodream.domain.post.domain;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import swyp.dodream.domain.master.domain.Role;
 
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Getter
 @Table(name = "post_role_requirement")
 public class PostRole {
 

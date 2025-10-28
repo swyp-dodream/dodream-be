@@ -2,26 +2,48 @@ package swyp.dodream.domain.post.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import swyp.dodream.domain.post.common.ActivityMode;
+import swyp.dodream.domain.post.common.ProjectType;
+import swyp.dodream.domain.post.dto.ApplicationRequest;
 import swyp.dodream.domain.post.dto.PostCreateRequest;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import swyp.dodream.domain.post.dto.PostResponse;
+import swyp.dodream.domain.post.dto.PostSummaryResponse;
 import swyp.dodream.domain.post.service.PostService;
 import swyp.dodream.jwt.dto.UserPrincipal;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/posts")
 @RequiredArgsConstructor
 public class PostController {
     private final PostService postService;
+
+    // 홈 목록 조회 (필터 + 검색 + 페이지네이션)
+    @GetMapping("/home")
+    public ResponseEntity<Page<PostSummaryResponse>> getHomePosts(
+            @RequestParam(defaultValue = "ALL") ProjectType type,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String role,
+            @RequestParam(required = false) String tech,
+            @RequestParam(required = false) String interest,
+            @RequestParam(required = false) ActivityMode activityMode,
+            @RequestParam(defaultValue = "true") boolean onlyRecruiting,
+            @RequestParam(defaultValue = "latest") String sort,
+            Pageable pageable
+    ) {
+        Page<PostSummaryResponse> posts = postService.getHomePosts(
+                type, keyword, role, tech, interest, activityMode, onlyRecruiting, sort, pageable
+        );
+        return ResponseEntity.ok(posts);
+    }
 
     @PostMapping
     @PreAuthorize("isAuthenticated()") // 회원 전용

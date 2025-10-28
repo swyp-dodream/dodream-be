@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
+import swyp.dodream.domain.master.domain.InterestKeyword;
 import swyp.dodream.domain.post.common.ActivityMode;
 import swyp.dodream.domain.post.common.PostStatus;
 import swyp.dodream.domain.post.common.ProjectType;
@@ -14,6 +15,7 @@ import swyp.dodream.domain.user.domain.User;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 @Entity
@@ -71,6 +73,14 @@ public class Post {
 
     @OneToOne(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     private PostView postView;
+
+    @ManyToMany
+    @JoinTable(
+            name = "post_interest",
+            joinColumns = @JoinColumn(name = "post_id"),
+            inverseJoinColumns = @JoinColumn(name = "interest_keyword_id")
+    )
+    private List<InterestKeyword> interests = new ArrayList<>();
 
     public void increaseViewCount() {
         if (this.postView != null) {
