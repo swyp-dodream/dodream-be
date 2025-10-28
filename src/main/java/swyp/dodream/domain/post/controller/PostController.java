@@ -9,6 +9,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import swyp.dodream.domain.post.dto.PostCreateRequest;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 
 @RestController
 @RequestMapping("/api/posts")
@@ -23,5 +26,22 @@ public class PostController {
         PostResponse response = postService.createPost(request, user.getId());
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<PostResponse> getPostDetail(@PathVariable Long id,
+                                                      @AuthenticationPrincipal UserPrincipal user) {
+        PostResponse response = postService.getPostDetail(id, user.getId());
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{postId}/apply")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Void> applyToPost(@PathVariable Long postId,
+                                            @AuthenticationPrincipal UserPrincipal user,
+                                            @RequestBody(required = false) ApplicationRequest request) {
+        postService.applyToPost(postId, user.getId(), request);
+        return ResponseEntity.ok().build();
+    }
+
 }
 
