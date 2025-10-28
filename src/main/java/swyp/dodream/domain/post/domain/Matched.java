@@ -1,8 +1,8 @@
 package swyp.dodream.domain.post.domain;
 
 import jakarta.persistence.*;
-import swyp.dodream.domain.common.CancelBy;
-import swyp.dodream.domain.common.CancelReasonCode;
+import swyp.dodream.domain.post.common.CancelBy;
+import swyp.dodream.domain.post.common.CancelReasonCode;
 import swyp.dodream.domain.user.domain.User;
 
 import java.time.LocalDateTime;

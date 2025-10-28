@@ -1,7 +1,7 @@
 package swyp.dodream.domain.post.domain;
 
 import jakarta.persistence.*;
-import swyp.dodream.domain.common.ApplicationStatus;
+import swyp.dodream.domain.post.common.ApplicationStatus;
 import swyp.dodream.domain.user.domain.User;
 
 import java.time.LocalDateTime;

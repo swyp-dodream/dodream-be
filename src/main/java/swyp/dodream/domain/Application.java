@@ -1,7 +1,7 @@
 package swyp.dodream.domain;
 
-import swyp.dodream.domain.common.ApplicationStatus;
-import swyp.dodream.domain.common.BaseTimeEntity;
+import swyp.dodream.domain.post.common.ApplicationStatus;
+import swyp.dodream.domain.post.common.BaseTimeEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;

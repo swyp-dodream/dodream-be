@@ -5,7 +5,11 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import swyp.dodream.domain.common.*;
+import swyp.dodream.domain.post.common.ActivityMode;
+import swyp.dodream.domain.post.common.BaseTimeEntity;
+import swyp.dodream.domain.post.common.PostStatus;
+import swyp.dodream.domain.post.common.ProjectType;
+
 import java.time.LocalDateTime;
 
 @Getter
