@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
         uniqueConstraints = @UniqueConstraint(columnNames = {"post_id", "to_user_id"}))
 public class Suggestion {
 
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id
     private Long id;
 
     @Column(length = 1000, nullable = false)
