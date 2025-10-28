@@ -2,8 +2,8 @@ package swyp.dodream.domain.post.dto;
 
 import lombok.Builder;
 import lombok.Getter;
-import swyp.dodream.domain.Post;
 import swyp.dodream.domain.post.common.PostStatus;
+import swyp.dodream.domain.post.domain.Post;
 
 @Getter
 @Builder

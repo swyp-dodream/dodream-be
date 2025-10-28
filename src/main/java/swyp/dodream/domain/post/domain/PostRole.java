@@ -1,13 +1,16 @@
 package swyp.dodream.domain.post.domain;
 
 import jakarta.persistence.*;
-import swyp.dodream.domain.master.Role;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+import swyp.dodream.domain.master.domain.Role;
 
 @Entity
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "post_role_requirement")
-public class PostRoleRequirement {
+public class PostRole {
 
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -20,4 +23,10 @@ public class PostRoleRequirement {
 
     @Column(nullable = false)
     private int headcount;
+
+    public PostRole(Post post, Role role, int headcount) {
+        this.post = post;
+        this.role = role;
+        this.headcount = headcount;
+    }
 }

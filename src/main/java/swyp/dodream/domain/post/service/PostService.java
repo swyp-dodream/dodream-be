@@ -5,24 +5,19 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import swyp.dodream.common.snowflake.SnowflakeIdService;
-import swyp.dodream.domain.master.Role;
-import swyp.dodream.domain.master.TechSkill;
+import swyp.dodream.domain.master.domain.Role;
+import swyp.dodream.domain.master.domain.TechSkill;
 import swyp.dodream.domain.post.common.PostStatus;
-import swyp.dodream.domain.post.domain.Post;
-import swyp.dodream.domain.post.domain.PostRole;
-import swyp.dodream.domain.post.domain.PostStack;
+import swyp.dodream.domain.post.domain.*;
+import swyp.dodream.domain.post.dto.ApplicationRequest;
 import swyp.dodream.domain.post.dto.PostCreateRequest;
 import swyp.dodream.domain.post.dto.PostResponse;
 import swyp.dodream.domain.post.dto.PostRoleDto;
-import swyp.dodream.domain.post.repository.PostRepository;
-import swyp.dodream.domain.post.repository.PostRoleRepository;
-import swyp.dodream.domain.post.repository.PostStackRepository;
+import swyp.dodream.domain.post.repository.*;
 import swyp.dodream.domain.user.domain.User;
 import swyp.dodream.domain.user.repository.UserRepository;
 import java.time.LocalDateTime;
-import swyp.dodream.domain.master.InterestKeyword;
-import swyp.dodream.domain.post.domain.PostField;
-import swyp.dodream.domain.post.repository.PostFieldRepository;
+import swyp.dodream.domain.master.domain.InterestKeyword;
 
 @Service
 @RequiredArgsConstructor
@@ -33,6 +28,7 @@ public class PostService {
     private final PostStackRepository postStackRepository;
     private final PostRoleRepository postRoleRepository;
     private final PostFieldRepository postFieldRepository;
+    private final ApplicationRepository applicationRepository;
 
 
     // 모집글 생성
@@ -115,15 +111,19 @@ public class PostService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
 
-        if (post.getStatus() == PostStatus.CLOSED)
+        if (post.getStatus() == PostStatus.COMPLETED)
             throw new IllegalStateException("모집이 마감되었습니다.");
 
         if (applicationRepository.existsByPostAndApplicant(post, user))
             throw new IllegalStateException("이미 지원한 모집글입니다.");
 
-        Application application = new Application(post, user, request.getMessage());
+        Role role = new Role();
+        role.setId(request.getRoleId());
+
+        Application application = new Application(post, user, role, request.getMessage());
         applicationRepository.save(application);
     }
+
 
 }
 

@@ -1,9 +1,11 @@
 package swyp.dodream.domain.post.domain;
 
 import jakarta.persistence.*;
-import swyp.dodream.domain.master.TechSkill;
+import lombok.NoArgsConstructor;
+import swyp.dodream.domain.master.domain.TechSkill;
 
 @Entity
+@NoArgsConstructor
 @Table(name = "post_stack")
 @IdClass(PostStackId.class)
 public class PostStack {
@@ -17,4 +19,9 @@ public class PostStack {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tech_skill_id")
     private TechSkill techSkill;
+
+    public PostStack(Post post, TechSkill techSkill) {
+        this.post = post;
+        this.techSkill = techSkill;
+    }
 }

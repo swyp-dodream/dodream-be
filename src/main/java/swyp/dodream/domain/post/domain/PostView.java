@@ -16,4 +16,8 @@ public class PostView {
 
     @Column(nullable = false)
     private Long views = 0L;
+
+    public void increment() {
+        this.views++;
+    }
 }
