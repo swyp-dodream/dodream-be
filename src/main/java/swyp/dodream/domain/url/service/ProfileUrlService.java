@@ -29,16 +29,21 @@ public class ProfileUrlService {
     @Transactional
     public ProfileUrlResponse addUrl(Long userId, ProfileUrlCreateRequest request) {
         Profile profile = findProfileByUserId(userId);
-        
+
+        // 프로필당 최대 3개의 URL만 허용하기
+        List<ProfileUrl> existingUrls = profileUrlRepository.findByProfileId(profile.getId());
+        if (existingUrls.size() >= 3) {
+            throw ExceptionType.CONFLICT_DUPLICATE.of("프로필당 최대 3개의 URL만 등록할 수 있습니다");
+        }
+
         // 같은 라벨의 URL이 이미 있는지 확인
         if (profileUrlRepository.existsByProfileIdAndLabel(profile.getId(), request.getLabel())) {
             throw ExceptionType.CONFLICT_DUPLICATE.of("이미 등록된 " + request.getLabel().getDisplayName() + " URL이 있습니다");
         }
-        
+
         Long snowflakeId = snowflakeIdService.generateId();
         ProfileUrl profileUrl = new ProfileUrl(snowflakeId, profile, request.getLabel(), request.getUrl());
-        profile.addProfileUrl(profileUrl);
-        
+
         ProfileUrl savedUrl = profileUrlRepository.save(profileUrl);
         return ProfileUrlResponse.from(savedUrl);
     }
