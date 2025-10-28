@@ -1,14 +1,18 @@
 package swyp.dodream.domain.post.domain;
 
 import jakarta.persistence.*;
-import swyp.dodream.domain.post.common.ApplicationStatus;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import swyp.dodream.domain.master.domain.Role;
 import swyp.dodream.domain.user.domain.User;
 
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "application",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"post_id", "applicant_user_id"}))
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Table(name = "application")
 public class Application {
 
     @Id
@@ -16,24 +20,28 @@ public class Application {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "post_id", nullable = false)
-    private Post post;
+    private Post post; // 어떤 모집글에 지원했는가
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "applicant_user_id", nullable = false)
-    private User applicant;
+    @JoinColumn(name = "applicant_id", nullable = false)
+    private User applicant; // 누가 지원했는가
 
-    @Column(length = 1000, nullable = false)
-    private String applicationMessage;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "role_id", nullable = false)
+    private Role role; // 어떤 직군으로 지원했는가
 
-    @Enumerated(EnumType.STRING)
-    private ApplicationStatus status = ApplicationStatus.APPLIED;
+    @Column(nullable = false, length = 500)
+    private String message; // 지원 메시지
 
-    private LocalDateTime createdAt = LocalDateTime.now();
-    private LocalDateTime updatedAt = LocalDateTime.now();
-    private LocalDateTime withdrawnAt;
+    @Column(nullable = false)
+    private LocalDateTime createdAt;
 
-    public void withdraw() {
-        this.status = ApplicationStatus.WITHDRAWN;
-        this.withdrawnAt = LocalDateTime.now();
+    public Application(Post post, User applicant, Role role, String message) {
+        this.id = null; // Snowflake로 설정
+        this.post = post;
+        this.applicant = applicant;
+        this.role = role;
+        this.message = message;
+        this.createdAt = LocalDateTime.now();
     }
 }
