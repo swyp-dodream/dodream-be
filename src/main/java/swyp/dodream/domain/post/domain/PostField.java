@@ -1,6 +1,7 @@
 package swyp.dodream.domain.post.domain;
 
 import jakarta.persistence.*;
+import swyp.dodream.domain.master.InterestKeyword;
 
 @Entity
 @Table(name = "post_field")
