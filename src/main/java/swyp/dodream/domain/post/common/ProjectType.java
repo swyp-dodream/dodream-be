@@ -1,3 +1,3 @@
-package swyp.dodream.domain.common;
+package swyp.dodream.domain.post.common;
 
 public enum ProjectType { PROJECT, STUDY }

@@ -1,4 +1,4 @@
-package swyp.dodream.domain.common;
+package swyp.dodream.domain.post.common;
 
 public enum ActivityMode { ONLINE, OFFLINE, HYBRID }
 
