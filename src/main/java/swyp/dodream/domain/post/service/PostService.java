@@ -196,5 +196,21 @@ public class PostService {
         Application application = new Application(post, user, role, request.getMessage());
         applicationRepository.save(application);
     }
+
+    // 모집글 삭제
+    @Transactional
+    public void deletePost(Long postId, Long userId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new EntityNotFoundException("모집글을 찾을 수 없습니다."));
+
+        // 작성자 본인만 삭제 가능
+        if (!post.getOwner().getId().equals(userId)) {
+            throw new IllegalStateException("작성자만 모집글을 삭제할 수 있습니다.");
+        }
+
+        // 마지막으로 모집글 삭제
+        postRepository.delete(post);
+    }
+
 }
 

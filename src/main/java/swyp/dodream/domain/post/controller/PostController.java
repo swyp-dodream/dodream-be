@@ -157,4 +157,30 @@ public class PostController {
         postService.applyToPost(postId, user.getUserId(), request);
         return ResponseEntity.ok().build();
     }
+
+    // ==============================
+    // 모집글 삭제
+    // ==============================
+    @Operation(
+            summary = "모집글 삭제",
+            description = "작성자가 본인 모집글을 삭제합니다.",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "삭제 성공"),
+            @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자"),
+            @ApiResponse(responseCode = "403", description = "작성자가 아님"),
+            @ApiResponse(responseCode = "404", description = "모집글을 찾을 수 없음")
+    })
+    @PreAuthorize("isAuthenticated()")
+    @DeleteMapping("/{postId}")
+    public ResponseEntity<Void> deletePost(
+            @Parameter(description = "모집글 ID", example = "123")
+            @PathVariable Long postId,
+            @AuthenticationPrincipal UserPrincipal user
+    ) {
+        postService.deletePost(postId, user.getUserId());
+        return ResponseEntity.noContent().build(); // 204 응답
+    }
+
 }
