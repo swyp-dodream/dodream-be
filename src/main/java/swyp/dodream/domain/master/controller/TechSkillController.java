@@ -1,6 +1,7 @@
 package swyp.dodream.domain.master.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -52,7 +53,13 @@ public class TechSkillController {
     })
     @GetMapping
     public ResponseEntity<List<TechSkillResponse>> getSkillsByCategory(
-            @RequestParam(required = false) Long categoryId) {
+            @Parameter(
+                    description = "기술 카테고리 ID (예: 1 = 백엔드, 2 = 프론트엔드 등). " +
+                            "입력하지 않으면 전체 기술 스택을 반환합니다.",
+                    example = "1"
+            )
+            @RequestParam(required = false) Long categoryId
+    ) {
         List<TechSkillResponse> result = techSkillService.getSkills(categoryId);
         return ResponseEntity.ok(result);
     }

@@ -1,6 +1,7 @@
 package swyp.dodream.domain.post.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -37,8 +38,13 @@ public class BookmarkController {
     })
     @PostMapping("/{postId}")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<String> toggleBookmark(@PathVariable Long postId,
-                                                 @AuthenticationPrincipal UserPrincipal user) {
+    public ResponseEntity<String> toggleBookmark(
+            @Parameter(description = "모집글 ID", example = "123")
+            @PathVariable Long postId,
+
+            @Parameter(hidden = true, description = "현재 로그인한 사용자 정보 (자동 주입)")
+            @AuthenticationPrincipal UserPrincipal user
+    ) {
         boolean added = bookmarkService.toggleBookmark(user.getUserId(), postId);
         return ResponseEntity.ok(added ? "북마크 추가됨" : "북마크 해제됨");
     }
@@ -57,7 +63,10 @@ public class BookmarkController {
     })
     @GetMapping
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<List<PostSummaryResponse>> getMyBookmarks(@AuthenticationPrincipal UserPrincipal user) {
+    public ResponseEntity<List<PostSummaryResponse>> getMyBookmarks(
+            @Parameter(hidden = true, description = "현재 로그인한 사용자 정보 (자동 주입)")
+            @AuthenticationPrincipal UserPrincipal user
+    ) {
         List<PostSummaryResponse> bookmarks = bookmarkService.getBookmarkedPosts(user.getUserId());
         return ResponseEntity.ok(bookmarks);
     }
