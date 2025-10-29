@@ -1,11 +1,13 @@
 package swyp.dodream.domain.post.domain;
 
 import jakarta.persistence.*;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 import swyp.dodream.domain.master.domain.InterestKeyword;
 
 @Entity
 @NoArgsConstructor
+@Getter
 @Table(name = "post_field")
 @IdClass(PostFieldId.class)
 public class PostField {

@@ -101,7 +101,7 @@ public class PostService {
                 .owner(user)
                 .projectType(request.getProjectType())
                 .activityMode(request.getActivityMode())
-                .durationText(request.getDurationText())
+                .duration(request.getDuration())
                 .deadlineAt(request.getDeadlineAt())
                 .status(request.getStatus() != null ? request.getStatus() : PostStatus.RECRUITING)
                 .title(request.getTitle())
@@ -138,7 +138,7 @@ public class PostService {
         if (request.getActivityMode() == null)
             throw new IllegalArgumentException("활동 방식은 필수입니다.");
 
-        if (request.getDurationText() == null || request.getDurationText().isBlank())
+        if (request.getDuration() == null)
             throw new IllegalArgumentException("예상 활동 기간은 필수입니다.");
 
         if (request.getDeadlineAt() == null)
@@ -207,8 +207,8 @@ public class PostService {
         if (request.getActivityMode() != null)
             post.updateActivityMode(request.getActivityMode());
 
-        if (request.getDurationText() != null)
-            post.updateDurationText(request.getDurationText());
+        if (request.getDuration() != null)
+            post.updateDuration(request.getDuration());
 
         if (request.getDeadlineAt() != null)
             post.updateDeadlineAt(request.getDeadlineAt());
