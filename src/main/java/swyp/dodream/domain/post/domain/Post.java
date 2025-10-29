@@ -8,6 +8,7 @@ import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.Where;
 import swyp.dodream.domain.master.domain.InterestKeyword;
 import swyp.dodream.domain.post.common.ActivityMode;
+import swyp.dodream.domain.post.common.DurationPeriod;
 import swyp.dodream.domain.post.common.PostStatus;
 import swyp.dodream.domain.post.common.ProjectType;
 import swyp.dodream.domain.user.domain.User;
@@ -42,7 +43,9 @@ public class Post {
     @Column(nullable = false)
     private ActivityMode activityMode;  // ONLINE, OFFLINE, HYBRID
 
-    private String durationText;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private DurationPeriod duration;
 
     private LocalDateTime deadlineAt;
 
@@ -109,14 +112,14 @@ public class Post {
             String title,
             String content,
             ActivityMode activityMode,
-            String durationText,
+            DurationPeriod duration,
             LocalDateTime deadlineAt,
             ProjectType projectType
     ) {
         this.title = title;
         this.content = content;
         this.activityMode = activityMode;
-        this.durationText = durationText;
+        this.duration = duration;
         this.deadlineAt = deadlineAt;
         this.projectType = projectType;
     }
@@ -124,7 +127,7 @@ public class Post {
     public void updateTitle(String title) { this.title = title; }
     public void updateContent(String content) { this.content = content; }
     public void updateActivityMode(ActivityMode mode) { this.activityMode = mode; }
-    public void updateDurationText(String text) { this.durationText = text; }
+    public void updateDuration(DurationPeriod duration) { this.duration = duration; }
     public void updateDeadlineAt(LocalDateTime deadline) { this.deadlineAt = deadline; }
     public void updateProjectType(ProjectType type) { this.projectType = type; }
     public void updateStatus(PostStatus status) { this.status = status; }
