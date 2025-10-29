@@ -162,7 +162,7 @@ public class PostController {
                     required = true,
                     content = @Content(schema = @Schema(implementation = PostCreateRequest.class))
             )
-            @RequestBody @Valid PostCreateRequest request,
+            @RequestBody @Valid PostUpdateRequest request,
             @AuthenticationPrincipal UserPrincipal user
     ) {
         PostResponse updated = postService.updatePost(postId, request, user.getUserId());

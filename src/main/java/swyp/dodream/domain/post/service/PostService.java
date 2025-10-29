@@ -92,6 +92,9 @@ public class PostService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("회원이 아닙니다."));
 
+        // 비즈니스 검증 (필수 값 등)
+        validatePostRequest(request);
+
         // 모집글 기본 정보 저장
         Post post = Post.builder()
                 .id(snowflakeIdService.generateId())
@@ -125,6 +128,38 @@ public class PostService {
         return PostResponse.from(post, isOwner);
     }
 
+    // 비즈니스 규칙 검증 메서드
+    private void validatePostRequest(PostCreateRequest request) {
+
+        // 공통 필수 값 확인
+        if (request.getProjectType() == null)
+            throw new IllegalArgumentException("프로젝트 유형은 필수입니다.");
+
+        if (request.getActivityMode() == null)
+            throw new IllegalArgumentException("활동 방식은 필수입니다.");
+
+        if (request.getDurationText() == null || request.getDurationText().isBlank())
+            throw new IllegalArgumentException("예상 활동 기간은 필수입니다.");
+
+        if (request.getDeadlineAt() == null)
+            throw new IllegalArgumentException("모집 마감일은 필수입니다.");
+
+        if (request.getStackIds() == null || request.getStackIds().isEmpty())
+            throw new IllegalArgumentException("기술 스택은 최소 1개 이상 선택해야 합니다.");
+
+        if (request.getRoles() == null || request.getRoles().isEmpty())
+            throw new IllegalArgumentException("모집 직군은 최소 1개 이상 선택해야 합니다.");
+
+        // projectType에 따른 관심 분야 필수 여부
+        if (request.getProjectType() == ProjectType.PROJECT) {
+            if (request.getCategoryIds() == null || request.getCategoryIds().isEmpty()) {
+                throw new IllegalArgumentException("프로젝트는 관심 분야를 최소 1개 이상 선택해야 합니다.");
+            }
+        }
+        // STUDY일 경우: 선택사항이라 비어있어도 허용
+    }
+
+
     // 모집글 상세 조회
     @Transactional
     public PostResponse getPostDetail(Long postId, Long userId) {
@@ -154,43 +189,54 @@ public class PostService {
 
     // 모집글 수정
     @Transactional
-    public PostResponse updatePost(Long postId, PostCreateRequest request, Long userId) {
+    public PostResponse updatePost(Long postId, PostUpdateRequest request, Long userId) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new EntityNotFoundException("모집글을 찾을 수 없습니다."));
 
-        // 작성자 본인만 수정 가능
         if (!post.getOwner().getId().equals(userId)) {
             throw new IllegalStateException("작성자만 모집글을 수정할 수 있습니다.");
         }
 
-        // 모집 상태 업데이트 (모집중 / 모집 완료)
-        if (request.getStatus() != null) {
+        // 부분 수정 처리
+        if (request.getTitle() != null && !request.getTitle().isBlank())
+            post.updateTitle(request.getTitle());
+
+        if (request.getContent() != null && !request.getContent().isBlank())
+            post.updateContent(request.getContent());
+
+        if (request.getActivityMode() != null)
+            post.updateActivityMode(request.getActivityMode());
+
+        if (request.getDurationText() != null)
+            post.updateDurationText(request.getDurationText());
+
+        if (request.getDeadlineAt() != null)
+            post.updateDeadlineAt(request.getDeadlineAt());
+
+        if (request.getProjectType() != null)
+            post.updateProjectType(request.getProjectType());
+
+        if (request.getStatus() != null)
             post.updateStatus(request.getStatus());
+
+        // 스택, 직군, 분야는 전달된 경우에만 갱신
+        if (request.getStackIds() != null) {
+            postStackRepository.deleteAllByPost(post);
+            connectStacks(request, post);
         }
 
-        // 기본 정보 업데이트
-        post.updateBasicInfo(
-                request.getTitle(),
-                request.getContent(),
-                request.getActivityMode(),
-                request.getDurationText(),
-                request.getDeadlineAt(),
-                request.getProjectType()
-        );
+        if (request.getRoles() != null) {
+            postRoleRepository.deleteAllByPost(post);
+            connectRoles(request, post);
+        }
 
-        // 기존 관계 데이터 제거 후 새로 추가
-        postFieldRepository.deleteAllByPost(post);
-        postStackRepository.deleteAllByPost(post);
-        postRoleRepository.deleteAllByPost(post);
-
-        // 스터디(STUDY)가 아닐 때만 관심 분야 연결
-        connectFields(request, post);
-
-        // 기술 스택 연결
-        connectStacks(request, post);
-
-        // 모집 직군 연결
-        connectRoles(request, post);
+        // STUDY가 아닐 때만 관심 분야 적용
+        if (request.getProjectType() == null || request.getProjectType() == ProjectType.PROJECT) {
+            if (request.getCategoryIds() != null) {
+                postFieldRepository.deleteAllByPost(post);
+                connectFields(request, post);
+            }
+        }
 
         boolean isOwner = post.getOwner().getId().equals(userId);
         return PostResponse.from(post, isOwner);
@@ -249,7 +295,7 @@ public class PostService {
     }
 
 
-    private void connectRoles(PostCreateRequest request, Post post) {
+    private void connectRoles(PostRequest request, Post post) {
         if (request.getRoles() != null) {
             for (PostRoleDto roleDto : request.getRoles()) {
                 Role role = new Role();
@@ -260,7 +306,7 @@ public class PostService {
         }
     }
 
-    private void connectStacks(PostCreateRequest request, Post post) {
+    private void connectStacks(PostRequest request, Post post) {
         if (request.getStackIds() != null) {
             for (Long stackId : request.getStackIds()) {
                 TechSkill skill = new TechSkill();
@@ -271,7 +317,7 @@ public class PostService {
         }
     }
 
-    private void connectFields(PostCreateRequest request, Post post) {
+    private void connectFields(PostRequest request, Post post) {
         List<Long> categoryIds = request.getCategoryIds();
 
         // 카테고리가 아예 없으면 아무것도 안 함 (선택 사항)

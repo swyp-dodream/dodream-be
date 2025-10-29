@@ -121,7 +121,12 @@ public class Post {
         this.projectType = projectType;
     }
 
-    public void updateStatus(PostStatus status) {
-        this.status = status;
-    }
+    public void updateTitle(String title) { this.title = title; }
+    public void updateContent(String content) { this.content = content; }
+    public void updateActivityMode(ActivityMode mode) { this.activityMode = mode; }
+    public void updateDurationText(String text) { this.durationText = text; }
+    public void updateDeadlineAt(LocalDateTime deadline) { this.deadlineAt = deadline; }
+    public void updateProjectType(ProjectType type) { this.projectType = type; }
+    public void updateStatus(PostStatus status) { this.status = status; }
+
 }
