@@ -3,6 +3,7 @@ package swyp.dodream.domain.master.domain;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(
@@ -12,11 +13,11 @@ import lombok.NoArgsConstructor;
         }
 )
 @Getter
+@Setter
 @NoArgsConstructor
 public class InterestKeyword {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -24,5 +25,5 @@ public class InterestKeyword {
     private InterestCategory category;
 
     @Column(nullable = false, length = 50)
-    private String name; // AI, 모빌리티, 데이터 등
+    private String name;
 }
