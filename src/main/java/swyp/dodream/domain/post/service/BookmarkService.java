@@ -36,7 +36,6 @@ public class BookmarkService {
             bookmarkRepository.deleteByUserAndPost(user, post);
             return false; // 북마크 해제
         } else {
-            // ✅ Snowflake로 ID 생성
             Long bookmarkId = snowflakeIdService.generateId();
             bookmarkRepository.save(Bookmark.of(bookmarkId, user, post));
             return true; // 북마크 등록
