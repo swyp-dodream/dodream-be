@@ -2,6 +2,7 @@ package swyp.dodream.domain.interest.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import swyp.dodream.domain.profile.domain.Profile;
@@ -18,6 +19,11 @@ public interface InterestRepository extends JpaRepository<Interest, Long> {
 
     boolean existsByProfileIdAndInterest(Long profileId, InterestEnum interest);
 
+    long countByProfileId(Long profileId);
+
+    @Modifying
     @Query("DELETE FROM Interest i WHERE i.profile = :profile AND i.interest = :interest")
     void deleteByProfileAndInterest(@Param("profile") Profile profile, @Param("interest") InterestEnum interest);
+
+    void deleteByProfile(Profile profile);
 }
