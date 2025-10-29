@@ -1,12 +1,11 @@
 package swyp.dodream.domain.post.domain;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.Where;
 import swyp.dodream.domain.master.domain.InterestKeyword;
 import swyp.dodream.domain.post.common.ActivityMode;
 import swyp.dodream.domain.post.common.PostStatus;
@@ -22,7 +21,9 @@ import java.util.List;
 @Getter
 @Table(name = "post")
 @AllArgsConstructor
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@SQLDelete(sql = "UPDATE post SET deleted = true WHERE id = ?")
+@Where(clause = "deleted = false") // 항상 deleted=false 조건만 적용됨 (soft delete)
 public class Post {
 
     @Id
@@ -54,11 +55,22 @@ public class Post {
     @Lob
     private String content;
 
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private LocalDateTime createdAt;
 
-    private LocalDateTime updatedAt = LocalDateTime.now();
+    private LocalDateTime updatedAt;
 
     private Boolean deleted = false;
+
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
 
     // 연관 관계
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -73,13 +85,14 @@ public class Post {
     @OneToOne(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     private PostView postView;
 
-    @ManyToMany
-    @JoinTable(
-            name = "post_interest",
-            joinColumns = @JoinColumn(name = "post_id"),
-            inverseJoinColumns = @JoinColumn(name = "interest_keyword_id")
-    )
-    private List<InterestKeyword> interests = new ArrayList<>();
+//    PostField가 InterestKeyword와 매핑을 담당하므로 주석 처리
+//    @ManyToMany
+//    @JoinTable(
+//            name = "post_interest",
+//            joinColumns = @JoinColumn(name = "post_id"),
+//            inverseJoinColumns = @JoinColumn(name = "interest_keyword_id")
+//    )
+//    private List<InterestKeyword> interests = new ArrayList<>();
 
     public void increaseViewCount() {
         if (this.postView != null) {
