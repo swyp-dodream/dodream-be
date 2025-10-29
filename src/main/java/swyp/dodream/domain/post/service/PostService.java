@@ -28,6 +28,7 @@ import swyp.dodream.domain.master.domain.InterestKeyword;
 public class PostService {
     private final SnowflakeIdService snowflakeIdService;
     private final PostRepository postRepository;
+    private final PostViewRepository postViewRepository;
     private final UserRepository userRepository;
     private final PostStackRepository postStackRepository;
     private final PostRoleRepository postRoleRepository;
@@ -85,7 +86,7 @@ public class PostService {
     @Transactional
     public PostResponse createPost(PostCreateRequest request, Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+                .orElseThrow(() -> new EntityNotFoundException("회원이 아닙니다."));
 
         // 모집글 기본 정보 저장
         Post post = Post.builder()
@@ -101,6 +102,11 @@ public class PostService {
                 .build();
 
         postRepository.save(post);
+
+        // PostView 생성
+        PostView postView = new PostView();
+        postView.setPost(post);
+        postViewRepository.save(postView);
 
         // 스터디(STUDY)가 아닐 때만 관심 분야 연결
         if (request.getProjectType() != ProjectType.STUDY && request.getCategoryIds() != null) {
@@ -143,13 +149,22 @@ public class PostService {
     }
 
     // 모집글 상세 조회
-    @Transactional(readOnly = true)
+    @Transactional
     public PostResponse getPostDetail(Long postId, Long userId) {
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new EntityNotFoundException("Post not found"));
+                .orElseThrow(() -> new EntityNotFoundException("모집글을 찾을 수 없습니다."));
 
-        // 조회수 증가 (자신 포함)
+        // 조회수 조회 또는 생성
+        PostView postView = postViewRepository.findById(postId)
+                .orElseGet(() -> {
+                    PostView newView = new PostView();
+                    newView.setPost(post);
+                    return postViewRepository.save(newView);
+                });
+
+        // 조회수 증가 및 저장
         post.increaseViewCount();
+        postViewRepository.save(postView);
 
         // 자동 마감 처리
         if (post.getDeadlineAt() != null && post.getDeadlineAt().isBefore(LocalDateTime.now())) {
@@ -163,10 +178,11 @@ public class PostService {
     // 모집글 지원
     @Transactional
     public void applyToPost(Long postId, Long userId, ApplicationRequest request) {
-        Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new EntityNotFoundException("Post not found"));
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+                .orElseThrow(() -> new EntityNotFoundException("회원이 아닙니다."));
+
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new EntityNotFoundException("모집글을 찾을 수 없습니다."));
 
         if (post.getStatus() == PostStatus.COMPLETED)
             throw new IllegalStateException("모집이 마감되었습니다.");

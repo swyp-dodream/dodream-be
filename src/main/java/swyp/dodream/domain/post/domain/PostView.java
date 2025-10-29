@@ -2,9 +2,11 @@ package swyp.dodream.domain.post.domain;
 
 import jakarta.persistence.*;
 import lombok.Getter;
+import lombok.Setter;
 
 @Entity
 @Getter
+@Setter
 @Table(name = "post_view")
 public class PostView {
 
