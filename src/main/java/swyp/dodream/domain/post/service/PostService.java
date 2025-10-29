@@ -148,28 +148,6 @@ public class PostService {
         return PostResponse.from(post, isOwner);
     }
 
-    // 모집글 지원
-    @Transactional
-    public void applyToPost(Long postId, Long userId, ApplicationRequest request) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("회원이 아닙니다."));
-
-        Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new EntityNotFoundException("모집글을 찾을 수 없습니다."));
-
-        if (post.getStatus() == PostStatus.COMPLETED)
-            throw new IllegalStateException("모집이 마감되었습니다.");
-
-        if (applicationRepository.existsByPostAndApplicant(post, user))
-            throw new IllegalStateException("이미 지원한 모집글입니다.");
-
-        Role role = new Role();
-        role.setId(request.getRoleId());
-
-        Application application = new Application(post, user, role, request.getMessage());
-        applicationRepository.save(application);
-    }
-
     // 모집글 수정
     @Transactional
     public PostResponse updatePost(Long postId, PostCreateRequest request, Long userId) {
@@ -228,6 +206,44 @@ public class PostService {
         // 마지막으로 모집글 삭제
         postRepository.delete(post);
     }
+
+    // 모집글 지원
+    @Transactional
+    public void applyToPost(Long postId, Long userId, ApplicationRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("회원이 아닙니다."));
+
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new EntityNotFoundException("모집글을 찾을 수 없습니다."));
+
+        // 리더(작성자)는 지원 불가
+        if (post.getOwner().getId().equals(user.getId())) {
+            throw new IllegalStateException("작성자는 자신의 모집글에 지원할 수 없습니다.");
+        }
+
+        if (post.getStatus() == PostStatus.COMPLETED)
+            throw new IllegalStateException("모집이 마감되었습니다.");
+
+        if (applicationRepository.existsByPostAndApplicant(post, user))
+            throw new IllegalStateException("이미 지원한 모집글입니다.");
+
+        Role role = new Role();
+        role.setId(request.getRoleId());
+
+        Application application = new Application(post, user, role, request.getMessage());
+        applicationRepository.save(application);
+    }
+
+    // 모집글 지원 가능 여부 판단
+    @Transactional(readOnly = true)
+    public boolean canApply(Long postId, Long userId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new EntityNotFoundException("모집글을 찾을 수 없습니다."));
+
+        // 리더는 지원 불가
+        return !post.getOwner().getId().equals(userId);
+    }
+
 
     private void connectRoles(PostCreateRequest request, Post post) {
         if (request.getRoles() != null) {

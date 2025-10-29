@@ -18,10 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
 import swyp.dodream.domain.post.common.ActivityMode;
 import swyp.dodream.domain.post.common.ProjectType;
-import swyp.dodream.domain.post.dto.ApplicationRequest;
-import swyp.dodream.domain.post.dto.PostCreateRequest;
-import swyp.dodream.domain.post.dto.PostResponse;
-import swyp.dodream.domain.post.dto.PostSummaryResponse;
+import swyp.dodream.domain.post.dto.*;
 import swyp.dodream.domain.post.service.PostService;
 import swyp.dodream.jwt.dto.UserPrincipal;
 
@@ -156,6 +153,28 @@ public class PostController {
     ) {
         postService.applyToPost(postId, user.getUserId(), request);
         return ResponseEntity.ok().build();
+    }
+
+    // ==============================
+    // 모집글 지원 가능 여부 조회
+    // ==============================
+    @Operation(
+            summary = "모집글 지원 가능 여부 조회",
+            description = "현재 로그인한 사용자가 특정 모집글에 지원할 수 있는지 여부를 반환합니다. "
+                    + "모집글 작성자(리더)는 false를 반환합니다."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공",
+                    content = @Content(schema = @Schema(implementation = CanApplyResponse.class))),
+            @ApiResponse(responseCode = "404", description = "모집글을 찾을 수 없음"),
+            @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자")
+    })
+    @GetMapping("/{postId}/can-apply")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<CanApplyResponse> canApplyToPost(@PathVariable Long postId,
+                                                           @AuthenticationPrincipal UserPrincipal user) {
+        boolean canApply = postService.canApply(postId, user.getUserId());
+        return ResponseEntity.ok(new CanApplyResponse(canApply));
     }
 
     // ==============================
