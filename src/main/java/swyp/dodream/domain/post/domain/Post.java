@@ -121,4 +121,7 @@ public class Post {
         this.projectType = projectType;
     }
 
+    public void updateStatus(PostStatus status) {
+        this.status = status;
+    }
 }

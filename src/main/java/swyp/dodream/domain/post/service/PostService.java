@@ -96,7 +96,7 @@ public class PostService {
                 .activityMode(request.getActivityMode())
                 .durationText(request.getDurationText())
                 .deadlineAt(request.getDeadlineAt())
-                .status(PostStatus.RECRUITING)
+                .status(request.getStatus() != null ? request.getStatus() : PostStatus.RECRUITING)
                 .title(request.getTitle())
                 .content(request.getContent())
                 .build();
@@ -109,40 +109,13 @@ public class PostService {
         postViewRepository.save(postView);
 
         // 스터디(STUDY)가 아닐 때만 관심 분야 연결
-        if (request.getProjectType() != ProjectType.STUDY && request.getCategoryIds() != null) {
-
-            // 관심 분야는 최대 2개까지만 선택 가능
-            if (request.getCategoryIds().size() > 2) {
-                throw new IllegalArgumentException("분야는 최대 2개까지만 선택할 수 있습니다.");
-            }
-
-            for (Long keywordId : request.getCategoryIds()) {
-                InterestKeyword keyword = new InterestKeyword();
-                keyword.setId(keywordId);
-                PostField pf = new PostField(post, keyword);
-                postFieldRepository.save(pf);
-            }
-        }
+        connectFields(request, post);
 
         // 기술 스택 연결
-        if (request.getStackIds() != null) {
-            for (Long stackId : request.getStackIds()) {
-                TechSkill skill = new TechSkill();
-                skill.setId(stackId);
-                PostStack ps = new PostStack(post, skill);
-                postStackRepository.save(ps);
-            }
-        }
+        connectStacks(request, post);
 
         // 모집 직군 연결
-        if (request.getRoles() != null) {
-            for (PostRoleDto roleDto : request.getRoles()) {
-                Role role = new Role();
-                role.setId(roleDto.getRoleId());
-                PostRole pr = new PostRole(post, role, roleDto.getCount());
-                postRoleRepository.save(pr);
-            }
-        }
+        connectRoles(request, post);
 
         boolean isOwner = post.getOwner().getId().equals(userId);
         return PostResponse.from(post, isOwner);
@@ -208,6 +181,11 @@ public class PostService {
             throw new IllegalStateException("작성자만 모집글을 수정할 수 있습니다.");
         }
 
+        // 모집 상태 업데이트 (모집중 / 모집 완료)
+        if (request.getStatus() != null) {
+            post.updateStatus(request.getStatus());
+        }
+
         // 기본 정보 업데이트
         post.updateBasicInfo(
                 request.getTitle(),
@@ -224,38 +202,13 @@ public class PostService {
         postRoleRepository.deleteAllByPost(post);
 
         // 스터디(STUDY)가 아닐 때만 관심 분야 연결
-        if (request.getProjectType() != ProjectType.STUDY && request.getCategoryIds() != null) {
-            if (request.getCategoryIds().size() > 2) {
-                throw new IllegalArgumentException("분야는 최대 2개까지만 선택할 수 있습니다.");
-            }
-
-            for (Long keywordId : request.getCategoryIds()) {
-                InterestKeyword keyword = new InterestKeyword();
-                keyword.setId(keywordId);
-                PostField pf = new PostField(post, keyword);
-                postFieldRepository.save(pf);
-            }
-        }
+        connectFields(request, post);
 
         // 기술 스택 연결
-        if (request.getStackIds() != null) {
-            for (Long stackId : request.getStackIds()) {
-                TechSkill skill = new TechSkill();
-                skill.setId(stackId);
-                PostStack ps = new PostStack(post, skill);
-                postStackRepository.save(ps);
-            }
-        }
+        connectStacks(request, post);
 
         // 모집 직군 연결
-        if (request.getRoles() != null) {
-            for (PostRoleDto roleDto : request.getRoles()) {
-                Role role = new Role();
-                role.setId(roleDto.getRoleId());
-                PostRole pr = new PostRole(post, role, roleDto.getCount());
-                postRoleRepository.save(pr);
-            }
-        }
+        connectRoles(request, post);
 
         boolean isOwner = post.getOwner().getId().equals(userId);
         return PostResponse.from(post, isOwner);
@@ -276,5 +229,43 @@ public class PostService {
         postRepository.delete(post);
     }
 
+    private void connectRoles(PostCreateRequest request, Post post) {
+        if (request.getRoles() != null) {
+            for (PostRoleDto roleDto : request.getRoles()) {
+                Role role = new Role();
+                role.setId(roleDto.getRoleId());
+                PostRole pr = new PostRole(post, role, roleDto.getCount());
+                postRoleRepository.save(pr);
+            }
+        }
+    }
+
+    private void connectStacks(PostCreateRequest request, Post post) {
+        if (request.getStackIds() != null) {
+            for (Long stackId : request.getStackIds()) {
+                TechSkill skill = new TechSkill();
+                skill.setId(stackId);
+                PostStack ps = new PostStack(post, skill);
+                postStackRepository.save(ps);
+            }
+        }
+    }
+
+    private void connectFields(PostCreateRequest request, Post post) {
+        if (request.getProjectType() != ProjectType.STUDY && request.getCategoryIds() != null) {
+
+            // 관심 분야는 최대 2개까지만 선택 가능
+            if (request.getCategoryIds().size() > 2) {
+                throw new IllegalArgumentException("분야는 최대 2개까지만 선택할 수 있습니다.");
+            }
+
+            for (Long keywordId : request.getCategoryIds()) {
+                InterestKeyword keyword = new InterestKeyword();
+                keyword.setId(keywordId);
+                PostField pf = new PostField(post, keyword);
+                postFieldRepository.save(pf);
+            }
+        }
+    }
 }
 

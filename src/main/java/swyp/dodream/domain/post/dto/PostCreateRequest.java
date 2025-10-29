@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import swyp.dodream.domain.post.common.ActivityMode;
+import swyp.dodream.domain.post.common.PostStatus;
 import swyp.dodream.domain.post.common.ProjectType;
 
 import java.time.LocalDateTime;
@@ -16,6 +17,9 @@ import java.util.List;
 public class PostCreateRequest {
     @NotNull
     private ProjectType projectType; // "project" or "study"
+
+    @NotNull
+    private PostStatus status;
 
     @NotNull
     private ActivityMode activityMode; // "online" / "offline" / "hybrid"
