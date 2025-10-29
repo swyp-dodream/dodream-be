@@ -1,5 +1,6 @@
 package swyp.dodream.domain.post.repository;
 
+import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import org.springframework.data.jpa.domain.Specification;
@@ -12,6 +13,8 @@ import swyp.dodream.domain.post.common.ProjectType;
 import swyp.dodream.domain.post.domain.Post;
 import swyp.dodream.domain.post.domain.PostRole;
 import swyp.dodream.domain.post.domain.PostStack;
+
+import java.util.List;
 
 public class PostSpecification {
 
@@ -29,28 +32,33 @@ public class PostSpecification {
         );
     }
 
-    public static Specification<Post> hasRole(String roleCode) {
+    public static Specification<Post> hasAnyRole(List<String> roles) {
         return (root, query, cb) -> {
-            Join<Post, PostRole> join = root.join("postRoles", JoinType.INNER);
-            Join<PostRole, Role> roleJoin = join.join("role", JoinType.INNER);
-            return cb.equal(roleJoin.get("code"), roleCode);
+            Join<Post, PostRole> postRole = root.join("postRoles", JoinType.LEFT);
+            CriteriaBuilder.In<String> inClause = cb.in(postRole.get("role").get("name"));
+            roles.forEach(inClause::value);
+            return inClause;
         };
     }
 
-    public static Specification<Post> hasTech(String techName) {
+    public static Specification<Post> hasAnyTech(List<String> techs) {
         return (root, query, cb) -> {
-            Join<Post, PostStack> join = root.join("postStacks", JoinType.INNER);
-            Join<PostStack, TechSkill> techJoin = join.join("techSkill", JoinType.INNER);
-            return cb.equal(techJoin.get("name"), techName);
+            Join<Post, PostStack> postStack = root.join("postStacks", JoinType.LEFT);
+            CriteriaBuilder.In<String> inClause = cb.in(postStack.get("techSkill").get("name"));
+            techs.forEach(inClause::value);
+            return inClause;
         };
     }
 
-    public static Specification<Post> hasInterest(String interestName) {
+    public static Specification<Post> hasAnyInterest(List<String> interests) {
         return (root, query, cb) -> {
-            Join<Post, InterestKeyword> join = root.join("interests", JoinType.INNER);
-            return cb.equal(join.get("name"), interestName);
+            Join<Post, InterestKeyword> interestJoin = root.join("interests", JoinType.LEFT);
+            CriteriaBuilder.In<String> inClause = cb.in(interestJoin.get("name"));
+            interests.forEach(inClause::value);
+            return inClause;
         };
     }
+
 
     public static Specification<Post> hasActivityMode(ActivityMode mode) {
         return (root, query, cb) -> cb.equal(root.get("activityMode"), mode);

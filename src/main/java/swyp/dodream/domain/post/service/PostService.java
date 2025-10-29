@@ -21,6 +21,8 @@ import swyp.dodream.domain.post.repository.*;
 import swyp.dodream.domain.user.domain.User;
 import swyp.dodream.domain.user.repository.UserRepository;
 import java.time.LocalDateTime;
+import java.util.List;
+
 import swyp.dodream.domain.master.domain.InterestKeyword;
 
 @Service
@@ -39,9 +41,9 @@ public class PostService {
     public Page<PostSummaryResponse> getHomePosts(
             ProjectType type,
             String keyword,
-            String role,
-            String tech,
-            String interest,
+            List<String> roles,
+            List<String> techs,
+            List<String> interests,
             ActivityMode activityMode,
             boolean onlyRecruiting,
             String sort,
@@ -52,15 +54,17 @@ public class PostService {
         if (keyword != null && !keyword.isBlank())
             spec = spec.and(PostSpecification.containsKeyword(keyword));
 
-        if (role != null)
-            spec = spec.and(PostSpecification.hasRole(role));
+        // 다중 선택된 역할 필터
+        if (roles != null && !roles.isEmpty())
+            spec = spec.and(PostSpecification.hasAnyRole(roles));
 
-        if (tech != null)
-            spec = spec.and(PostSpecification.hasTech(tech));
+        // 다중 선택된 기술 필터
+        if (techs != null && !techs.isEmpty())
+            spec = spec.and(PostSpecification.hasAnyTech(techs));
 
         // 스터디(STUDY)인 경우에는 interest 필터를 완전히 무시
-        if (type != ProjectType.STUDY && interest != null)
-            spec = spec.and(PostSpecification.hasInterest(interest));
+        if (type != ProjectType.STUDY && interests != null && !interests.isEmpty())
+            spec = spec.and(PostSpecification.hasAnyInterest(interests));
 
         if (activityMode != null)
             spec = spec.and(PostSpecification.hasActivityMode(activityMode));
