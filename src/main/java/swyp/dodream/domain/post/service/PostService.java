@@ -57,7 +57,8 @@ public class PostService {
         if (tech != null)
             spec = spec.and(PostSpecification.hasTech(tech));
 
-        if (interest != null)
+        // 스터디(STUDY)인 경우에는 interest 필터를 완전히 무시
+        if (type != ProjectType.STUDY && interest != null)
             spec = spec.and(PostSpecification.hasInterest(interest));
 
         if (activityMode != null)
@@ -101,10 +102,11 @@ public class PostService {
 
         postRepository.save(post);
 
-        // 분야(InterestKeyword) 연결
-        if (request.getCategoryIds() != null) {
+        // 스터디(STUDY)가 아닐 때만 관심 분야 연결
+        if (request.getProjectType() != ProjectType.STUDY && request.getCategoryIds() != null) {
             for (Long keywordId : request.getCategoryIds()) {
                 InterestKeyword keyword = new InterestKeyword();
+                keyword.setId(snowflakeIdService.generateId());
                 PostField pf = new PostField(post, keyword);
                 postFieldRepository.save(pf);
             }
