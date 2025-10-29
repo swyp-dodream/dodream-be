@@ -15,7 +15,6 @@ import swyp.dodream.domain.user.domain.User;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 @Entity
@@ -92,4 +91,21 @@ public class Post {
         this.status = PostStatus.COMPLETED;
         this.updatedAt = LocalDateTime.now();
     }
+
+    public void updateBasicInfo(
+            String title,
+            String content,
+            ActivityMode activityMode,
+            String durationText,
+            LocalDateTime deadlineAt,
+            ProjectType projectType
+    ) {
+        this.title = title;
+        this.content = content;
+        this.activityMode = activityMode;
+        this.durationText = durationText;
+        this.deadlineAt = deadlineAt;
+        this.projectType = projectType;
+    }
+
 }

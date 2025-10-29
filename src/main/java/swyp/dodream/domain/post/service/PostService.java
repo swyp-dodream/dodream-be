@@ -197,6 +197,70 @@ public class PostService {
         applicationRepository.save(application);
     }
 
+    // 모집글 수정
+    @Transactional
+    public PostResponse updatePost(Long postId, PostCreateRequest request, Long userId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new EntityNotFoundException("모집글을 찾을 수 없습니다."));
+
+        // 작성자 본인만 수정 가능
+        if (!post.getOwner().getId().equals(userId)) {
+            throw new IllegalStateException("작성자만 모집글을 수정할 수 있습니다.");
+        }
+
+        // 기본 정보 업데이트
+        post.updateBasicInfo(
+                request.getTitle(),
+                request.getContent(),
+                request.getActivityMode(),
+                request.getDurationText(),
+                request.getDeadlineAt(),
+                request.getProjectType()
+        );
+
+        // 기존 관계 데이터 제거 후 새로 추가
+        postFieldRepository.deleteAllByPost(post);
+        postStackRepository.deleteAllByPost(post);
+        postRoleRepository.deleteAllByPost(post);
+
+        // 스터디(STUDY)가 아닐 때만 관심 분야 연결
+        if (request.getProjectType() != ProjectType.STUDY && request.getCategoryIds() != null) {
+            if (request.getCategoryIds().size() > 2) {
+                throw new IllegalArgumentException("분야는 최대 2개까지만 선택할 수 있습니다.");
+            }
+
+            for (Long keywordId : request.getCategoryIds()) {
+                InterestKeyword keyword = new InterestKeyword();
+                keyword.setId(keywordId);
+                PostField pf = new PostField(post, keyword);
+                postFieldRepository.save(pf);
+            }
+        }
+
+        // 기술 스택 연결
+        if (request.getStackIds() != null) {
+            for (Long stackId : request.getStackIds()) {
+                TechSkill skill = new TechSkill();
+                skill.setId(stackId);
+                PostStack ps = new PostStack(post, skill);
+                postStackRepository.save(ps);
+            }
+        }
+
+        // 모집 직군 연결
+        if (request.getRoles() != null) {
+            for (PostRoleDto roleDto : request.getRoles()) {
+                Role role = new Role();
+                role.setId(roleDto.getRoleId());
+                PostRole pr = new PostRole(post, role, roleDto.getCount());
+                postRoleRepository.save(pr);
+            }
+        }
+
+        boolean isOwner = post.getOwner().getId().equals(userId);
+        return PostResponse.from(post, isOwner);
+    }
+
     // 모집글 삭제
     @Transactional
     public void deletePost(Long postId, Long userId) {

@@ -159,6 +159,38 @@ public class PostController {
     }
 
     // ==============================
+    // 모집글 수정
+    // ==============================
+    @Operation(
+            summary = "모집글 수정",
+            description = "작성자가 본인 모집글의 내용을 수정합니다.",
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "수정 성공",
+                    content = @Content(schema = @Schema(implementation = PostResponse.class))),
+            @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자"),
+            @ApiResponse(responseCode = "403", description = "작성자가 아님"),
+            @ApiResponse(responseCode = "404", description = "모집글을 찾을 수 없음")
+    })
+    @PreAuthorize("isAuthenticated()")
+    @PutMapping("/{postId}")
+    public ResponseEntity<PostResponse> updatePost(
+            @Parameter(description = "모집글 ID", example = "123")
+            @PathVariable Long postId,
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "수정할 모집글 데이터",
+                    required = true,
+                    content = @Content(schema = @Schema(implementation = PostCreateRequest.class))
+            )
+            @RequestBody @Valid PostCreateRequest request,
+            @AuthenticationPrincipal UserPrincipal user
+    ) {
+        PostResponse updated = postService.updatePost(postId, request, user.getUserId());
+        return ResponseEntity.ok(updated);
+    }
+
+    // ==============================
     // 모집글 삭제
     // ==============================
     @Operation(
