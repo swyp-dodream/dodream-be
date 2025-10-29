@@ -272,19 +272,24 @@ public class PostService {
     }
 
     private void connectFields(PostCreateRequest request, Post post) {
-        if (request.getProjectType() != ProjectType.STUDY && request.getCategoryIds() != null) {
+        List<Long> categoryIds = request.getCategoryIds();
 
-            // 관심 분야는 최대 2개까지만 선택 가능
-            if (request.getCategoryIds().size() > 2) {
-                throw new IllegalArgumentException("분야는 최대 2개까지만 선택할 수 있습니다.");
-            }
+        // 카테고리가 아예 없으면 아무것도 안 함 (선택 사항)
+        if (categoryIds == null || categoryIds.isEmpty()) {
+            return;
+        }
 
-            for (Long keywordId : request.getCategoryIds()) {
-                InterestKeyword keyword = new InterestKeyword();
-                keyword.setId(keywordId);
-                PostField pf = new PostField(post, keyword);
-                postFieldRepository.save(pf);
-            }
+        // 관심 분야는 최대 2개까지만 선택 가능
+        if (categoryIds.size() > 2) {
+            throw new IllegalArgumentException("분야는 최대 2개까지만 선택할 수 있습니다.");
+        }
+
+        // projectType이 PROJECT이든 STUDY이든, categoryIds가 있으면 저장
+        for (Long keywordId : categoryIds) {
+            InterestKeyword keyword = new InterestKeyword();
+            keyword.setId(keywordId);
+            PostField pf = new PostField(post, keyword);
+            postFieldRepository.save(pf);
         }
     }
 }
