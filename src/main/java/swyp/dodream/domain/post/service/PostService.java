@@ -104,9 +104,15 @@ public class PostService {
 
         // 스터디(STUDY)가 아닐 때만 관심 분야 연결
         if (request.getProjectType() != ProjectType.STUDY && request.getCategoryIds() != null) {
+
+            // 관심 분야는 최대 2개까지만 선택 가능
+            if (request.getCategoryIds().size() > 2) {
+                throw new IllegalArgumentException("분야는 최대 2개까지만 선택할 수 있습니다.");
+            }
+
             for (Long keywordId : request.getCategoryIds()) {
                 InterestKeyword keyword = new InterestKeyword();
-                keyword.setId(snowflakeIdService.generateId());
+                keyword.setId(keywordId);
                 PostField pf = new PostField(post, keyword);
                 postFieldRepository.save(pf);
             }
