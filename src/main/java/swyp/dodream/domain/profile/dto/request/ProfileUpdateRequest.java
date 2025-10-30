@@ -1,4 +1,4 @@
-package swyp.dodream.domain.profile.dto;
+package swyp.dodream.domain.profile.dto.request;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

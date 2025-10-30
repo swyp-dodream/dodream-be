@@ -3,22 +3,23 @@ package swyp.dodream.domain.profile.domain;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import swyp.dodream.common.entity.BaseEntity;
+import swyp.dodream.domain.master.domain.InterestKeyword;
+import swyp.dodream.domain.master.domain.Role;
+import swyp.dodream.domain.master.domain.TechSkill;
 import swyp.dodream.domain.profile.enums.*;
 import swyp.dodream.domain.url.domain.ProfileUrl;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Table(name = "profiles")
-@EntityListeners(AuditingEntityListener.class)
 @Getter
 @NoArgsConstructor
-public class Profile {
+public class Profile extends BaseEntity {
 
     @Id
     private Long id;
@@ -48,22 +49,35 @@ public class Profile {
     @Column(name = "intro_text", length = 200)
     private String introText;
 
-    @Column(name = "intro_is_ai", nullable = false)
-    private Boolean introIsAi = false;
-
     @Column(name = "is_public", nullable = false)
     private Boolean isPublic = true;
 
     @OneToMany(mappedBy = "profile", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<ProfileUrl> profileUrls = new ArrayList<>();
 
-    @CreatedDate
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "profile_role",
+            joinColumns = @JoinColumn(name = "profile_id"),
+            inverseJoinColumns = @JoinColumn(name = "role_id")
+    )
+    private Set<Role> roles = new HashSet<>();
 
-    @LastModifiedDate
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "profile_interest_keywords",
+            joinColumns = @JoinColumn(name = "profile_id"),
+            inverseJoinColumns = @JoinColumn(name = "interest_keyword_id")
+    )
+    private Set<InterestKeyword> interestKeywords = new HashSet<>();
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "profile_tech_skills",
+            joinColumns = @JoinColumn(name = "profile_id"),
+            inverseJoinColumns = @JoinColumn(name = "tech_skill_id")
+    )
+    private Set<TechSkill> techSkills = new HashSet<>();
 
     public Profile(Long userId, String nickname, Experience experience, ActivityMode activityMode) {
         this.userId = userId;
@@ -82,16 +96,30 @@ public class Profile {
     }
 
     // 전체 프로필 업데이트
-    public void updateProfile(String nickname, Gender gender, AgeBand ageBand, 
+    public void updateProfile(String nickname, Gender gender, AgeBand ageBand,
                             Experience experience, ActivityMode activityMode,
-                            String introText, Boolean introIsAi, Boolean isPublic) {
+                            String introText, Boolean isPublic) {
         this.nickname = nickname;
         this.gender = gender;
         this.ageBand = ageBand;
         this.experience = experience;
         this.activityMode = activityMode;
         this.introText = introText;
-        this.introIsAi = introIsAi;
+        this.isPublic = isPublic;
+    }
+
+    // 마이페이지 프로필 정보 업데이트
+    public void updateProfileInfo(String nickname, Experience experience, ActivityMode activityMode, String introText) {
+        this.nickname = nickname;
+        this.experience = experience;
+        this.activityMode = activityMode;
+        this.introText = introText;
+    }
+
+    // 계정 설정 업데이트
+    public void updateAccountSettings(Gender gender, AgeBand ageBand, Boolean isPublic) {
+        this.gender = gender;
+        this.ageBand = ageBand;
         this.isPublic = isPublic;
     }
 
@@ -104,5 +132,32 @@ public class Profile {
     public void removeProfileUrl(ProfileUrl profileUrl) {
         this.profileUrls.remove(profileUrl);
         profileUrl.setProfile(null);
+    }
+
+    // 직군 관리 메서드
+    public void addRole(Role role) {
+        this.roles.add(role);
+    }
+
+    public void removeRole(Role role) {
+        this.roles.remove(role);
+    }
+
+    // 관심 키워드 관리 메서드
+    public void addInterestKeyword(InterestKeyword keyword) {
+        this.interestKeywords.add(keyword);
+    }
+
+    public void removeInterestKeyword(InterestKeyword keyword) {
+        this.interestKeywords.remove(keyword);
+    }
+
+    // 기술 스킬 관리 메서드
+    public void addTechSkill(TechSkill skill) {
+        this.techSkills.add(skill);
+    }
+
+    public void removeTechSkill(TechSkill skill) {
+        this.techSkills.remove(skill);
     }
 }

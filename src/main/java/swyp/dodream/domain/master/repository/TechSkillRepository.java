@@ -6,10 +6,10 @@ import swyp.dodream.domain.master.domain.TechSkill;
 import java.util.Optional;
 import java.util.Set;
 
+import org.springframework.data.jpa.repository.JpaRepository;
+import swyp.dodream.domain.master.domain.TechSkill;
+import java.util.*;
+
 public interface TechSkillRepository extends JpaRepository<TechSkill, Long> {
-    Optional<TechSkill> findByName(String name);
-
-    Set<TechSkill> findByNameIn(Set<String> names);
-
-    Set<TechSkill> findByIdIn(Set<Long> ids);
+    List<TechSkill> findByNameIn(java.util.Collection<String> names);
 }
