@@ -77,6 +77,7 @@ public class ProfileService {
                 request.experience(),
                 request.activityMode()
         );
+
         profile.updateProfile(
                 request.nickname(),
                 request.gender(),
@@ -84,7 +85,8 @@ public class ProfileService {
                 request.experience(),
                 request.activityMode(),
                 request.introText(),
-                true
+                true,
+                request.profileImageCode()
         );
 
         roles.forEach(profile::addRole);
@@ -214,7 +216,8 @@ public class ProfileService {
                 req.getExperience(),
                 req.getActivityMode(),
                 req.getIntroText(),
-                profile.getIsPublic()
+                profile.getIsPublic(),
+                req.getProfileImageCode()
         );
 
         // 직군

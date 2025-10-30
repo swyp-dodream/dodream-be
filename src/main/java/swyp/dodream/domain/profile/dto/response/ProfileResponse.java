@@ -28,6 +28,7 @@ public class ProfileResponse {
     private String activityMode;
     private String introText;
     private boolean isPublic;
+    private Integer profileImageCode;
 
     private List<String> roles;
     private List<String> interestKeywords;
@@ -46,6 +47,7 @@ public class ProfileResponse {
                 .experience(p.getExperience() == null ? null : p.getExperience().name())
                 .activityMode(p.getActivityMode() == null ? null : p.getActivityMode().name())
                 .introText(p.getIntroText())
+                .profileImageCode(p.getProfileImageCode() == null ? null : p.getProfileImageCode().intValue())
                 .isPublic(Boolean.TRUE.equals(p.getIsPublic()))
                 .roles(p.getRoles().stream().map(r -> r.getCode().name()).collect(Collectors.toList()))
                 .interestKeywords(p.getInterestKeywords().stream().map(k -> k.getName()).collect(Collectors.toList()))

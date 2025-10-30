@@ -1,9 +1,7 @@
 package swyp.dodream.domain.profile.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import swyp.dodream.domain.profile.enums.*;
 
 import java.util.List;
@@ -35,6 +33,11 @@ public record ProfileCreateRequest(
         @Schema(description = "선호 활동 방식", example = "온라인")
         @NotNull(message = "선호 활동 방식은 필수입니다")
         ActivityMode activityMode,
+
+        @Schema(description = "프로필 이미지 코드(정수)", example = "3")
+        @Min(value = 1, message = "이미지 코드는 1 이상이어야 합니다")
+        @Max(value = 15, message = "이미지 코드는 15 이하여야 합니다") // 범위는 운영 정책에 맞게
+        Integer profileImageCode,
 
         @Schema(description = "직군 이름 목록 (1~3개)", example = "[\"백엔드\", \"iOS\"]")
         @NotNull(message = "직군은 필수입니다")

@@ -1,5 +1,6 @@
 package swyp.dodream.domain.profile.dto.request;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -31,6 +32,11 @@ public class ProfileMyPageUpdateRequest {
 
     @Size(max = 200, message = "자기소개는 200자 이내로 입력해주세요.")
     private String introText;
+
+    @Schema(description = "프로필 이미지 코드(정수)", example = "3")
+    @Min(value = 1, message = "이미지 코드는 1 이상이어야 합니다")
+    @Max(value = 15, message = "이미지 코드는 15 이하여야 합니다") // 범위는 운영 정책에 맞게
+    Integer profileImageCode;
 
     @NotNull(message = "직군은 필수입니다.")
     @Size(min = 1, max = 3, message = "직군은 1개 이상 3개 이하여야 합니다.")

@@ -3,15 +3,18 @@ package swyp.dodream.domain.profile.domain;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.BatchSize;
 import swyp.dodream.common.entity.BaseEntity;
 import swyp.dodream.domain.master.domain.InterestKeyword;
 import swyp.dodream.domain.master.domain.Role;
 import swyp.dodream.domain.master.domain.TechSkill;
-import swyp.dodream.domain.profile.enums.*;
+import swyp.dodream.domain.profile.enums.ActivityMode;
+import swyp.dodream.domain.profile.enums.AgeBand;
+import swyp.dodream.domain.profile.enums.Experience;
+import swyp.dodream.domain.profile.enums.Gender;
 import swyp.dodream.domain.url.domain.ProfileUrl;
 
-import java.util.*;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "profiles")
@@ -50,6 +53,9 @@ public class Profile extends BaseEntity {
     @Column(name = "is_public", nullable = false)
     private Boolean isPublic = true;
 
+    @Column(name = "profile_image_code", nullable = false)
+    private Integer profileImageCode = 1;
+
     @OneToMany(mappedBy = "profile", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private Set<ProfileUrl> profileUrls = new LinkedHashSet<>();
 
@@ -68,7 +74,7 @@ public class Profile extends BaseEntity {
         this.experience = experience;
         this.activityMode = activityMode;
     }
-    
+
     // Snowflake ID를 사용하는 생성자
     public Profile(Long id, Long userId, String nickname, Experience experience, ActivityMode activityMode) {
         this.id = id;
@@ -80,8 +86,8 @@ public class Profile extends BaseEntity {
 
     // 전체 프로필 업데이트
     public void updateProfile(String nickname, Gender gender, AgeBand ageBand,
-                            Experience experience, ActivityMode activityMode,
-                            String introText, Boolean isPublic) {
+                              Experience experience, ActivityMode activityMode,
+                              String introText, Boolean isPublic,Integer profileImageCode) {
         this.nickname = nickname;
         this.gender = gender;
         this.ageBand = ageBand;
@@ -89,6 +95,7 @@ public class Profile extends BaseEntity {
         this.activityMode = activityMode;
         this.introText = introText;
         this.isPublic = isPublic;
+        this.profileImageCode = profileImageCode;
     }
 
     // 마이페이지 프로필 정보 업데이트
@@ -145,8 +152,19 @@ public class Profile extends BaseEntity {
     }
 
     // 직군/관심/기술 일괄 초기화 편의 메서드
-    public void clearRoles() { this.roles.clear(); }
-    public void clearInterestKeywords() { this.interestKeywords.clear(); }
-    public void clearTechSkills() { this.techSkills.clear(); }
+    public void clearRoles() {
+        this.roles.clear();
+    }
 
+    public void clearInterestKeywords() {
+        this.interestKeywords.clear();
+    }
+
+    public void clearTechSkills() {
+        this.techSkills.clear();
+    }
+
+    public void updateProfileImage(Integer code) {
+        if (code != null) this.profileImageCode = code;
+    }
 }

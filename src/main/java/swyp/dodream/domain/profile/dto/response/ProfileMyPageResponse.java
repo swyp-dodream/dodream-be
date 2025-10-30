@@ -27,6 +27,8 @@ public class ProfileMyPageResponse {
 
     private String introText;
 
+    private Integer profileImageCode;
+
     private List<ProfileRoleResponse> roles;
 
     private List<ProfileInterestKeywordResponse> interestKeywords;
@@ -41,6 +43,7 @@ public class ProfileMyPageResponse {
                 .experience(profile.getExperience())
                 .activityMode(profile.getActivityMode())
                 .introText(profile.getIntroText())
+                .profileImageCode(profile.getProfileImageCode())
                 .roles(profile.getRoles().stream()
                         .map(ProfileRoleResponse::from)
                         .collect(Collectors.toList()))
