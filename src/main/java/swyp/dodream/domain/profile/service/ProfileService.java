@@ -25,6 +25,7 @@ import swyp.dodream.domain.proposal.repository.ProposalNotificationRepository;
 import swyp.dodream.domain.url.domain.ProfileUrl;
 import swyp.dodream.domain.url.enums.UrlLabel;
 import swyp.dodream.domain.url.repository.ProfileUrlRepository;
+import swyp.dodream.domain.user.repository.UserRepository;
 
 import java.util.*;
 import java.util.function.Function;
@@ -43,10 +44,13 @@ public class ProfileService {
     private final ProposalNotificationRepository proposalNotificationRepository;
     private final SnowflakeIdService snowflakeIdService;
     private final ProfileUrlRepository profileUrlRepository;
+    private final UserRepository userRepository;
 
 
     @Transactional
     public ProfileResponse createProfile(Long userId, ProfileCreateRequest request) {
+        validateActiveUser(userId);
+
         // 1) 단일 프로필 & 닉네임 중복
         if (profileRepository.existsByUserId(userId)) {
             throw new CustomException(ExceptionType.CONFLICT_DUPLICATE);
@@ -124,6 +128,8 @@ public class ProfileService {
 
     @Transactional(readOnly = true)
     public ProfileMyPageResponse getMyProfile(Long userId) {
+        validateActiveUser(userId);
+
         Profile profile = profileRepository.findWithAllByUserId(userId)
                 .orElseThrow(() -> new CustomException(ExceptionType.NOT_FOUND));
         return ProfileMyPageResponse.from(profile);
@@ -171,6 +177,8 @@ public class ProfileService {
 
     @Transactional(readOnly = true)
     public AccountSettingsResponse getAccountSettingsWithEmail(Long userId, String email) {
+        validateActiveUser(userId);
+
         Profile profile = profileRepository.findByUserId(userId)
                 .orElseThrow(() -> new CustomException(ExceptionType.PROFILE_NOT_FOUND));
         ProposalNotification pn = proposalNotificationRepository.findByProfileId(profile.getId())
@@ -188,6 +196,8 @@ public class ProfileService {
 
     @Transactional
     public ProfileMyPageResponse updateMyProfile(Long userId, ProfileMyPageUpdateRequest req) {
+        validateActiveUser(userId);
+
         Profile profile = profileRepository.findWithAllByUserId(userId)
                 .orElseThrow(() -> new CustomException(ExceptionType.PROFILE_NOT_FOUND));
 
@@ -259,6 +269,8 @@ public class ProfileService {
 
     @Transactional
     public AccountSettingsResponse updateAccountSettings(Long userId, String email, AccountSettingsUpdateRequest req) {
+        validateActiveUser(userId);
+
         // 1) 프로필 조회
         Profile profile = profileRepository.findByUserId(userId)
                 .orElseThrow(() -> new CustomException(ExceptionType.PROFILE_NOT_FOUND));
@@ -292,5 +304,10 @@ public class ProfileService {
                 .proposalStudyOn(pn.getProposalStudyOn())
                 .isPublic(profile.getIsPublic())
                 .build();
+    }
+
+    private void validateActiveUser(Long userId) {
+        userRepository.findByIdAndStatusTrue(userId)
+                .orElseThrow(() -> new CustomException(ExceptionType.UNAUTHORIZED, "탈퇴한 사용자입니다."));
     }
 }
