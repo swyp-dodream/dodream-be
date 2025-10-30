@@ -14,6 +14,7 @@ import swyp.dodream.domain.master.repository.RoleRepository;
 import swyp.dodream.domain.master.repository.TechSkillRepository;
 import swyp.dodream.domain.profile.domain.Profile;
 import swyp.dodream.domain.profile.dto.request.ProfileCreateRequest;
+import swyp.dodream.domain.profile.dto.response.ProfileMyPageResponse;
 import swyp.dodream.domain.profile.dto.response.ProfileResponse;
 import swyp.dodream.domain.profile.repository.ProfileRepository;
 import swyp.dodream.domain.proposal.domain.ProposalNotification;
@@ -21,12 +22,15 @@ import swyp.dodream.domain.proposal.repository.ProposalNotificationRepository;
 import swyp.dodream.domain.url.domain.ProfileUrl;
 import swyp.dodream.domain.url.enums.UrlLabel;
 
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class ProfileService {
+
+    private static final int MAX_URLS = 3;
 
     private final ProfileRepository profileRepository;
     private final RoleRepository roleRepository;
@@ -35,52 +39,34 @@ public class ProfileService {
     private final ProposalNotificationRepository proposalNotificationRepository;
     private final SnowflakeIdService snowflakeIdService;
 
-    /**
-     * 프로필 생성
-     * 온보딩을 통해 새로운 사용자의 프로필을 생성합니다.
-     * 기본값으로 공개(isPublic = true), 지원 제안 수신(proposal ON) 설정됩니다.
-     */
     @Transactional
     public ProfileResponse createProfile(Long userId, ProfileCreateRequest request) {
-        // 1. 프로필 중복 확인
+        // 1) 단일 프로필 & 닉네임 중복
         if (profileRepository.existsByUserId(userId)) {
             throw new CustomException(ExceptionType.CONFLICT_DUPLICATE);
         }
-
-        // 2. 닉네임 중복 확인
         if (profileRepository.existsByNickname(request.nickname())) {
             throw new CustomException(ExceptionType.CONFLICT_DUPLICATE);
         }
 
-        // 3. 직군 조회
+        // 2) 마스터 조회 + 개수 일치 검증
         List<Role> roles = roleRepository.findByNameIn(request.roleNames());
-        if (roles.size() != request.roleNames().size()) {
-            throw new CustomException(ExceptionType.NOT_FOUND);
-        }
+        requireSameCount(ExceptionType.NOT_FOUND, "직군", request.roleNames(), roles, Role::getName);
 
-        // 4. 관심 분야 조회
         List<InterestKeyword> interestKeywords = interestKeywordRepository.findByNameIn(request.interestKeywordNames());
-        if (interestKeywords.size() != request.interestKeywordNames().size()) {
-            throw new CustomException(ExceptionType.INTEREST_NOT_FOUND);
-        }
+        requireSameCount(ExceptionType.INTEREST_NOT_FOUND, "관심 키워드", request.interestKeywordNames(), interestKeywords, InterestKeyword::getName);
 
-        // 5. 기술 스택 조회
         List<TechSkill> techSkills = techSkillRepository.findByNameIn(request.techSkillNames());
-        if (techSkills.size() != request.techSkillNames().size()) {
-            throw new CustomException(ExceptionType.TECH_STACK_NOT_FOUND);
-        }
+        requireSameCount(ExceptionType.TECH_STACK_NOT_FOUND, "기술 스택", request.techSkillNames(), techSkills, TechSkill::getName);
 
-        // 6. 프로필 생성 (Snowflake ID 사용)
+        // 3) 프로필 생성 (공개 true 기본)
         Long profileId = snowflakeIdService.generateId();
         Profile profile = new Profile(
-                profileId,
-                userId,
+                profileId, userId,
                 request.nickname(),
                 request.experience(),
                 request.activityMode()
         );
-
-        // 기본 정보 설정
         profile.updateProfile(
                 request.nickname(),
                 request.gender(),
@@ -88,48 +74,92 @@ public class ProfileService {
                 request.experience(),
                 request.activityMode(),
                 request.introText(),
-                true // isPublic = true (기본값)
+                true
         );
 
-        // 7. 직군 추가
         roles.forEach(profile::addRole);
-
-        // 8. 관심 분야 추가
         interestKeywords.forEach(profile::addInterestKeyword);
-
-        // 9. 기술 스택 추가
         techSkills.forEach(profile::addTechSkill);
 
-        // 프로필 먼저 저장 (ProfileUrl이 profile을 참조하므로 먼저 저장 필요)
-        Profile savedProfile = profileRepository.save(profile);
-
-        // 10. 프로필 URL 추가 (옵션) - 프로필 저장 후에 추가
+        // 4) URL (최대 3개, 중복 제거)
         if (request.profileUrls() != null && !request.profileUrls().isEmpty()) {
-            for (Map.Entry<String, String> entry : request.profileUrls().entrySet()) {
-                try {
-                    UrlLabel label = UrlLabel.valueOf(entry.getKey());
-                    Long urlId = snowflakeIdService.generateId();
-                    ProfileUrl profileUrl = new ProfileUrl(urlId, savedProfile, label, entry.getValue());
-                    savedProfile.addProfileUrl(profileUrl);
-                } catch (IllegalArgumentException e) {
-                    throw new CustomException(ExceptionType.BAD_REQUEST_INVALID);
-                }
+            if (request.profileUrls().size() > MAX_URLS) {
+                throw new CustomException(ExceptionType.BAD_REQUEST_INVALID);
             }
-            // ProfileUrl 추가 후 프로필 다시 저장
-            savedProfile = profileRepository.save(savedProfile);
+            // label+url 기준 중복 제거
+            Set<String> seen = new HashSet<>();
+            for (Map.Entry<String, String> e : request.profileUrls().entrySet()) {
+                UrlLabel label = resolveUrlLabel(e.getKey()); // 한/영/별칭 대응
+                String url = e.getValue();
+
+                String key = label.name() + "|" + url;
+                if (!seen.add(key)) continue; // 중복 skip
+
+                Long urlId = snowflakeIdService.generateId();
+                ProfileUrl pu = new ProfileUrl(urlId, profile, label, url);
+                profile.addProfileUrl(pu); // cascade = ALL, orphanRemoval = true 전제
+            }
         }
 
-        // 11. ProposalNotification 생성 (지원 제안 수신 설정)
-        Long notificationId = snowflakeIdService.generateId();
-        ProposalNotification proposalNotification = new ProposalNotification(
-                notificationId,
-                savedProfile.getId(),
+        // 5) 저장
+        Profile saved = profileRepository.save(profile);
+
+        // 6) 제안 수신 설정
+        Long pnId = snowflakeIdService.generateId();
+        ProposalNotification pn = new ProposalNotification(
+                pnId, saved.getId(),
                 request.projectProposalEnabled(),
                 request.studyProposalEnabled()
         );
-        proposalNotificationRepository.save(proposalNotification);
+        proposalNotificationRepository.save(pn);
 
-        // 응답 DTO 반환
-        return ProfileResponse.from(savedProfile, proposalNotification);
+        return ProfileResponse.from(saved, pn);
+    }
+
+    @Transactional(readOnly = true)
+    public ProfileMyPageResponse getMyProfile(Long userId) {
+        Profile profile = profileRepository.findWithAllByUserId(userId)
+                .orElseThrow(() -> new CustomException(ExceptionType.NOT_FOUND));
+        return ProfileMyPageResponse.from(profile);
+    }
+
+    // ===== helpers =====
+
+    private UrlLabel resolveUrlLabel(String raw) {
+        if (raw == null) return UrlLabel.기타;
+        String norm = raw.trim().toLowerCase(Locale.ROOT).replaceAll("\\s+", "");
+
+        Map<String, UrlLabel> alias = new HashMap<>();
+        alias.put("github", UrlLabel.깃허브);   alias.put("깃허브", UrlLabel.깃허브); alias.put("git", UrlLabel.깃허브);
+        alias.put("blog", UrlLabel.블로그);     alias.put("블로그", UrlLabel.블로그); alias.put("velog", UrlLabel.블로그); alias.put("티스토리", UrlLabel.블로그); alias.put("tistory", UrlLabel.블로그);
+        alias.put("portfolio", UrlLabel.포트폴리오); alias.put("포트폴리오", UrlLabel.포트폴리오); alias.put("포폴", UrlLabel.포트폴리오);
+        alias.put("notion", UrlLabel.노션);     alias.put("노션", UrlLabel.노션);
+        UrlLabel mapped = alias.get(norm);
+        if (mapped != null) return mapped;
+
+        // enum 상수 그대로 들어온 경우 대비
+        try { return UrlLabel.valueOf(raw.trim().toUpperCase(Locale.ROOT)); }
+        catch (Exception ignore) {}
+        return UrlLabel.기타;
+    }
+
+    private <T> void requireSameCount(
+            ExceptionType type,
+            String label,
+            List<String> requested,
+            List<T> loaded,
+            Function<T, String> nameFn) {
+
+        if (loaded.size() != requested.size()) {
+            Set<String> found = loaded.stream()
+                    .map(nameFn)
+                    .collect(Collectors.toSet());
+
+            List<String> missing = requested.stream()
+                    .filter(n -> !found.contains(n))
+                    .toList();
+
+            throw type.of(label + " 누락: " + missing);
+        }
     }
 }

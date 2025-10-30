@@ -121,20 +121,20 @@ public class ProfileController {
 //        return ResponseEntity.noContent().build();
 //    }
 //
-//    // === 마이 프로필 관리 ===
-//    @Operation(summary = "내 프로필 조회", description = "내 프로필 상세 정보를 조회합니다")
-//    @ApiResponses({
-//            @ApiResponse(responseCode = "200", description = "내 프로필 조회 성공"),
-//            @ApiResponse(responseCode = "404", description = "프로필을 찾을 수 없음")
-//    })
-//    @GetMapping("/me")
-//    public ResponseEntity<ProfileMyPageResponse> getMyProfile(Authentication authentication) {
-//        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
-//        Long userId = userPrincipal.getUserId();
-//
-//        ProfileMyPageResponse response = profileService.getMyProfile(userId);
-//        return ResponseEntity.ok(response);
-//    }
+    // === 내 프로필 관리 ===
+    @Operation(summary = "내 프로필 조회", description = "내 프로필 상세 정보를 조회합니다")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "내 프로필 조회 성공"),
+            @ApiResponse(responseCode = "404", description = "프로필을 찾을 수 없음")
+    })
+    @GetMapping("/me")
+    public ResponseEntity<ProfileMyPageResponse> getMyProfile(Authentication authentication) {
+        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+        Long userId = userPrincipal.getUserId();
+
+        ProfileMyPageResponse response = profileService.getMyProfile(userId);
+        return ResponseEntity.ok(response);
+    }
 //
 //    @Operation(summary = "내 프로필 수정", description = "내 프로필 정보를 수정합니다")
 //    @ApiResponses({

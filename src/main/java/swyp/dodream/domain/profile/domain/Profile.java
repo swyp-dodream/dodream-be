@@ -3,6 +3,7 @@ package swyp.dodream.domain.profile.domain;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.BatchSize;
 import swyp.dodream.common.entity.BaseEntity;
 import swyp.dodream.domain.master.domain.InterestKeyword;
 import swyp.dodream.domain.master.domain.Role;
@@ -10,10 +11,7 @@ import swyp.dodream.domain.master.domain.TechSkill;
 import swyp.dodream.domain.profile.enums.*;
 import swyp.dodream.domain.url.domain.ProfileUrl;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 @Entity
 @Table(name = "profiles")
@@ -52,32 +50,17 @@ public class Profile extends BaseEntity {
     @Column(name = "is_public", nullable = false)
     private Boolean isPublic = true;
 
-    @OneToMany(mappedBy = "profile", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<ProfileUrl> profileUrls = new ArrayList<>();
+    @OneToMany(mappedBy = "profile", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private Set<ProfileUrl> profileUrls = new LinkedHashSet<>();
 
     @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-            name = "profile_role",
-            joinColumns = @JoinColumn(name = "profile_id"),
-            inverseJoinColumns = @JoinColumn(name = "role_id")
-    )
-    private Set<Role> roles = new HashSet<>();
+    private Set<Role> roles = new LinkedHashSet<>();
 
     @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-            name = "profile_interest_keywords",
-            joinColumns = @JoinColumn(name = "profile_id"),
-            inverseJoinColumns = @JoinColumn(name = "interest_keyword_id")
-    )
-    private Set<InterestKeyword> interestKeywords = new HashSet<>();
+    private Set<InterestKeyword> interestKeywords = new LinkedHashSet<>();
 
     @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-            name = "profile_tech_skills",
-            joinColumns = @JoinColumn(name = "profile_id"),
-            inverseJoinColumns = @JoinColumn(name = "tech_skill_id")
-    )
-    private Set<TechSkill> techSkills = new HashSet<>();
+    private Set<TechSkill> techSkills = new LinkedHashSet<>();
 
     public Profile(Long userId, String nickname, Experience experience, ActivityMode activityMode) {
         this.userId = userId;
@@ -123,10 +106,10 @@ public class Profile extends BaseEntity {
         this.isPublic = isPublic;
     }
 
-    // ProfileUrl 관리 메서드들
-    public void addProfileUrl(ProfileUrl profileUrl) {
-        this.profileUrls.add(profileUrl);
-        profileUrl.setProfile(this);
+    public void addProfileUrl(ProfileUrl url) {
+        if (url == null) return;
+        url.setProfile(this);
+        this.profileUrls.add(url);
     }
 
     public void removeProfileUrl(ProfileUrl profileUrl) {
