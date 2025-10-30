@@ -1,6 +1,7 @@
 package swyp.dodream.domain.post.domain;
 
 import jakarta.persistence.*;
+import lombok.Getter;
 import swyp.dodream.domain.post.common.CancelBy;
 import swyp.dodream.domain.post.common.CancelReasonCode;
 import swyp.dodream.domain.user.domain.User;
@@ -10,6 +11,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "matched",
         uniqueConstraints = @UniqueConstraint(columnNames = {"post_id", "user_id"}))
+@Getter
 public class Matched {
 
     @Id
