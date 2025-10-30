@@ -17,6 +17,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
 import swyp.dodream.domain.post.common.ActivityMode;
+import swyp.dodream.domain.post.common.PostSortType;
 import swyp.dodream.domain.post.common.ProjectType;
 import swyp.dodream.domain.post.dto.*;
 import swyp.dodream.domain.post.service.PostService;
@@ -81,6 +82,29 @@ public class PostController {
         PostResponse response = postService.getPostDetail(id, user.getUserId());
         return ResponseEntity.ok(response);
     }
+
+    // ==============================
+    // 모집글 목록 조회 (정렬 기준 포함)
+    // ==============================
+    @Operation(
+            summary = "모집글 목록 조회",
+            description = "정렬 기준(최신순, 마감순, 인기순)에 따라 모집글 목록을 조회합니다."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공",
+                    content = @Content(schema = @Schema(implementation = PostResponse.class)))
+    })
+    @GetMapping
+    public ResponseEntity<Page<PostResponse>> getPosts(
+            @Parameter(description = "정렬 기준 (LATEST, DEADLINE, POPULAR)", example = "LATEST")
+            @RequestParam(defaultValue = "LATEST") PostSortType sortType,
+
+            Pageable pageable
+    ) {
+        Page<PostResponse> posts = postService.getPosts(sortType, pageable);
+        return ResponseEntity.ok(posts);
+    }
+
 
     // ==============================
     // 모집글 수정

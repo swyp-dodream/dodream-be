@@ -13,6 +13,7 @@ import swyp.dodream.common.snowflake.SnowflakeIdService;
 import swyp.dodream.domain.master.domain.Role;
 import swyp.dodream.domain.master.domain.TechSkill;
 import swyp.dodream.domain.post.common.ActivityMode;
+import swyp.dodream.domain.post.common.PostSortType;
 import swyp.dodream.domain.post.common.PostStatus;
 import swyp.dodream.domain.post.common.ProjectType;
 import swyp.dodream.domain.post.domain.*;
@@ -289,5 +290,33 @@ public class PostService {
             postFieldRepository.save(pf);
         }
     }
+
+    @Transactional(readOnly = true)
+    public Page<PostResponse> getPosts(PostSortType sortType, Pageable pageable) {
+        Sort sort;
+
+        switch (sortType) {
+            case DEADLINE:
+                sort = Sort.by(Sort.Direction.ASC, "deadlineAt"); // 마감이 가까운 순
+                break;
+            case POPULAR:
+                sort = Sort.by(Sort.Direction.DESC, "postView.viewCount"); // 조회수 순 (PostView 연관 필드)
+                break;
+            case LATEST:
+            default:
+                sort = Sort.by(Sort.Direction.DESC, "createdAt"); // 최신순
+                break;
+        }
+
+        Pageable sortedPageable = PageRequest.of(
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                sort
+        );
+
+        return postRepository.findAll(sortedPageable)
+                .map(post -> PostResponse.from(post, false)); // 목록에서는 작성자 여부 false
+    }
+
 }
 
