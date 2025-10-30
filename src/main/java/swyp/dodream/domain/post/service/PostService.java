@@ -37,55 +37,6 @@ public class PostService {
     private final PostFieldRepository postFieldRepository;
     private final ApplicationRepository applicationRepository;
 
-    // 홈 목록 조회 (필터 + 검색 + 페이지네이션)
-    public Page<PostSummaryResponse> getHomePosts(
-            ProjectType type,
-            String keyword,
-            List<String> roles,
-            List<String> techs,
-            List<String> interests,
-            ActivityMode activityMode,
-            boolean onlyRecruiting,
-            String sort,
-            Pageable pageable
-    ) {
-        Specification<Post> spec = Specification.where(PostSpecification.hasType(type));
-
-        if (keyword != null && !keyword.isBlank())
-            spec = spec.and(PostSpecification.containsKeyword(keyword));
-
-        // 다중 선택된 역할 필터
-        if (roles != null && !roles.isEmpty())
-            spec = spec.and(PostSpecification.hasAnyRole(roles));
-
-        // 다중 선택된 기술 필터
-        if (techs != null && !techs.isEmpty())
-            spec = spec.and(PostSpecification.hasAnyTech(techs));
-
-        // 스터디(STUDY)인 경우에는 interest 필터를 완전히 무시
-        if (type != ProjectType.STUDY && interests != null && !interests.isEmpty())
-            spec = spec.and(PostSpecification.hasAnyInterest(interests));
-
-        if (activityMode != null)
-            spec = spec.and(PostSpecification.hasActivityMode(activityMode));
-
-        if (onlyRecruiting)
-            spec = spec.and(PostSpecification.onlyRecruiting());
-
-        Sort sorting = switch (sort) {
-            case "popular" -> Sort.by(Sort.Direction.DESC, "viewCount");
-            case "deadline" -> Sort.by(Sort.Direction.ASC, "recruitEndDate");
-            default -> Sort.by(Sort.Direction.DESC, "createdAt");
-        };
-
-        Page<Post> posts = postRepository.findAll(
-                spec,
-                PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sorting)
-        );
-
-        return posts.map(PostSummaryResponse::fromEntity);
-    }
-
     // 모집글 생성
     @Transactional
     public PostResponse createPost(PostCreateRequest request, Long userId) {

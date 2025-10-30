@@ -32,61 +32,6 @@ public class PostController {
     private final PostService postService;
 
     // ==============================
-    // 홈 목록 조회 (필터 + 검색 + 페이지네이션)
-    // ==============================
-    @Operation(
-            summary = "홈 목록 조회",
-            description = "모집글 홈 화면에서 필터(유형, 직군, 기술스택, 관심 분야, 활동방식)와 검색, 페이지네이션으로 모집글을 조회합니다. "
-                    + "직군, 기술스택, 관심 분야는 다중 선택이 가능합니다."
-    )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "조회 성공",
-                    content = @Content(schema = @Schema(implementation = PostSummaryResponse.class)))
-    })
-    @GetMapping("/home")
-    public ResponseEntity<Page<PostSummaryResponse>> getHomePosts(
-            @Parameter(description = "모집 유형 (ALL, PROJECT, STUDY)", example = "ALL")
-            @RequestParam(defaultValue = "ALL") ProjectType type,
-
-            @Parameter(description = "검색 키워드", example = "자바 스터디")
-            @RequestParam(required = false) String keyword,
-
-            @Parameter(
-                    description = "직군 필터 (다중 선택 가능, 예: roles=백엔드&roles=프론트엔드)",
-                    example = "[\"백엔드\", \"프론트엔드\"]"
-            )
-            @RequestParam(required = false) List<String> roles,
-
-            @Parameter(
-                    description = "기술 스택 필터 (다중 선택 가능, 예: techs=Spring&techs=React)",
-                    example = "[\"Spring\", \"React\"]"
-            )
-            @RequestParam(required = false) List<String> techs,
-
-            @Parameter(
-                    description = "관심 분야 필터 (다중 선택 가능, 예: interests=교육&interests=이커머스)",
-                    example = "[\"교육\", \"이커머스\"]"
-            )
-            @RequestParam(required = false) List<String> interests,
-
-            @Parameter(description = "활동 방식 (ONLINE, OFFLINE, HYBRID)", example = "ONLINE")
-            @RequestParam(required = false) ActivityMode activityMode,
-
-            @Parameter(description = "모집 중인 글만 보기 여부", example = "true")
-            @RequestParam(defaultValue = "true") boolean onlyRecruiting,
-
-            @Parameter(description = "정렬 기준 (latest, popular, deadline)", example = "latest")
-            @RequestParam(defaultValue = "latest") String sort,
-
-            Pageable pageable
-    ) {
-        Page<PostSummaryResponse> posts = postService.getHomePosts(
-                type, keyword, roles, techs, interests, activityMode, onlyRecruiting, sort, pageable
-        );
-        return ResponseEntity.ok(posts);
-    }
-
-    // ==============================
     // 모집글 생성
     // ==============================
     @Operation(

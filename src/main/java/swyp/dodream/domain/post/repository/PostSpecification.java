@@ -64,7 +64,7 @@ public class PostSpecification {
         return (root, query, cb) -> cb.equal(root.get("activityMode"), mode);
     }
 
-    public static Specification<Post> onlyRecruiting() {
-        return (root, query, cb) -> cb.equal(root.get("status"), PostStatus.RECRUITING);
+    public static Specification<Post> hasStatus(PostStatus status) {
+        return (root, query, cb) -> cb.equal(root.get("status"), status);
     }
 }
