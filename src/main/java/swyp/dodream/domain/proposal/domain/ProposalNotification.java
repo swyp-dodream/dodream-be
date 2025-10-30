@@ -35,29 +35,11 @@ public class ProposalNotification extends BaseEntity {
         this.proposalStudyOn = proposalStudyOn;
     }
 
-    // 프로젝트 제안 수신 여부 토글
-    public void toggleProposalProject() {
-        this.proposalProjectOn = !this.proposalProjectOn;
+    public void setProposalProjectOn(Boolean proposalProjectOn) {
+        this.proposalProjectOn = proposalProjectOn;
     }
 
-    // 스터디 제안 수신 여부 토글
-    public void toggleProposalStudy() {
-        this.proposalStudyOn = !this.proposalStudyOn;
-    }
-
-    // 둘 다 토글
-    public void toggleAll() {
-        toggleProposalProject();
-        toggleProposalStudy();
-    }
-
-    // 특정 제안 타입 허용 여부 확인
-    public boolean isProposalAllowed(String type) {
-        if ("PROJECT".equalsIgnoreCase(type)) {
-            return proposalProjectOn;
-        } else if ("STUDY".equalsIgnoreCase(type)) {
-            return proposalStudyOn;
-        }
-        return false;
+    public void setProposalStudyOn(Boolean proposalStudyOn) {
+        this.proposalStudyOn = proposalStudyOn;
     }
 }

@@ -167,20 +167,20 @@ public class ProfileController {
         AccountSettingsResponse response = profileService.getAccountSettingsWithEmail(userId, userPrincipal.getEmail());
         return ResponseEntity.ok(response);
     }
-//
-//    @Operation(summary = "내 계정 설정 수정", description = "내 계정 설정 정보를 수정합니다")
-//    @ApiResponses({
-//            @ApiResponse(responseCode = "200", description = "계정 설정 수정 성공"),
-//            @ApiResponse(responseCode = "404", description = "프로필 또는 사용자 정보를 찾을 수 없음")
-//    })
-//    @PutMapping("/settings")
-//    public ResponseEntity<AccountSettingsResponse> updateAccountSettings(
-//            Authentication authentication,
-//            @Valid @RequestBody AccountSettingsUpdateRequest request) {
-//        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
-//        Long userId = userPrincipal.getUserId();
-//
-//        AccountSettingsResponse response = profileService.updateAccountSettings(userId, request);
-//        return ResponseEntity.ok(response);
-//    }
+
+    @Operation(summary = "내 계정 설정 수정", description = "내 계정 설정 정보를 수정합니다")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "계정 설정 수정 성공"),
+            @ApiResponse(responseCode = "404", description = "프로필 또는 사용자 정보를 찾을 수 없음")
+    })
+    @PutMapping("/settings")
+    public ResponseEntity<AccountSettingsResponse> updateAccountSettings(
+            Authentication authentication,
+            @Valid @RequestBody AccountSettingsUpdateRequest request) {
+        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+        Long userId = userPrincipal.getUserId();
+
+        AccountSettingsResponse response = profileService.updateAccountSettings(userId, userPrincipal.getEmail(), request);
+        return ResponseEntity.ok(response);
+    }
 }

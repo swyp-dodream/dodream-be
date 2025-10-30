@@ -13,6 +13,7 @@ import swyp.dodream.domain.master.repository.InterestKeywordRepository;
 import swyp.dodream.domain.master.repository.RoleRepository;
 import swyp.dodream.domain.master.repository.TechSkillRepository;
 import swyp.dodream.domain.profile.domain.Profile;
+import swyp.dodream.domain.profile.dto.request.AccountSettingsUpdateRequest;
 import swyp.dodream.domain.profile.dto.request.ProfileCreateRequest;
 import swyp.dodream.domain.profile.dto.request.ProfileMyPageUpdateRequest;
 import swyp.dodream.domain.profile.dto.response.AccountSettingsResponse;
@@ -254,5 +255,42 @@ public class ProfileService {
 
         Profile saved = profileRepository.save(profile);
         return ProfileMyPageResponse.from(saved);
+    }
+
+    @Transactional
+    public AccountSettingsResponse updateAccountSettings(Long userId, String email, AccountSettingsUpdateRequest req) {
+        // 1) 프로필 조회
+        Profile profile = profileRepository.findByUserId(userId)
+                .orElseThrow(() -> new CustomException(ExceptionType.PROFILE_NOT_FOUND));
+
+        // 2) 프로필(계정 설정) 갱신
+        profile.updateAccountSettings(req.getGender(), req.getAgeBand(), req.getIsPublic());
+
+        // 3) 제안 수신 설정 upsert
+        ProposalNotification pn = proposalNotificationRepository.findByProfileId(profile.getId())
+                .map(existing -> {
+                    existing.setProposalProjectOn(req.getProposalProjectOn());
+                    existing.setProposalStudyOn(req.getProposalStudyOn());
+                    return existing;
+                })
+                .orElseGet(() -> new ProposalNotification(
+                        snowflakeIdService.generateId(),
+                        profile.getId(),
+                        req.getProposalProjectOn(),
+                        req.getProposalStudyOn()
+                ));
+
+        proposalNotificationRepository.save(pn);
+        profileRepository.save(profile);
+
+        // 4) 응답 조립
+        return AccountSettingsResponse.builder()
+                .email(email)
+                .gender(profile.getGender())
+                .ageBand(profile.getAgeBand())
+                .proposalProjectOn(pn.getProposalProjectOn())
+                .proposalStudyOn(pn.getProposalStudyOn())
+                .isPublic(profile.getIsPublic())
+                .build();
     }
 }
