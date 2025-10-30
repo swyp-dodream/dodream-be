@@ -11,6 +11,8 @@ import swyp.dodream.domain.profile.enums.Gender;
 @Builder
 public class AccountSettingsResponse {
 
+    private String email;
+
     private Gender gender;
 
     private AgeBand ageBand;

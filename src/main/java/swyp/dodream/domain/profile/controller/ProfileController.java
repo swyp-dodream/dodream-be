@@ -153,20 +153,20 @@ public class ProfileController {
 //        return ResponseEntity.ok(response);
 //    }
 //
-//    // === 계정설정 관리 ===
-//    @Operation(summary = "내 계정 설정 조회", description = "내 계정 설정 정보를 조회합니다")
-//    @ApiResponses({
-//            @ApiResponse(responseCode = "200", description = "계정설정 조회 성공"),
-//            @ApiResponse(responseCode = "404", description = "프로필 또는 사용자 정보를 찾을 수 없음")
-//    })
-//    @GetMapping("/settings")
-//    public ResponseEntity<AccountSettingsResponse> getAccountSettings(Authentication authentication) {
-//        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
-//        Long userId = userPrincipal.getUserId();
-//
-//        AccountSettingsResponse response = profileService.getAccountSettings(userId);
-//        return ResponseEntity.ok(response);
-//    }
+    // === 계정설정 관리 ===
+    @Operation(summary = "내 계정 설정 조회", description = "내 계정 설정 정보를 조회합니다")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "계정설정 조회 성공"),
+            @ApiResponse(responseCode = "404", description = "프로필 또는 사용자 정보를 찾을 수 없음")
+    })
+    @GetMapping("/settings")
+    public ResponseEntity<AccountSettingsResponse> getAccountSettings(Authentication authentication) {
+        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+        Long userId = userPrincipal.getUserId();
+
+        AccountSettingsResponse response = profileService.getAccountSettingsWithEmail(userId, userPrincipal.getEmail());
+        return ResponseEntity.ok(response);
+    }
 //
 //    @Operation(summary = "내 계정 설정 수정", description = "내 계정 설정 정보를 수정합니다")
 //    @ApiResponses({

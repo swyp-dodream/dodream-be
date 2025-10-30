@@ -14,6 +14,7 @@ import swyp.dodream.domain.master.repository.RoleRepository;
 import swyp.dodream.domain.master.repository.TechSkillRepository;
 import swyp.dodream.domain.profile.domain.Profile;
 import swyp.dodream.domain.profile.dto.request.ProfileCreateRequest;
+import swyp.dodream.domain.profile.dto.response.AccountSettingsResponse;
 import swyp.dodream.domain.profile.dto.response.ProfileMyPageResponse;
 import swyp.dodream.domain.profile.dto.response.ProfileResponse;
 import swyp.dodream.domain.profile.repository.ProfileRepository;
@@ -161,5 +162,22 @@ public class ProfileService {
 
             throw type.of(label + " 누락: " + missing);
         }
+    }
+
+    @Transactional(readOnly = true)
+    public AccountSettingsResponse getAccountSettingsWithEmail(Long userId, String email) {
+        Profile profile = profileRepository.findByUserId(userId)
+                .orElseThrow(() -> new CustomException(ExceptionType.PROFILE_NOT_FOUND));
+        ProposalNotification pn = proposalNotificationRepository.findByProfileId(profile.getId())
+                .orElseThrow(() -> new CustomException(ExceptionType.NOT_FOUND));
+
+        return AccountSettingsResponse.builder()
+                .email(email)
+                .gender(profile.getGender())
+                .ageBand(profile.getAgeBand())
+                .proposalProjectOn(pn.getProposalProjectOn())
+                .proposalStudyOn(pn.getProposalStudyOn())
+                .isPublic(profile.getIsPublic())
+                .build();
     }
 }
