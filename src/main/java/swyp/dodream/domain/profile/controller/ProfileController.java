@@ -135,24 +135,24 @@ public class ProfileController {
         ProfileMyPageResponse response = profileService.getMyProfile(userId);
         return ResponseEntity.ok(response);
     }
-//
-//    @Operation(summary = "내 프로필 수정", description = "내 프로필 정보를 수정합니다")
-//    @ApiResponses({
-//            @ApiResponse(responseCode = "200", description = "내 프로필 수정 성공"),
-//            @ApiResponse(responseCode = "404", description = "프로필을 찾을 수 없음"),
-//            @ApiResponse(responseCode = "409", description = "이미 사용 중인 닉네임")
-//    })
-//    @PutMapping("/me")
-//    public ResponseEntity<ProfileMyPageResponse> updateMyProfile(
-//            Authentication authentication,
-//            @Valid @RequestBody ProfileMyPageUpdateRequest request) {
-//        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
-//        Long userId = userPrincipal.getUserId();
-//
-//        ProfileMyPageResponse response = profileService.updateMyProfile(userId, request);
-//        return ResponseEntity.ok(response);
-//    }
-//
+
+    @Operation(summary = "내 프로필 수정", description = "내 프로필 정보를 수정합니다")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "내 프로필 수정 성공"),
+            @ApiResponse(responseCode = "404", description = "프로필을 찾을 수 없음"),
+            @ApiResponse(responseCode = "409", description = "이미 사용 중인 닉네임")
+    })
+    @PutMapping("/me")
+    public ResponseEntity<ProfileMyPageResponse> updateMyProfile(
+            Authentication authentication,
+            @Valid @RequestBody ProfileMyPageUpdateRequest request) {
+        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+        Long userId = userPrincipal.getUserId();
+
+        ProfileMyPageResponse response = profileService.updateMyProfile(userId, request);
+        return ResponseEntity.ok(response);
+    }
+
     // === 계정설정 관리 ===
     @Operation(summary = "내 계정 설정 조회", description = "내 계정 설정 정보를 조회합니다")
     @ApiResponses({

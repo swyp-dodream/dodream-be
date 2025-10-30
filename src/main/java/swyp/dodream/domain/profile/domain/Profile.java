@@ -143,4 +143,10 @@ public class Profile extends BaseEntity {
     public void removeTechSkill(TechSkill skill) {
         this.techSkills.remove(skill);
     }
+
+    // 직군/관심/기술 일괄 초기화 편의 메서드
+    public void clearRoles() { this.roles.clear(); }
+    public void clearInterestKeywords() { this.interestKeywords.clear(); }
+    public void clearTechSkills() { this.techSkills.clear(); }
+
 }

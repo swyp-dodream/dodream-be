@@ -14,6 +14,7 @@ import swyp.dodream.domain.master.repository.RoleRepository;
 import swyp.dodream.domain.master.repository.TechSkillRepository;
 import swyp.dodream.domain.profile.domain.Profile;
 import swyp.dodream.domain.profile.dto.request.ProfileCreateRequest;
+import swyp.dodream.domain.profile.dto.request.ProfileMyPageUpdateRequest;
 import swyp.dodream.domain.profile.dto.response.AccountSettingsResponse;
 import swyp.dodream.domain.profile.dto.response.ProfileMyPageResponse;
 import swyp.dodream.domain.profile.dto.response.ProfileResponse;
@@ -22,6 +23,7 @@ import swyp.dodream.domain.proposal.domain.ProposalNotification;
 import swyp.dodream.domain.proposal.repository.ProposalNotificationRepository;
 import swyp.dodream.domain.url.domain.ProfileUrl;
 import swyp.dodream.domain.url.enums.UrlLabel;
+import swyp.dodream.domain.url.repository.ProfileUrlRepository;
 
 import java.util.*;
 import java.util.function.Function;
@@ -39,6 +41,8 @@ public class ProfileService {
     private final TechSkillRepository techSkillRepository;
     private final ProposalNotificationRepository proposalNotificationRepository;
     private final SnowflakeIdService snowflakeIdService;
+    private final ProfileUrlRepository profileUrlRepository;
+
 
     @Transactional
     public ProfileResponse createProfile(Long userId, ProfileCreateRequest request) {
@@ -179,5 +183,76 @@ public class ProfileService {
                 .proposalStudyOn(pn.getProposalStudyOn())
                 .isPublic(profile.getIsPublic())
                 .build();
+    }
+
+    @Transactional
+    public ProfileMyPageResponse updateMyProfile(Long userId, ProfileMyPageUpdateRequest req) {
+        Profile profile = profileRepository.findWithAllByUserId(userId)
+                .orElseThrow(() -> new CustomException(ExceptionType.PROFILE_NOT_FOUND));
+
+        // 닉네임 중복 체크
+        if (!req.getNickname().equals(profile.getNickname())
+                && profileRepository.existsByNickname(req.getNickname())) {
+            throw new CustomException(ExceptionType.CONFLICT_DUPLICATE, "이미 사용 중인 닉네임입니다.");
+        }
+
+        profile.updateProfile(
+                req.getNickname(),
+                profile.getGender(),     // 계정설정 API에서 관리
+                profile.getAgeBand(),
+                req.getExperience(),
+                req.getActivityMode(),
+                req.getIntroText(),
+                profile.getIsPublic()
+        );
+
+        // 직군
+        if (req.getRoleNames() != null && !req.getRoleNames().isEmpty()) {
+            var roles = roleRepository.findByNameIn(req.getRoleNames());
+            requireSameCount(ExceptionType.NOT_FOUND, "직군", req.getRoleNames(), roles, Role::getName);
+            profile.clearRoles();
+            roles.forEach(profile::addRole);
+        }
+
+        // 관심
+        if (req.getInterestKeywordNames() != null && !req.getInterestKeywordNames().isEmpty()) {
+            if (req.getInterestKeywordNames().size() > 5)
+                throw new CustomException(ExceptionType.BAD_REQUEST_INVALID, "관심 분야는 최대 5개까지 선택 가능합니다.");
+            var interests = interestKeywordRepository.findByNameIn(req.getInterestKeywordNames());
+            requireSameCount(ExceptionType.INTEREST_NOT_FOUND, "관심 키워드", req.getInterestKeywordNames(), interests, InterestKeyword::getName);
+            profile.clearInterestKeywords();
+            interests.forEach(profile::addInterestKeyword);
+        }
+
+        // 기술
+        if (req.getTechSkillNames() != null && !req.getTechSkillNames().isEmpty()) {
+            if (req.getTechSkillNames().size() > 5)
+                throw new CustomException(ExceptionType.BAD_REQUEST_INVALID, "기술 스택은 최대 5개까지 선택 가능합니다.");
+            var skills = techSkillRepository.findByNameIn(req.getTechSkillNames());
+            requireSameCount(ExceptionType.TECH_STACK_NOT_FOUND, "기술 스택", req.getTechSkillNames(), skills, TechSkill::getName);
+            profile.clearTechSkills();
+            skills.forEach(profile::addTechSkill);
+        }
+
+        // URL (최대 3개) — orphanRemoval=true면 clear()만으로 삭제됨
+        if (req.getProfileUrls() != null && !req.getProfileUrls().isEmpty()) {
+            if (req.getProfileUrls().size() > MAX_URLS)
+                throw new CustomException(ExceptionType.BAD_REQUEST_INVALID, "프로필 URL은 최대 3개까지 등록 가능합니다.");
+
+            profile.getProfileUrls().clear();
+
+            Set<String> dedup = new HashSet<>();
+            req.getProfileUrls().forEach((labelStr, url) -> {
+                var label = resolveUrlLabel(labelStr);
+                var key = label.name() + "|" + url;
+                if (!dedup.add(key)) return;     // 중복 제거
+
+                Long urlId = snowflakeIdService.generateId();
+                profile.addProfileUrl(new ProfileUrl(urlId, profile, label, url));
+            });
+        }
+
+        Profile saved = profileRepository.save(profile);
+        return ProfileMyPageResponse.from(saved);
     }
 }
