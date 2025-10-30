@@ -19,7 +19,7 @@ public class UserService {
     @Transactional
     public void withdrawUser(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new CustomException(ExceptionType.USER_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(ExceptionType.NOT_FOUND_USER));
         
         if (!user.getStatus()) {
             throw new CustomException(ExceptionType.USER_ALREADY_WITHDRAWN);
@@ -33,6 +33,6 @@ public class UserService {
     public User findActiveUserById(Long userId) {
         return userRepository.findById(userId)
                 .filter(User::getStatus)
-                .orElseThrow(() -> new CustomException(ExceptionType.USER_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(ExceptionType.NOT_FOUND_USER));
     }
 }

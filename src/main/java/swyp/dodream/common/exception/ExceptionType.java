@@ -28,11 +28,15 @@ public enum ExceptionType {
     // NOT_FOUND(404)
     NOT_FOUND(HttpStatus.NOT_FOUND, "데이터가 존재하지 않음"),
     NOT_FOUND_USER(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다"),
-    USER_NOT_FOUND(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다"),
+    PROFILE_NOT_FOUND(HttpStatus.NOT_FOUND, "프로필을 찾을 수 없습니다"),
+    TECH_STACK_NOT_FOUND(HttpStatus.NOT_FOUND, "기술 스택을 찾을 수 없습니다"),
+    INTEREST_NOT_FOUND(HttpStatus.NOT_FOUND, "관심 분야를 찾을 수 없습니다"),
 
     // Conflict(409)
     CONFLICT_DUPLICATE(HttpStatus.CONFLICT, "이미 존재하는 데이터입니다"),
     USER_ALREADY_WITHDRAWN(HttpStatus.CONFLICT, "이미 탈퇴한 사용자입니다"),
+    DUPLICATE_TECH_STACK(HttpStatus.CONFLICT, "이미 추가된 기술 스택입니다"),
+    DUPLICATE_INTEREST(HttpStatus.CONFLICT, "이미 추가된 관심 분야입니다"),
 
     // Internal Server Error(500)
     SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 에러"),
@@ -46,6 +50,14 @@ public enum ExceptionType {
     }
 
     public CustomException of(String message) {
+        return new CustomException(this, message);
+    }
+
+    public CustomException throwException() {
+        return new CustomException(this);
+    }
+
+    public CustomException throwException(String message) {
         return new CustomException(this, message);
     }
 }

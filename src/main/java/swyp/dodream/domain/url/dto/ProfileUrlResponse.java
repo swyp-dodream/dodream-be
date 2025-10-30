@@ -23,8 +23,8 @@ public class ProfileUrlResponse {
                 profileUrl.getProfile().getId(),
                 profileUrl.getLabel(),
                 profileUrl.getUrl(),
-                profileUrl.getCreatedAt().toString(),
-                profileUrl.getUpdatedAt().toString()
+                profileUrl.getCreatedAt() != null ? profileUrl.getCreatedAt().toString() : null,
+                profileUrl.getUpdatedAt() != null ? profileUrl.getUpdatedAt().toString() : null
         );
     }
 }
