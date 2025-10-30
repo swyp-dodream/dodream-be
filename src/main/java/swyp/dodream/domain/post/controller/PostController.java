@@ -212,18 +212,19 @@ public class PostController {
      * @param page   페이지 번호 (0부터 시작, 기본값: 0)
      * @param size   페이지 크기 (기본값: 10)
      */
+    @Operation(summary = "내가 쓴 글 조회")
     @GetMapping("/my")
     public ResponseEntity<MyPostListResponse> getMyPosts(
             Authentication authentication,
             @RequestParam(required = false, defaultValue = "project") String tab,
-            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String status, // null 가능함!
             @RequestParam(required = false, defaultValue = "0") Integer page,
             @RequestParam(required = false, defaultValue = "10") Integer size
     ) {
         UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
-        Long userId = userPrincipal.getUserId();
-
-        MyPostListResponse response = postService.getMyPosts(userId, tab, status, page, size);
+        MyPostListResponse response = postService.getMyPosts(
+                userPrincipal.getUserId(), tab, status, page, size
+        );
         return ResponseEntity.ok(response);
     }
 }
