@@ -6,7 +6,7 @@ import lombok.NoArgsConstructor;
 import swyp.dodream.common.entity.BaseEntity;
 
 @Entity
-@Table(name = "interest_categories")
+@Table(name = "interest_category")
 @Getter
 @NoArgsConstructor
 public class InterestCategory extends BaseEntity {
@@ -14,7 +14,7 @@ public class InterestCategory extends BaseEntity {
     @Id
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 100)
+    @Column(nullable = false, unique = true, length = 50)
     private String name;
 
     public InterestCategory(Long id, String name) {

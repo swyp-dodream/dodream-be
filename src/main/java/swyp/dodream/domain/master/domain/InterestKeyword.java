@@ -3,18 +3,20 @@ package swyp.dodream.domain.master.domain;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import swyp.dodream.common.entity.BaseEntity;
 
 @Entity
-@Table(name = "interest_keywords")
+@Table(name = "interest_keyword")
 @Getter
+@Setter
 @NoArgsConstructor
 public class InterestKeyword extends BaseEntity {
 
     @Id
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 100)
+    @Column(nullable = false, unique = true, length = 50)
     private String name;
 
     @ManyToOne(fetch = FetchType.LAZY)
