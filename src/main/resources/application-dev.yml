@@ -54,7 +54,7 @@ jwt:
   refresh-token-expiration: 604800000  # 7일 (밀리초)
 
 ai:
-  provider: ncp  # AI 서비스 교체시 변경하기
+  provider: openai  # AI 서비스 교체시 변경하기
 
 #ncp:
 #  api-key: ${NCP_CLOVA_API_KEY}
