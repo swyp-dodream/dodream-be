@@ -5,25 +5,31 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import swyp.dodream.common.exception.CustomException;
+import swyp.dodream.common.exception.ExceptionType;
 import swyp.dodream.common.snowflake.SnowflakeIdService;
+import swyp.dodream.domain.master.domain.InterestKeyword;
 import swyp.dodream.domain.master.domain.Role;
 import swyp.dodream.domain.master.domain.TechSkill;
-import swyp.dodream.domain.post.common.ActivityMode;
 import swyp.dodream.domain.post.common.PostStatus;
 import swyp.dodream.domain.post.common.ProjectType;
 import swyp.dodream.domain.post.domain.*;
-import swyp.dodream.domain.post.dto.*;
+import swyp.dodream.domain.post.dto.PostRequest;
+import swyp.dodream.domain.post.dto.PostRoleDto;
+import swyp.dodream.domain.post.dto.ApplicationRequest;
+import swyp.dodream.domain.post.dto.PostCreateRequest;
+import swyp.dodream.domain.post.dto.PostUpdateRequest;
+import swyp.dodream.domain.post.dto.MyPostListResponse;
+import swyp.dodream.domain.post.dto.MyPostResponse;
+import swyp.dodream.domain.post.dto.PostResponse;
 import swyp.dodream.domain.post.repository.*;
 import swyp.dodream.domain.user.domain.User;
 import swyp.dodream.domain.user.repository.UserRepository;
+
 import java.time.LocalDateTime;
 import java.util.List;
-
-import swyp.dodream.domain.master.domain.InterestKeyword;
 
 @Service
 @RequiredArgsConstructor
@@ -288,6 +294,63 @@ public class PostService {
             PostField pf = new PostField(post, keyword);
             postFieldRepository.save(pf);
         }
+    }
+
+
+    @Transactional(readOnly = true)
+    public MyPostListResponse getMyPosts(Long userId, String tab, String status, Integer page, Integer size) {
+        // 1. 사용자 검증
+        userRepository.findByIdAndStatusTrue(userId)
+                .orElseThrow(() -> new CustomException(ExceptionType.UNAUTHORIZED, "탈퇴한 사용자입니다."));
+
+        // 2. 페이징 설정
+        Pageable pageable = PageRequest.of(page, size);
+
+        // 3. 탭 파싱 (project/study만 가능, null이면 예외)
+        ProjectType projectType;
+        if (tab == null || tab.isBlank()) {
+            throw new CustomException(ExceptionType.BAD_REQUEST_INVALID,
+                    "탭 값은 필수입니다. (가능한 값: project, study)");
+        }
+
+        try {
+            projectType = ProjectType.valueOf(tab.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new CustomException(ExceptionType.BAD_REQUEST_INVALID,
+                    "유효하지 않은 탭 값입니다: " + tab + " (가능한 값: project, study)");
+        }
+
+        // 4. 상태 파싱 (recruiting/completed, 선택)
+        PostStatus postStatus = null;
+        if (status != null && !status.isBlank()) {
+            try {
+                postStatus = PostStatus.valueOf(status.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                throw new CustomException(ExceptionType.BAD_REQUEST_INVALID,
+                        "유효하지 않은 상태 값입니다: " + status + " (가능한 값: recruiting, completed)");
+            }
+        }
+
+        // 5. 조건에 따라 게시글 조회
+        Page<Post> postsPage;
+        if (postStatus != null) {
+            // 탭 + 상태 둘 다 필터
+            postsPage = postRepository.findMyPostsByProjectTypeAndStatus(userId, projectType, postStatus, pageable);
+        } else {
+            // 탭만 필터
+            postsPage = postRepository.findMyPostsByProjectType(userId, projectType, pageable);
+        }
+
+        // 6. DTO 변환 (조회수 포함)
+        Page<MyPostResponse> responsePage = postsPage.map(post -> {
+            Long viewCount = postViewRepository.findById(post.getId())
+                    .map(pv -> pv.getViews())
+                    .orElse(0L);
+            return MyPostResponse.from(post, viewCount);
+        });
+
+        // 7. 최종 응답 생성
+        return MyPostListResponse.of(responsePage);
     }
 }
 

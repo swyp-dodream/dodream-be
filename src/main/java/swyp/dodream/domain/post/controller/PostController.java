@@ -9,20 +9,20 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.http.ResponseEntity;
-import swyp.dodream.domain.post.common.ActivityMode;
-import swyp.dodream.domain.post.common.ProjectType;
-import swyp.dodream.domain.post.dto.*;
+import swyp.dodream.domain.post.dto.ApplicationRequest;
+import swyp.dodream.domain.post.dto.PostCreateRequest;
+import swyp.dodream.domain.post.dto.PostUpdateRequest;
+import swyp.dodream.domain.post.dto.CanApplyResponse;
+import swyp.dodream.domain.post.dto.MyPostListResponse;
+import swyp.dodream.domain.post.dto.PostResponse;
 import swyp.dodream.domain.post.service.PostService;
 import swyp.dodream.jwt.dto.UserPrincipal;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/posts")
@@ -202,4 +202,28 @@ public class PostController {
         return ResponseEntity.ok(new CanApplyResponse(canApply));
     }
 
+    /**
+     * 내가 쓴 글 목록 조회
+     * <p>
+     * GET /api/posts/my?tab=all&status=recruiting&page=0&size=10
+     *
+     * @param tab    탭 필터: "project" (프로젝트), "study" (스터디)
+     * @param status 모집 상태: "recruiting" (모집 중), "completed" (모집 완료), null (전체)
+     * @param page   페이지 번호 (0부터 시작, 기본값: 0)
+     * @param size   페이지 크기 (기본값: 10)
+     */
+    @GetMapping("/my")
+    public ResponseEntity<MyPostListResponse> getMyPosts(
+            Authentication authentication,
+            @RequestParam(required = false, defaultValue = "project") String tab,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false, defaultValue = "0") Integer page,
+            @RequestParam(required = false, defaultValue = "10") Integer size
+    ) {
+        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+        Long userId = userPrincipal.getUserId();
+
+        MyPostListResponse response = postService.getMyPosts(userId, tab, status, page, size);
+        return ResponseEntity.ok(response);
+    }
 }
