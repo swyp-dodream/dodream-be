@@ -5,6 +5,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import swyp.dodream.common.exception.CustomException;
@@ -13,21 +15,15 @@ import swyp.dodream.common.snowflake.SnowflakeIdService;
 import swyp.dodream.domain.master.domain.InterestKeyword;
 import swyp.dodream.domain.master.domain.Role;
 import swyp.dodream.domain.master.domain.TechSkill;
+import swyp.dodream.domain.post.common.ActivityMode;
+import swyp.dodream.domain.post.common.PostSortType;
 import swyp.dodream.domain.post.common.PostStatus;
 import swyp.dodream.domain.post.common.ProjectType;
 import swyp.dodream.domain.post.domain.*;
-import swyp.dodream.domain.post.dto.PostRequest;
-import swyp.dodream.domain.post.dto.PostRoleDto;
-import swyp.dodream.domain.post.dto.ApplicationRequest;
-import swyp.dodream.domain.post.dto.PostCreateRequest;
-import swyp.dodream.domain.post.dto.PostUpdateRequest;
-import swyp.dodream.domain.post.dto.MyPostListResponse;
-import swyp.dodream.domain.post.dto.MyPostResponse;
-import swyp.dodream.domain.post.dto.PostResponse;
+import swyp.dodream.domain.post.dto.*;
 import swyp.dodream.domain.post.repository.*;
 import swyp.dodream.domain.user.domain.User;
 import swyp.dodream.domain.user.repository.UserRepository;
-
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -42,7 +38,7 @@ public class PostService {
     private final PostRoleRepository postRoleRepository;
     private final PostFieldRepository postFieldRepository;
     private final ApplicationRepository applicationRepository;
-    private final MatchedRepository matchedRepository;  // 🔜 추가!
+    private final MatchedRepository matchedRepository;
 
     // 모집글 생성
     @Transactional
@@ -309,6 +305,32 @@ public class PostService {
         }
     }
 
+    @Transactional(readOnly = true)
+    public Page<PostResponse> getPosts(PostSortType sortType, Pageable pageable) {
+        Sort sort;
+
+        switch (sortType) {
+            case DEADLINE:
+                sort = Sort.by(Sort.Direction.ASC, "deadlineAt"); // 마감이 가까운 순
+                break;
+            case POPULAR:
+                sort = Sort.by(Sort.Direction.DESC, "postView.viewCount"); // 조회수 순 (PostView 연관 필드)
+                break;
+            case LATEST:
+            default:
+                sort = Sort.by(Sort.Direction.DESC, "createdAt"); // 최신순
+                break;
+        }
+
+        Pageable sortedPageable = PageRequest.of(
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                sort
+        );
+
+        return postRepository.findAll(sortedPageable)
+                .map(post -> PostResponse.from(post, false)); // 목록에서는 작성자 여부 false
+    }
 
     @Transactional(readOnly = true)
     public MyPostListResponse getMyPosts(Long userId, String tab, String status, Integer page, Integer size) {

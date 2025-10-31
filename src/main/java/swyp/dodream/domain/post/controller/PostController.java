@@ -9,20 +9,23 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import swyp.dodream.domain.post.dto.ApplicationRequest;
-import swyp.dodream.domain.post.dto.PostCreateRequest;
-import swyp.dodream.domain.post.dto.PostUpdateRequest;
-import swyp.dodream.domain.post.dto.CanApplyResponse;
-import swyp.dodream.domain.post.dto.MyPostListResponse;
-import swyp.dodream.domain.post.dto.PostResponse;
+import org.springframework.http.ResponseEntity;
+import swyp.dodream.domain.post.common.ActivityMode;
+import swyp.dodream.domain.post.common.PostSortType;
+import swyp.dodream.domain.post.common.ProjectType;
+import swyp.dodream.domain.post.dto.*;
 import swyp.dodream.domain.post.service.PostService;
 import swyp.dodream.jwt.dto.UserPrincipal;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/posts")
@@ -81,6 +84,29 @@ public class PostController {
         PostResponse response = postService.getPostDetail(id, user.getUserId());
         return ResponseEntity.ok(response);
     }
+
+    // ==============================
+    // 모집글 목록 조회 (정렬)
+    // ==============================
+    @Operation(
+            summary = "모집글 목록 조회",
+            description = "정렬 기준(최신순, 마감순, 인기순)에 따라 모집글 목록을 조회합니다."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공",
+                    content = @Content(schema = @Schema(implementation = PostResponse.class)))
+    })
+    @GetMapping
+    public ResponseEntity<Page<PostResponse>> getPosts(
+            @Parameter(description = "정렬 기준 (LATEST, DEADLINE, POPULAR)", example = "LATEST")
+            @RequestParam(defaultValue = "LATEST") PostSortType sortType,
+
+            Pageable pageable
+    ) {
+        Page<PostResponse> posts = postService.getPosts(sortType, pageable);
+        return ResponseEntity.ok(posts);
+    }
+
 
     // ==============================
     // 모집글 수정
