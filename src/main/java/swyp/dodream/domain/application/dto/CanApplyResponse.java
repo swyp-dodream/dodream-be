@@ -1,4 +1,4 @@
-package swyp.dodream.domain.post.dto;
+package swyp.dodream.domain.application.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;

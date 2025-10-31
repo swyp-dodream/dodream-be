@@ -1,4 +1,4 @@
-package swyp.dodream.domain.post.controller;
+package swyp.dodream.domain.application.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -11,16 +11,42 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import swyp.dodream.domain.post.dto.res.MyApplicationDetailResponse;
 import swyp.dodream.domain.post.dto.res.MyApplicationListResponse;
-import swyp.dodream.domain.post.service.MyApplicationService;
+import swyp.dodream.domain.application.service.ApplicationService;
 import swyp.dodream.jwt.dto.UserPrincipal;
 
 @RestController
 @RequestMapping("/api/my")
 @RequiredArgsConstructor
 @Tag(name = "내 신청 내역", description = "일반 유저의 지원/제안/매칭 내역 조회")
-public class MyApplicationController {
+public class ApplicationController {
 
-    private final MyApplicationService myApplicationService;
+    private final ApplicationService applicationService;
+
+    @Operation(
+            summary = "지원 취소",
+            description = """
+            수락되기 이전의 본인 지원을 취소합니다.
+            - '마이페이지 > 참여 내역 > 지원 내역'에서 취소 버튼 클릭
+            - 취소 시 status='WITHDRAWN', withdrawnAt 기록
+            (ACTV-04)
+            """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "취소 성공"),
+            @ApiResponse(responseCode = "400", description = "이미 처리된 지원은 취소할 수 없음"),
+            @ApiResponse(responseCode = "404", description = "지원 내역을 찾을 수 없음"),
+            @ApiResponse(responseCode = "401", description = "인증 필요")
+    })
+    @DeleteMapping("/applications/{applicationId}/cancel")
+    public ResponseEntity<Void> cancelMyApplication(
+            Authentication authentication,
+            @Parameter(name = "applicationId", description = "지원 ID", required = true)
+            @PathVariable("applicationId") Long applicationId
+    ) {
+        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+        applicationService.cancelByApplicant(applicationId, userPrincipal.getUserId());
+        return ResponseEntity.noContent().build(); // 204 반환 — 프론트에서 토스트 처리
+    }
 
     @Operation(
             summary = "내가 지원한 글 조회",
@@ -41,7 +67,7 @@ public class MyApplicationController {
             @RequestParam(defaultValue = "10") Integer size
     ) {
         UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
-        MyApplicationListResponse response = myApplicationService.getMyApplications(
+        MyApplicationListResponse response = applicationService.getMyApplications(
                 userPrincipal.getUserId(), cursor, size);
         return ResponseEntity.ok(response);
     }
@@ -65,7 +91,7 @@ public class MyApplicationController {
             @RequestParam(defaultValue = "10") Integer size
     ) {
         UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
-        MyApplicationListResponse response = myApplicationService.getMySuggestions(
+        MyApplicationListResponse response = applicationService.getMySuggestions(
                 userPrincipal.getUserId(), cursor, size);
         return ResponseEntity.ok(response);
     }
@@ -89,7 +115,7 @@ public class MyApplicationController {
             @RequestParam(defaultValue = "10") Integer size
     ) {
         UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
-        MyApplicationListResponse response = myApplicationService.getMyMatched(
+        MyApplicationListResponse response = applicationService.getMyMatched(
                 userPrincipal.getUserId(), cursor, size);
         return ResponseEntity.ok(response);
     }
@@ -112,7 +138,7 @@ public class MyApplicationController {
             @PathVariable("applicationId") Long applicationId
     ) {
         UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
-        MyApplicationDetailResponse response = myApplicationService.getMyApplicationDetail(
+        MyApplicationDetailResponse response = applicationService.getMyApplicationDetail(
                 userPrincipal.getUserId(), applicationId);
         return ResponseEntity.ok(response);
     }

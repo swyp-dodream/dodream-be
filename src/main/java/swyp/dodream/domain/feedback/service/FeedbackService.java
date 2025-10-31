@@ -11,9 +11,9 @@ import swyp.dodream.domain.feedback.domain.FeedbackOption;
 import swyp.dodream.domain.feedback.dto.request.FeedbackCreateRequest;
 import swyp.dodream.domain.feedback.dto.response.*;
 import swyp.dodream.domain.feedback.repository.FeedbackRepository;
-import swyp.dodream.domain.post.domain.Matched;
+import swyp.dodream.domain.matched.domain.Matched;
 import swyp.dodream.domain.post.domain.Post;
-import swyp.dodream.domain.post.repository.MatchedRepository;
+import swyp.dodream.domain.matched.repository.MatchedRepository;
 import swyp.dodream.domain.post.repository.PostRepository;
 import swyp.dodream.domain.user.domain.User;
 import swyp.dodream.domain.user.repository.UserRepository;
@@ -218,7 +218,7 @@ public class FeedbackService {
                 .orElseThrow(() -> new CustomException(ExceptionType.NOT_FOUND, "게시글을 찾을 수 없습니다."));
 
         // 3. 해당 게시글의 팀원인지 확인
-        boolean isMember = matchedRepository.existsByPostAndUserAndCanceledFalse(post,
+        boolean isMember = matchedRepository.existsByPostAndUserAndIsCanceledFalse(post,
                 userRepository.findById(userId).orElseThrow());
 
         if (!isMember) {

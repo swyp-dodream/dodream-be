@@ -1,8 +1,8 @@
 package swyp.dodream.domain.post.dto.res;
 
 import lombok.Builder;
-import swyp.dodream.domain.post.domain.Application;
-import swyp.dodream.domain.post.domain.Matched;
+import swyp.dodream.domain.application.domain.Application;
+import swyp.dodream.domain.matched.domain.Matched;
 import swyp.dodream.domain.post.domain.Suggestion;
 import swyp.dodream.domain.user.domain.User;
 

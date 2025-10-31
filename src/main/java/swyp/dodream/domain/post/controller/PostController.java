@@ -17,15 +17,12 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.http.ResponseEntity;
-import swyp.dodream.domain.post.common.ActivityMode;
+import swyp.dodream.domain.application.dto.ApplicationRequest;
+import swyp.dodream.domain.application.dto.CanApplyResponse;
 import swyp.dodream.domain.post.common.PostSortType;
-import swyp.dodream.domain.post.common.ProjectType;
 import swyp.dodream.domain.post.dto.*;
 import swyp.dodream.domain.post.service.PostService;
 import swyp.dodream.jwt.dto.UserPrincipal;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/posts")

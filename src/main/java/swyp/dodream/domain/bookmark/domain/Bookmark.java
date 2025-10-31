@@ -1,4 +1,4 @@
-package swyp.dodream.domain.post.domain;
+package swyp.dodream.domain.bookmark.domain;
 
 import jakarta.persistence.*;
 import lombok.*;

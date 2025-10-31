@@ -1,7 +1,7 @@
 package swyp.dodream.domain.post.dto.res;
 
 import lombok.Builder;
-import swyp.dodream.domain.post.domain.Application;
+import swyp.dodream.domain.application.domain.Application;
 
 import java.time.LocalDateTime;
 

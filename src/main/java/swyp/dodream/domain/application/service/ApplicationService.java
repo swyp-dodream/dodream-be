@@ -1,4 +1,4 @@
-package swyp.dodream.domain.post.service;
+package swyp.dodream.domain.application.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -7,14 +7,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import swyp.dodream.common.exception.CustomException;
 import swyp.dodream.common.exception.ExceptionType;
-import swyp.dodream.domain.post.domain.Application;
-import swyp.dodream.domain.post.domain.Matched;
+import swyp.dodream.common.snowflake.SnowflakeIdService;
+import swyp.dodream.domain.master.domain.ApplicationStatus;
+import swyp.dodream.domain.application.domain.Application;
+import swyp.dodream.domain.matched.domain.Matched;
 import swyp.dodream.domain.post.domain.Suggestion;
 import swyp.dodream.domain.post.dto.res.MyApplicationDetailResponse;
 import swyp.dodream.domain.post.dto.res.MyApplicationListResponse;
 import swyp.dodream.domain.post.dto.res.MyApplicationResponse;
-import swyp.dodream.domain.post.repository.ApplicationRepository;
-import swyp.dodream.domain.post.repository.MatchedRepository;
+import swyp.dodream.domain.application.repository.ApplicationRepository;
+import swyp.dodream.domain.matched.repository.MatchedRepository;
 import swyp.dodream.domain.post.repository.SuggestionRepository;
 
 import java.util.List;
@@ -23,11 +25,12 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class MyApplicationService {
+public class ApplicationService {
 
     private final ApplicationRepository applicationRepository;
     private final SuggestionRepository suggestionRepository;
     private final MatchedRepository matchedRepository;
+    private final SnowflakeIdService snowflakeIdService;
 
     /**
      * 내가 지원한 글 목록 조회
@@ -141,5 +144,18 @@ public class MyApplicationService {
 
         // 3. DTO 변환
         return MyApplicationDetailResponse.fromApplication(application);
+    }
+
+    @Transactional
+    public void cancelByApplicant(Long applicationId, Long userId) {
+        Application app = applicationRepository.findByIdAndApplicantId(applicationId, userId)
+                .orElseThrow(() -> new CustomException(ExceptionType.NOT_FOUND, "지원 내역을 찾을 수 없습니다."));
+
+        if (app.getStatus() != ApplicationStatus.APPLIED) {
+            throw new CustomException(ExceptionType.BAD_REQUEST_INVALID, "이미 처리된 지원은 취소할 수 없습니다.");
+        }
+
+        app.withdraw(); // status 변경 + withdrawn_at 기록
+        // 알림 없음(요구사항: 리더 알림 X)
     }
 }

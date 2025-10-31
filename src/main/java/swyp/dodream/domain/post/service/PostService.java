@@ -6,16 +6,19 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import swyp.dodream.domain.application.domain.Application;
 import swyp.dodream.common.exception.CustomException;
 import swyp.dodream.common.exception.ExceptionType;
 import swyp.dodream.common.snowflake.SnowflakeIdService;
+import swyp.dodream.domain.application.dto.ApplicationRequest;
 import swyp.dodream.domain.master.domain.InterestKeyword;
 import swyp.dodream.domain.master.domain.Role;
 import swyp.dodream.domain.master.domain.TechSkill;
-import swyp.dodream.domain.post.common.ActivityMode;
+import swyp.dodream.domain.matched.domain.Matched;
+import swyp.dodream.domain.application.repository.ApplicationRepository;
+import swyp.dodream.domain.matched.repository.MatchedRepository;
 import swyp.dodream.domain.post.common.PostSortType;
 import swyp.dodream.domain.post.common.PostStatus;
 import swyp.dodream.domain.post.common.ProjectType;
@@ -85,7 +88,7 @@ public class PostService {
                 .user(user)
                 .application(null)
                 .matchedAt(LocalDateTime.now())
-                .canceled(false)
+                .isCanceled(false)
                 .build();
 
         matchedRepository.save(ownerMatched);
@@ -246,8 +249,10 @@ public class PostService {
         Role role = new Role();
         role.setId(request.getRoleId());
 
-        Application application = new Application(post, user, role, request.getMessage());
+        Long applicationId = snowflakeIdService.generateId();
+        Application application = new Application(applicationId, post, user, role, request.getMessage());
         applicationRepository.save(application);
+
     }
 
     // 모집글 지원 가능 여부 판단

@@ -7,14 +7,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import swyp.dodream.common.exception.CustomException;
 import swyp.dodream.common.exception.ExceptionType;
-import swyp.dodream.domain.post.domain.Application;
-import swyp.dodream.domain.post.domain.Matched;
+import swyp.dodream.domain.application.domain.Application;
+import swyp.dodream.domain.matched.domain.Matched;
 import swyp.dodream.domain.post.domain.Post;
 import swyp.dodream.domain.post.domain.Suggestion;
 import swyp.dodream.domain.post.dto.res.RecruitListResponse;
 import swyp.dodream.domain.post.dto.res.RecruitUserResponse;
-import swyp.dodream.domain.post.repository.ApplicationRepository;
-import swyp.dodream.domain.post.repository.MatchedRepository;
+import swyp.dodream.domain.application.repository.ApplicationRepository;
+import swyp.dodream.domain.matched.repository.MatchedRepository;
 import swyp.dodream.domain.post.repository.PostRepository;
 import swyp.dodream.domain.post.repository.SuggestionRepository;
 

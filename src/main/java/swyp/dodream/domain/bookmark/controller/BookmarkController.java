@@ -1,4 +1,4 @@
-package swyp.dodream.domain.post.controller;
+package swyp.dodream.domain.bookmark.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -12,7 +12,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import swyp.dodream.domain.post.dto.PostSummaryResponse;
-import swyp.dodream.domain.post.service.BookmarkService;
+import swyp.dodream.domain.bookmark.service.BookmarkService;
 import swyp.dodream.jwt.dto.UserPrincipal;
 
 import java.util.List;

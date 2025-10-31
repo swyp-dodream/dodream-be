@@ -1,7 +1,7 @@
-package swyp.dodream.domain.post.repository;
+package swyp.dodream.domain.bookmark.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-import swyp.dodream.domain.post.domain.Bookmark;
+import swyp.dodream.domain.bookmark.domain.Bookmark;
 import swyp.dodream.domain.post.domain.Post;
 import swyp.dodream.domain.user.domain.User;
 import java.util.List;

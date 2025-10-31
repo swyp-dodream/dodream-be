@@ -1,16 +1,25 @@
-package swyp.dodream.domain.post.repository;
+package swyp.dodream.domain.application.repository;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import swyp.dodream.domain.post.domain.Application;
+import swyp.dodream.domain.master.domain.ApplicationStatus;
+import swyp.dodream.domain.application.domain.Application;
 import swyp.dodream.domain.post.domain.Post;
 import swyp.dodream.domain.user.domain.User;
 
+import java.util.Collection;
+import java.util.Optional;
+
 public interface ApplicationRepository extends JpaRepository<Application, Long> {
     boolean existsByPostAndApplicant(Post post, User applicant);
+    Optional<Application> findByIdAndApplicantId(Long id, Long applicantId);
+
+    boolean existsByPostIdAndApplicantIdAndStatusIn(
+            Long postId, Long applicantId, Collection<ApplicationStatus> statuses
+    );
 
     // 정렬 기준에 AI 일단 넣지 말기
     /**
