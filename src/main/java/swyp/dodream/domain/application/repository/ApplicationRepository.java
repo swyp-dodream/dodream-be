@@ -14,7 +14,12 @@ import java.util.Collection;
 import java.util.Optional;
 
 public interface ApplicationRepository extends JpaRepository<Application, Long> {
+
+    /**
+     * 특정 게시글에 특정 유저가 지원했는지 확인
+     */
     boolean existsByPostAndApplicant(Post post, User applicant);
+
     Optional<Application> findByIdAndApplicantId(Long id, Long applicantId);
 
     boolean existsByPostIdAndApplicantIdAndStatusIn(

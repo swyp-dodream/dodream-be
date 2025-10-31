@@ -6,12 +6,15 @@ import org.springframework.transaction.annotation.Transactional;
 import swyp.dodream.common.exception.CustomException;
 import swyp.dodream.common.exception.ExceptionType;
 import swyp.dodream.common.snowflake.SnowflakeIdService;
+import swyp.dodream.domain.application.repository.ApplicationRepository;
 import swyp.dodream.domain.master.domain.InterestKeyword;
 import swyp.dodream.domain.master.domain.Role;
 import swyp.dodream.domain.master.domain.TechSkill;
 import swyp.dodream.domain.master.repository.InterestKeywordRepository;
 import swyp.dodream.domain.master.repository.RoleRepository;
 import swyp.dodream.domain.master.repository.TechSkillRepository;
+import swyp.dodream.domain.post.domain.Post;
+import swyp.dodream.domain.post.repository.PostRepository;
 import swyp.dodream.domain.profile.domain.Profile;
 import swyp.dodream.domain.profile.dto.request.AccountSettingsUpdateRequest;
 import swyp.dodream.domain.profile.dto.request.ProfileCreateRequest;
@@ -45,6 +48,8 @@ public class ProfileService {
     private final SnowflakeIdService snowflakeIdService;
     private final ProfileUrlRepository profileUrlRepository;
     private final UserRepository userRepository;
+    private final PostRepository postRepository;
+    private final ApplicationRepository applicationRepository;
 
 
     @Transactional
@@ -312,5 +317,40 @@ public class ProfileService {
     private void validateActiveUser(Long userId) {
         userRepository.findByIdAndStatusTrue(userId)
                 .orElseThrow(() -> new CustomException(ExceptionType.UNAUTHORIZED, "탈퇴한 사용자입니다."));
+    }
+
+    @Transactional(readOnly = true)
+    public ProfileMyPageResponse getApplicantProfile(Long requesterId, Long applicantId, Long postId) {
+        // 1. 모집글 확인
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new CustomException(
+                        ExceptionType.NOT_FOUND, "모집글을 찾을 수 없습니다."));
+
+        // 2. 요청자가 작성자인지 확인
+        if (!post.getOwner().getId().equals(requesterId)) {
+            throw new CustomException(
+                    ExceptionType.FORBIDDEN, "모집글 작성자만 지원자의 프로필을 조회할 수 있습니다.");
+        }
+
+        // 3. 대상이 해당 게시글의 지원자인지 확인
+        boolean isApplicant = applicationRepository.existsByPostAndApplicant(
+                post,
+                userRepository.findById(applicantId)
+                        .orElseThrow(() -> new CustomException(
+                                ExceptionType.NOT_FOUND, "사용자를 찾을 수 없습니다."))
+        );
+
+        if (!isApplicant) {
+            throw new CustomException(
+                    ExceptionType.FORBIDDEN, "해당 모집글의 지원자가 아닙니다.");
+        }
+
+        // 4. 지원자의 프로필 조회
+        Profile profile = profileRepository.findByUserId(applicantId)
+                .orElseThrow(() -> new CustomException(
+                        ExceptionType.NOT_FOUND, "프로필을 찾을 수 없습니다."));
+
+        // 5. ProfileMyPageResponse로 반환 (개인정보 제외)
+        return ProfileMyPageResponse.from(profile);
     }
 }

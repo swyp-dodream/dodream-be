@@ -1,6 +1,7 @@
 package swyp.dodream.domain.profile.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -190,5 +191,32 @@ public class ProfileController {
         UserPrincipal user = (UserPrincipal) authentication.getPrincipal();
         String draft = aiDraftService.createIntroDraft(user.getUserId(), request);
         return ResponseEntity.ok(draft);
+    }
+
+    @Operation(
+            summary = "지원자 프로필 조회",
+            description = "모집글 작성자가 지원자의 프로필을 조회합니다."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "프로필 조회 성공"),
+            @ApiResponse(responseCode = "403", description = "권한 없음 (작성자가 아니거나 지원자가 아님)"),
+            @ApiResponse(responseCode = "404", description = "프로필 또는 지원서를 찾을 수 없음")
+    })
+    @GetMapping("/applicant/{userId}/post/{postId}")
+    public ResponseEntity<ProfileMyPageResponse> getApplicantProfile(
+            Authentication authentication,
+
+            @Parameter(description = "조회할 지원자 ID", required = true)
+            @PathVariable Long userId,
+
+            @Parameter(description = "모집글 ID", required = true)
+            @PathVariable Long postId
+    ) {
+        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+        Long requesterId = userPrincipal.getUserId();
+
+        ProfileMyPageResponse response = profileService.getApplicantProfile(
+                requesterId, userId, postId);
+        return ResponseEntity.ok(response);
     }
 }
