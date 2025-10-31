@@ -5,9 +5,12 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import swyp.dodream.common.exception.CustomException;
+import swyp.dodream.common.exception.ExceptionType;
 import swyp.dodream.domain.post.domain.Application;
 import swyp.dodream.domain.post.domain.Matched;
 import swyp.dodream.domain.post.domain.Suggestion;
+import swyp.dodream.domain.post.dto.res.MyApplicationDetailResponse;
 import swyp.dodream.domain.post.dto.res.MyApplicationListResponse;
 import swyp.dodream.domain.post.dto.res.MyApplicationResponse;
 import swyp.dodream.domain.post.repository.ApplicationRepository;
@@ -117,5 +120,26 @@ public class MyApplicationService {
                 matched.getContent().get(matched.getContent().size() - 1).getId();
 
         return MyApplicationListResponse.of(responses, nextCursor, matched.hasNext());
+    }
+
+    /**
+     * 내 지원 상세 정보 조회
+     *
+     * @param userId 유저 ID
+     * @param applicationId 지원 ID
+     * @return 지원 상세 정보
+     */
+    public MyApplicationDetailResponse getMyApplicationDetail(Long userId, Long applicationId) {
+        // 1. 지원 정보 조회
+        Application application = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new CustomException(ExceptionType.NOT_FOUND, "지원 정보를 찾을 수 없습니다."));
+
+        // 2. 본인 지원인지 확인
+        if (!application.getApplicant().getId().equals(userId)) {
+            throw new CustomException(ExceptionType.FORBIDDEN, "본인의 지원 정보만 조회할 수 있습니다.");
+        }
+
+        // 3. DTO 변환
+        return MyApplicationDetailResponse.fromApplication(application);
     }
 }

@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import swyp.dodream.domain.post.dto.res.MyApplicationDetailResponse;
 import swyp.dodream.domain.post.dto.res.MyApplicationListResponse;
 import swyp.dodream.domain.post.service.MyApplicationService;
 import swyp.dodream.jwt.dto.UserPrincipal;
@@ -90,6 +91,29 @@ public class MyApplicationController {
         UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
         MyApplicationListResponse response = myApplicationService.getMyMatched(
                 userPrincipal.getUserId(), cursor, size);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(
+            summary = "내 지원 상세 조회",
+            description = "내가 지원한 특정 모집글의 상세 정보를 조회합니다 (지원 메시지, 직군 등)"
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "401", description = "인증 필요"),
+            @ApiResponse(responseCode = "403", description = "권한 없음"),
+            @ApiResponse(responseCode = "404", description = "지원 정보 없음")
+    })
+    @GetMapping("/applications/{applicationId}")
+    public ResponseEntity<MyApplicationDetailResponse> getMyApplicationDetail(
+            Authentication authentication,
+
+            @Parameter(name = "applicationId", description = "지원 ID", required = true)
+            @PathVariable("applicationId") Long applicationId
+    ) {
+        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+        MyApplicationDetailResponse response = myApplicationService.getMyApplicationDetail(
+                userPrincipal.getUserId(), applicationId);
         return ResponseEntity.ok(response);
     }
 }
