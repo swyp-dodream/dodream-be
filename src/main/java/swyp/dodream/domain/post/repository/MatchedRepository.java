@@ -40,4 +40,42 @@ public interface MatchedRepository extends JpaRepository<Matched, Long> {
             @Param("cursor") Long cursor,
             Pageable pageable
     );
+
+    /**
+     * 특정 유저가 매칭된 모집글 목록 조회
+     *
+     * @param userId 유저 ID
+     * @param pageable 페이징 정보
+     * @return 매칭된 모집글 목록
+     */
+    @Query("""
+        SELECT m FROM Matched m
+        JOIN FETCH m.post p
+        JOIN FETCH p.owner
+        WHERE m.user.id = :userId
+          AND m.canceled = false
+        ORDER BY m.matchedAt DESC
+    """)
+    Slice<Matched> findMatchedByUser(
+            @Param("userId") Long userId,
+            Pageable pageable
+    );
+
+    /**
+     * 특정 유저가 매칭된 모집글 목록 조회 (커서 기반)
+     */
+    @Query("""
+        SELECT m FROM Matched m
+        JOIN FETCH m.post p
+        JOIN FETCH p.owner
+        WHERE m.user.id = :userId
+          AND m.canceled = false
+          AND m.id < :cursor
+        ORDER BY m.matchedAt DESC
+    """)
+    Slice<Matched> findMatchedByUserAfterCursor(
+            @Param("userId") Long userId,
+            @Param("cursor") Long cursor,
+            Pageable pageable
+    );
 }

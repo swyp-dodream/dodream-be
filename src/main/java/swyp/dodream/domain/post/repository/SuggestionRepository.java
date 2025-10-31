@@ -42,4 +42,40 @@ public interface SuggestionRepository extends JpaRepository<Suggestion, Long> {
             @Param("cursor") Long cursor,
             Pageable pageable
     );
+
+    /**
+     * 특정 유저가 제안받은 모집글 목록 조회
+     *
+     * @param userId 유저 ID
+     * @param pageable 페이징 정보
+     * @return 제안받은 모집글 목록
+     */
+    @Query("""
+        SELECT s FROM Suggestion s
+        JOIN FETCH s.post p
+        JOIN FETCH p.owner
+        WHERE s.toUser.id = :userId
+        ORDER BY s.createdAt DESC
+    """)
+    Slice<Suggestion> findSuggestionsByToUser(
+            @Param("userId") Long userId,
+            Pageable pageable
+    );
+
+    /**
+     * 특정 유저가 제안받은 모집글 목록 조회 (커서 기반)
+     */
+    @Query("""
+        SELECT s FROM Suggestion s
+        JOIN FETCH s.post p
+        JOIN FETCH p.owner
+        WHERE s.toUser.id = :userId
+          AND s.id < :cursor
+        ORDER BY s.createdAt DESC
+    """)
+    Slice<Suggestion> findSuggestionsByToUserAfterCursor(
+            @Param("userId") Long userId,
+            @Param("cursor") Long cursor,
+            Pageable pageable
+    );
 }

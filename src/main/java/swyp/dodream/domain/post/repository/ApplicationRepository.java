@@ -43,4 +43,40 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
             @Param("cursor") Long cursor,
             Pageable pageable
     );
+
+    /**
+     * 특정 유저가 지원한 모집글 목록 조회
+     *
+     * @param userId 유저 ID
+     * @param pageable 페이징 정보
+     * @return 지원한 모집글 목록
+     */
+    @Query("""
+        SELECT a FROM Application a
+        JOIN FETCH a.post p
+        JOIN FETCH p.owner
+        WHERE a.applicant.id = :userId
+        ORDER BY a.createdAt DESC
+    """)
+    Slice<Application> findApplicationsByUser(
+            @Param("userId") Long userId,
+            Pageable pageable
+    );
+
+    /**
+     * 특정 유저가 지원한 모집글 목록 조회 (커서 기반)
+     */
+    @Query("""
+        SELECT a FROM Application a
+        JOIN FETCH a.post p
+        JOIN FETCH p.owner
+        WHERE a.applicant.id = :userId
+          AND a.id < :cursor
+        ORDER BY a.createdAt DESC
+    """)
+    Slice<Application> findApplicationsByUserAfterCursor(
+            @Param("userId") Long userId,
+            @Param("cursor") Long cursor,
+            Pageable pageable
+    );
 }
