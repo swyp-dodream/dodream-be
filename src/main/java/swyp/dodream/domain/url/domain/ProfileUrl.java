@@ -1,6 +1,7 @@
 package swyp.dodream.domain.url.domain;
 
 import jakarta.persistence.*;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
@@ -16,12 +17,13 @@ import java.time.LocalDateTime;
 @EntityListeners(AuditingEntityListener.class)
 @Getter
 @NoArgsConstructor
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class ProfileUrl {
 
     @Id
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "profile_id", nullable = false)
     private Profile profile;
 
@@ -40,12 +42,18 @@ public class ProfileUrl {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    // Set 중복 방지를 위한 고유 식별 키 정의
+    @EqualsAndHashCode.Include
+    private String uniqueKey() {
+        return (profile != null ? profile.getId() : 0L) + "|" + label.name() + "|" + url;
+    }
+
     public ProfileUrl(Profile profile, UrlLabel label, String url) {
         this.profile = profile;
         this.label = label;
         this.url = url;
     }
-    
+
     // Snowflake ID를 사용하는 생성자
     public ProfileUrl(Long id, Profile profile, UrlLabel label, String url) {
         this.id = id;

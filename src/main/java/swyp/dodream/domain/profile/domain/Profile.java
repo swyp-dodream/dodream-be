@@ -3,22 +3,24 @@ package swyp.dodream.domain.profile.domain;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
-import swyp.dodream.domain.profile.enums.*;
+import swyp.dodream.common.entity.BaseEntity;
+import swyp.dodream.domain.master.domain.InterestKeyword;
+import swyp.dodream.domain.master.domain.Role;
+import swyp.dodream.domain.master.domain.TechSkill;
+import swyp.dodream.domain.profile.enums.ActivityMode;
+import swyp.dodream.domain.profile.enums.AgeBand;
+import swyp.dodream.domain.profile.enums.Experience;
+import swyp.dodream.domain.profile.enums.Gender;
 import swyp.dodream.domain.url.domain.ProfileUrl;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "profiles")
-@EntityListeners(AuditingEntityListener.class)
 @Getter
 @NoArgsConstructor
-public class Profile {
+public class Profile extends BaseEntity {
 
     @Id
     private Long id;
@@ -48,22 +50,23 @@ public class Profile {
     @Column(name = "intro_text", length = 200)
     private String introText;
 
-    @Column(name = "intro_is_ai", nullable = false)
-    private Boolean introIsAi = false;
-
     @Column(name = "is_public", nullable = false)
     private Boolean isPublic = true;
 
-    @OneToMany(mappedBy = "profile", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<ProfileUrl> profileUrls = new ArrayList<>();
+    @Column(name = "profile_image_code", nullable = false)
+    private Integer profileImageCode = 1;
 
-    @CreatedDate
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+    @OneToMany(mappedBy = "profile", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private Set<ProfileUrl> profileUrls = new LinkedHashSet<>();
 
-    @LastModifiedDate
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    @ManyToMany(fetch = FetchType.LAZY)
+    private Set<Role> roles = new LinkedHashSet<>();
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    private Set<InterestKeyword> interestKeywords = new LinkedHashSet<>();
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    private Set<TechSkill> techSkills = new LinkedHashSet<>();
 
     public Profile(Long userId, String nickname, Experience experience, ActivityMode activityMode) {
         this.userId = userId;
@@ -71,7 +74,7 @@ public class Profile {
         this.experience = experience;
         this.activityMode = activityMode;
     }
-    
+
     // Snowflake ID를 사용하는 생성자
     public Profile(Long id, Long userId, String nickname, Experience experience, ActivityMode activityMode) {
         this.id = id;
@@ -82,27 +85,86 @@ public class Profile {
     }
 
     // 전체 프로필 업데이트
-    public void updateProfile(String nickname, Gender gender, AgeBand ageBand, 
-                            Experience experience, ActivityMode activityMode,
-                            String introText, Boolean introIsAi, Boolean isPublic) {
+    public void updateProfile(String nickname, Gender gender, AgeBand ageBand,
+                              Experience experience, ActivityMode activityMode,
+                              String introText, Boolean isPublic,Integer profileImageCode) {
         this.nickname = nickname;
         this.gender = gender;
         this.ageBand = ageBand;
         this.experience = experience;
         this.activityMode = activityMode;
         this.introText = introText;
-        this.introIsAi = introIsAi;
+        this.isPublic = isPublic;
+        this.profileImageCode = profileImageCode;
+    }
+
+    // 마이페이지 프로필 정보 업데이트
+    public void updateProfileInfo(String nickname, Experience experience, ActivityMode activityMode, String introText) {
+        this.nickname = nickname;
+        this.experience = experience;
+        this.activityMode = activityMode;
+        this.introText = introText;
+    }
+
+    // 계정 설정 업데이트
+    public void updateAccountSettings(Gender gender, AgeBand ageBand, Boolean isPublic) {
+        this.gender = gender;
+        this.ageBand = ageBand;
         this.isPublic = isPublic;
     }
 
-    // ProfileUrl 관리 메서드들
-    public void addProfileUrl(ProfileUrl profileUrl) {
-        this.profileUrls.add(profileUrl);
-        profileUrl.setProfile(this);
+    public void addProfileUrl(ProfileUrl url) {
+        if (url == null) return;
+        url.setProfile(this);
+        this.profileUrls.add(url);
     }
 
     public void removeProfileUrl(ProfileUrl profileUrl) {
         this.profileUrls.remove(profileUrl);
         profileUrl.setProfile(null);
+    }
+
+    // 직군 관리 메서드
+    public void addRole(Role role) {
+        this.roles.add(role);
+    }
+
+    public void removeRole(Role role) {
+        this.roles.remove(role);
+    }
+
+    // 관심 키워드 관리 메서드
+    public void addInterestKeyword(InterestKeyword keyword) {
+        this.interestKeywords.add(keyword);
+    }
+
+    public void removeInterestKeyword(InterestKeyword keyword) {
+        this.interestKeywords.remove(keyword);
+    }
+
+    // 기술 스킬 관리 메서드
+    public void addTechSkill(TechSkill skill) {
+        this.techSkills.add(skill);
+    }
+
+    public void removeTechSkill(TechSkill skill) {
+        this.techSkills.remove(skill);
+    }
+
+    // 직군/관심/기술 일괄 초기화 편의 메서드
+    public void clearRoles() {
+        this.roles.clear();
+    }
+
+    public void clearInterestKeywords() {
+        this.interestKeywords.clear();
+    }
+
+    public void clearTechSkills() {
+        this.techSkills.clear();
+    }
+
+    public void updateProfileImage(Integer code) {
+        if (code != null) this.profileImageCode = code;
     }
 }

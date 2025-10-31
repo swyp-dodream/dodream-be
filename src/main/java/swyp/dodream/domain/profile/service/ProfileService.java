@@ -3,113 +3,354 @@ package swyp.dodream.domain.profile.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import swyp.dodream.common.exception.CustomException;
 import swyp.dodream.common.exception.ExceptionType;
 import swyp.dodream.common.snowflake.SnowflakeIdService;
+import swyp.dodream.domain.application.repository.ApplicationRepository;
+import swyp.dodream.domain.master.domain.InterestKeyword;
+import swyp.dodream.domain.master.domain.Role;
+import swyp.dodream.domain.master.domain.TechSkill;
+import swyp.dodream.domain.master.repository.InterestKeywordRepository;
+import swyp.dodream.domain.master.repository.RoleRepository;
+import swyp.dodream.domain.master.repository.TechSkillRepository;
+import swyp.dodream.domain.post.domain.Post;
+import swyp.dodream.domain.post.repository.PostRepository;
 import swyp.dodream.domain.profile.domain.Profile;
-import swyp.dodream.domain.profile.dto.ProfileCreateRequest;
-import swyp.dodream.domain.profile.dto.ProfileResponse;
-import swyp.dodream.domain.profile.dto.ProfileUpdateRequest;
+import swyp.dodream.domain.profile.dto.request.AccountSettingsUpdateRequest;
+import swyp.dodream.domain.profile.dto.request.ProfileCreateRequest;
+import swyp.dodream.domain.profile.dto.request.ProfileMyPageUpdateRequest;
+import swyp.dodream.domain.profile.dto.response.AccountSettingsResponse;
+import swyp.dodream.domain.profile.dto.response.ProfileMyPageResponse;
+import swyp.dodream.domain.profile.dto.response.ProfileResponse;
 import swyp.dodream.domain.profile.repository.ProfileRepository;
+import swyp.dodream.domain.proposal.domain.ProposalNotification;
+import swyp.dodream.domain.proposal.repository.ProposalNotificationRepository;
+import swyp.dodream.domain.url.domain.ProfileUrl;
+import swyp.dodream.domain.url.enums.UrlLabel;
+import swyp.dodream.domain.url.repository.ProfileUrlRepository;
+import swyp.dodream.domain.user.repository.UserRepository;
+
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class ProfileService {
-    
+
+    private static final int MAX_URLS = 3;
+
     private final ProfileRepository profileRepository;
+    private final RoleRepository roleRepository;
+    private final InterestKeywordRepository interestKeywordRepository;
+    private final TechSkillRepository techSkillRepository;
+    private final ProposalNotificationRepository proposalNotificationRepository;
     private final SnowflakeIdService snowflakeIdService;
-    
-    // 프로필 생성 (온보딩)
+    private final ProfileUrlRepository profileUrlRepository;
+    private final UserRepository userRepository;
+    private final PostRepository postRepository;
+    private final ApplicationRepository applicationRepository;
+
+
     @Transactional
     public ProfileResponse createProfile(Long userId, ProfileCreateRequest request) {
-        validateProfileCreation(userId, request);
-        
-        Profile profile = createNewProfile(userId, request);
-        return ProfileResponse.from(profileRepository.save(profile));
-    }
-    
-    // 프로필 조회
-    public ProfileResponse getProfile(Long userId) {
-        Profile profile = findProfileByUserId(userId);
-        return ProfileResponse.from(profile);
-    }
-    
-    // 프로필 수정
-    @Transactional
-    public ProfileResponse updateProfile(Long userId, ProfileUpdateRequest request) {
-        Profile profile = findProfileByUserId(userId);
-        validateNicknameChange(profile.getNickname(), request.getNickname());
-        
-        profile.updateProfile(
-                request.getNickname(),
-                request.getGender(),
-                request.getAgeBand(),
-                request.getExperience(),
-                request.getActivityMode(),
-                request.getIntroText(),
-                request.getIntroIsAi(),
-                request.getIsPublic()
-        );
-        
-        return ProfileResponse.from(profileRepository.save(profile));
-    }
-    
-    // 프로필 삭제
-    @Transactional
-    public void deleteProfile(Long userId) {
-        Profile profile = findProfileByUserId(userId);
-        profileRepository.delete(profile);
-    }
-    
-    // === Private Helper Methods ===
-    
-    // 사용자 ID로 프로필 조회
-    private Profile findProfileByUserId(Long userId) {
-        return profileRepository.findByUserId(userId)
-                .orElseThrow(() -> ExceptionType.USER_NOT_FOUND.of("프로필을 찾을 수 없습니다"));
-    }
-    
-    // 프로필 생성 시 유효성 검증
-    private void validateProfileCreation(Long userId, ProfileCreateRequest request) {
+        validateActiveUser(userId);
+
+        // 1) 단일 프로필 & 닉네임 중복
         if (profileRepository.existsByUserId(userId)) {
-            throw ExceptionType.CONFLICT_DUPLICATE.of("이미 프로필이 존재합니다");
+            throw new CustomException(ExceptionType.CONFLICT_DUPLICATE);
         }
-        
-        if (profileRepository.existsByNickname(request.getNickname())) {
-            throw ExceptionType.CONFLICT_DUPLICATE.of("이미 사용 중인 닉네임입니다");
+        if (profileRepository.existsByNickname(request.nickname())) {
+            throw new CustomException(ExceptionType.CONFLICT_DUPLICATE);
         }
-    }
-    
-    // 닉네임 변경 시 유효성 검증
-    private void validateNicknameChange(String currentNickname, String newNickname) {
-        if (!currentNickname.equals(newNickname) && 
-            profileRepository.existsByNickname(newNickname)) {
-            throw ExceptionType.CONFLICT_DUPLICATE.of("이미 사용 중인 닉네임입니다");
-        }
-    }
-    
-    // 새 프로필 생성
-    private Profile createNewProfile(Long userId, ProfileCreateRequest request) {
-        Long snowflakeId = snowflakeIdService.generateId();
+
+        // 2) 마스터 조회 + 개수 일치 검증
+        List<Role> roles = roleRepository.findByNameIn(request.roleNames());
+        requireSameCount(ExceptionType.NOT_FOUND, "직군", request.roleNames(), roles, Role::getName);
+
+        List<InterestKeyword> interestKeywords = interestKeywordRepository.findByNameIn(request.interestKeywordNames());
+        requireSameCount(ExceptionType.INTEREST_NOT_FOUND, "관심 키워드", request.interestKeywordNames(), interestKeywords, InterestKeyword::getName);
+
+        List<TechSkill> techSkills = techSkillRepository.findByNameIn(request.techSkillNames());
+        requireSameCount(ExceptionType.TECH_STACK_NOT_FOUND, "기술 스택", request.techSkillNames(), techSkills, TechSkill::getName);
+
+        // 3) 프로필 생성 (공개 true 기본)
+        Long profileId = snowflakeIdService.generateId();
         Profile profile = new Profile(
-                snowflakeId,
-                userId,
-                request.getNickname(),
-                request.getExperience(),
-                request.getActivityMode()
+                profileId, userId,
+                request.nickname(),
+                request.experience(),
+                request.activityMode()
         );
-        
+
         profile.updateProfile(
-                request.getNickname(),
-                request.getGender(),
-                request.getAgeBand(),
-                request.getExperience(),
-                request.getActivityMode(),
-                request.getIntroText(),
-                request.getIntroIsAi(),
-                request.getIsPublic()
+                request.nickname(),
+                request.gender(),
+                request.ageBand(),
+                request.experience(),
+                request.activityMode(),
+                request.introText(),
+                true,
+                request.profileImageCode()
         );
-        
-        return profile;
+
+        roles.forEach(profile::addRole);
+        interestKeywords.forEach(profile::addInterestKeyword);
+        techSkills.forEach(profile::addTechSkill);
+
+        // 4) URL (최대 3개, 중복 제거)
+        if (request.profileUrls() != null && !request.profileUrls().isEmpty()) {
+            if (request.profileUrls().size() > MAX_URLS) {
+                throw new CustomException(ExceptionType.BAD_REQUEST_INVALID);
+            }
+            // label+url 기준 중복 제거
+            Set<String> seen = new HashSet<>();
+            for (Map.Entry<String, String> e : request.profileUrls().entrySet()) {
+                UrlLabel label = resolveUrlLabel(e.getKey()); // 한/영/별칭 대응
+                String url = e.getValue();
+
+                String key = label.name() + "|" + url;
+                if (!seen.add(key)) continue; // 중복 skip
+
+                Long urlId = snowflakeIdService.generateId();
+                ProfileUrl pu = new ProfileUrl(urlId, profile, label, url);
+                profile.addProfileUrl(pu); // cascade = ALL, orphanRemoval = true 전제
+            }
+        }
+
+        // 5) 저장
+        Profile saved = profileRepository.save(profile);
+
+        // 6) 제안 수신 설정
+        Long pnId = snowflakeIdService.generateId();
+        ProposalNotification pn = new ProposalNotification(
+                pnId, saved.getId(),
+                request.projectProposalEnabled(),
+                request.studyProposalEnabled()
+        );
+        proposalNotificationRepository.save(pn);
+
+        return ProfileResponse.from(saved, pn);
+    }
+
+    @Transactional(readOnly = true)
+    public ProfileMyPageResponse getMyProfile(Long userId) {
+        validateActiveUser(userId);
+
+        Profile profile = profileRepository.findWithAllByUserId(userId)
+                .orElseThrow(() -> new CustomException(ExceptionType.NOT_FOUND));
+        return ProfileMyPageResponse.from(profile);
+    }
+
+    // ===== helpers =====
+
+    private UrlLabel resolveUrlLabel(String raw) {
+        if (raw == null) return UrlLabel.기타;
+        String norm = raw.trim().toLowerCase(Locale.ROOT).replaceAll("\\s+", "");
+
+        Map<String, UrlLabel> alias = new HashMap<>();
+        alias.put("github", UrlLabel.깃허브);   alias.put("깃허브", UrlLabel.깃허브); alias.put("git", UrlLabel.깃허브);
+        alias.put("blog", UrlLabel.블로그);     alias.put("블로그", UrlLabel.블로그); alias.put("velog", UrlLabel.블로그); alias.put("티스토리", UrlLabel.블로그); alias.put("tistory", UrlLabel.블로그);
+        alias.put("portfolio", UrlLabel.포트폴리오); alias.put("포트폴리오", UrlLabel.포트폴리오); alias.put("포폴", UrlLabel.포트폴리오);
+        alias.put("notion", UrlLabel.노션);     alias.put("노션", UrlLabel.노션);
+        UrlLabel mapped = alias.get(norm);
+        if (mapped != null) return mapped;
+
+        // enum 상수 그대로 들어온 경우 대비
+        try { return UrlLabel.valueOf(raw.trim().toUpperCase(Locale.ROOT)); }
+        catch (Exception ignore) {}
+        return UrlLabel.기타;
+    }
+
+    private <T> void requireSameCount(
+            ExceptionType type,
+            String label,
+            List<String> requested,
+            List<T> loaded,
+            Function<T, String> nameFn) {
+
+        if (loaded.size() != requested.size()) {
+            Set<String> found = loaded.stream()
+                    .map(nameFn)
+                    .collect(Collectors.toSet());
+
+            List<String> missing = requested.stream()
+                    .filter(n -> !found.contains(n))
+                    .toList();
+
+            throw type.of(label + " 누락: " + missing);
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public AccountSettingsResponse getAccountSettingsWithEmail(Long userId, String email) {
+        validateActiveUser(userId);
+
+        Profile profile = profileRepository.findByUserId(userId)
+                .orElseThrow(() -> new CustomException(ExceptionType.PROFILE_NOT_FOUND));
+        ProposalNotification pn = proposalNotificationRepository.findByProfileId(profile.getId())
+                .orElseThrow(() -> new CustomException(ExceptionType.NOT_FOUND));
+
+        return AccountSettingsResponse.builder()
+                .email(email)
+                .gender(profile.getGender())
+                .ageBand(profile.getAgeBand())
+                .proposalProjectOn(pn.getProposalProjectOn())
+                .proposalStudyOn(pn.getProposalStudyOn())
+                .isPublic(profile.getIsPublic())
+                .build();
+    }
+
+    @Transactional
+    public ProfileMyPageResponse updateMyProfile(Long userId, ProfileMyPageUpdateRequest req) {
+        validateActiveUser(userId);
+
+        Profile profile = profileRepository.findWithAllByUserId(userId)
+                .orElseThrow(() -> new CustomException(ExceptionType.PROFILE_NOT_FOUND));
+
+        // 닉네임 중복 체크
+        if (!req.getNickname().equals(profile.getNickname())
+                && profileRepository.existsByNickname(req.getNickname())) {
+            throw new CustomException(ExceptionType.CONFLICT_DUPLICATE, "이미 사용 중인 닉네임입니다.");
+        }
+
+        profile.updateProfile(
+                req.getNickname(),
+                profile.getGender(),     // 계정설정 API에서 관리
+                profile.getAgeBand(),
+                req.getExperience(),
+                req.getActivityMode(),
+                req.getIntroText(),
+                profile.getIsPublic(),
+                req.getProfileImageCode()
+        );
+
+        // 직군
+        if (req.getRoleNames() != null && !req.getRoleNames().isEmpty()) {
+            var roles = roleRepository.findByNameIn(req.getRoleNames());
+            requireSameCount(ExceptionType.NOT_FOUND, "직군", req.getRoleNames(), roles, Role::getName);
+            profile.clearRoles();
+            roles.forEach(profile::addRole);
+        }
+
+        // 관심
+        if (req.getInterestKeywordNames() != null && !req.getInterestKeywordNames().isEmpty()) {
+            if (req.getInterestKeywordNames().size() > 5)
+                throw new CustomException(ExceptionType.BAD_REQUEST_INVALID, "관심 분야는 최대 5개까지 선택 가능합니다.");
+            var interests = interestKeywordRepository.findByNameIn(req.getInterestKeywordNames());
+            requireSameCount(ExceptionType.INTEREST_NOT_FOUND, "관심 키워드", req.getInterestKeywordNames(), interests, InterestKeyword::getName);
+            profile.clearInterestKeywords();
+            interests.forEach(profile::addInterestKeyword);
+        }
+
+        // 기술
+        if (req.getTechSkillNames() != null && !req.getTechSkillNames().isEmpty()) {
+            if (req.getTechSkillNames().size() > 5)
+                throw new CustomException(ExceptionType.BAD_REQUEST_INVALID, "기술 스택은 최대 5개까지 선택 가능합니다.");
+            var skills = techSkillRepository.findByNameIn(req.getTechSkillNames());
+            requireSameCount(ExceptionType.TECH_STACK_NOT_FOUND, "기술 스택", req.getTechSkillNames(), skills, TechSkill::getName);
+            profile.clearTechSkills();
+            skills.forEach(profile::addTechSkill);
+        }
+
+        // URL (최대 3개) — orphanRemoval=true면 clear()만으로 삭제됨
+        if (req.getProfileUrls() != null && !req.getProfileUrls().isEmpty()) {
+            if (req.getProfileUrls().size() > MAX_URLS)
+                throw new CustomException(ExceptionType.BAD_REQUEST_INVALID, "프로필 URL은 최대 3개까지 등록 가능합니다.");
+
+            profile.getProfileUrls().clear();
+
+            Set<String> dedup = new HashSet<>();
+            req.getProfileUrls().forEach((labelStr, url) -> {
+                var label = resolveUrlLabel(labelStr);
+                var key = label.name() + "|" + url;
+                if (!dedup.add(key)) return;     // 중복 제거
+
+                Long urlId = snowflakeIdService.generateId();
+                profile.addProfileUrl(new ProfileUrl(urlId, profile, label, url));
+            });
+        }
+
+        Profile saved = profileRepository.save(profile);
+        return ProfileMyPageResponse.from(saved);
+    }
+
+    @Transactional
+    public AccountSettingsResponse updateAccountSettings(Long userId, String email, AccountSettingsUpdateRequest req) {
+        validateActiveUser(userId);
+
+        // 1) 프로필 조회
+        Profile profile = profileRepository.findByUserId(userId)
+                .orElseThrow(() -> new CustomException(ExceptionType.PROFILE_NOT_FOUND));
+
+        // 2) 프로필(계정 설정) 갱신
+        profile.updateAccountSettings(req.getGender(), req.getAgeBand(), req.getIsPublic());
+
+        // 3) 제안 수신 설정 upsert
+        ProposalNotification pn = proposalNotificationRepository.findByProfileId(profile.getId())
+                .map(existing -> {
+                    existing.setProposalProjectOn(req.getProposalProjectOn());
+                    existing.setProposalStudyOn(req.getProposalStudyOn());
+                    return existing;
+                })
+                .orElseGet(() -> new ProposalNotification(
+                        snowflakeIdService.generateId(),
+                        profile.getId(),
+                        req.getProposalProjectOn(),
+                        req.getProposalStudyOn()
+                ));
+
+        proposalNotificationRepository.save(pn);
+        profileRepository.save(profile);
+
+        // 4) 응답 조립
+        return AccountSettingsResponse.builder()
+                .email(email)
+                .gender(profile.getGender())
+                .ageBand(profile.getAgeBand())
+                .proposalProjectOn(pn.getProposalProjectOn())
+                .proposalStudyOn(pn.getProposalStudyOn())
+                .isPublic(profile.getIsPublic())
+                .build();
+    }
+
+    private void validateActiveUser(Long userId) {
+        userRepository.findByIdAndStatusTrue(userId)
+                .orElseThrow(() -> new CustomException(ExceptionType.UNAUTHORIZED, "탈퇴한 사용자입니다."));
+    }
+
+    @Transactional(readOnly = true)
+    public ProfileMyPageResponse getApplicantProfile(Long requesterId, Long applicantId, Long postId) {
+        // 1. 모집글 확인
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new CustomException(
+                        ExceptionType.NOT_FOUND, "모집글을 찾을 수 없습니다."));
+
+        // 2. 요청자가 작성자인지 확인
+        if (!post.getOwner().getId().equals(requesterId)) {
+            throw new CustomException(
+                    ExceptionType.FORBIDDEN, "모집글 작성자만 지원자의 프로필을 조회할 수 있습니다.");
+        }
+
+        // 3. 대상이 해당 게시글의 지원자인지 확인
+        boolean isApplicant = applicationRepository.existsByPostAndApplicant(
+                post,
+                userRepository.findById(applicantId)
+                        .orElseThrow(() -> new CustomException(
+                                ExceptionType.NOT_FOUND, "사용자를 찾을 수 없습니다."))
+        );
+
+        if (!isApplicant) {
+            throw new CustomException(
+                    ExceptionType.FORBIDDEN, "해당 모집글의 지원자가 아닙니다.");
+        }
+
+        // 4. 지원자의 프로필 조회
+        Profile profile = profileRepository.findByUserId(applicantId)
+                .orElseThrow(() -> new CustomException(
+                        ExceptionType.NOT_FOUND, "프로필을 찾을 수 없습니다."));
+
+        // 5. ProfileMyPageResponse로 반환 (개인정보 제외)
+        return ProfileMyPageResponse.from(profile);
     }
 }
