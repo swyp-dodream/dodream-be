@@ -42,6 +42,7 @@ public class PostService {
     private final PostRoleRepository postRoleRepository;
     private final PostFieldRepository postFieldRepository;
     private final ApplicationRepository applicationRepository;
+    private final MatchedRepository matchedRepository;  // 🔜 추가!
 
     // 모집글 생성
     @Transactional
@@ -80,6 +81,18 @@ public class PostService {
 
         // 모집 직군 연결
         connectRoles(request, post);
+
+        // 작성자를 Matched에 추가 (Application 없이)
+        Matched ownerMatched = Matched.builder()
+                .id(snowflakeIdService.generateId())
+                .post(post)
+                .user(user)
+                .application(null)
+                .matchedAt(LocalDateTime.now())
+                .canceled(false)
+                .build();
+
+        matchedRepository.save(ownerMatched);
 
         boolean isOwner = post.getOwner().getId().equals(userId);
         return PostResponse.from(post, isOwner);
@@ -353,4 +366,3 @@ public class PostService {
         return MyPostListResponse.of(responsePage);
     }
 }
-

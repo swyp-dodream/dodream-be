@@ -6,6 +6,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import swyp.dodream.domain.post.domain.Matched;
+import swyp.dodream.domain.post.domain.Post;
+import swyp.dodream.domain.user.domain.User;
 
 public interface MatchedRepository extends JpaRepository<Matched, Long> {
 
@@ -78,4 +80,9 @@ public interface MatchedRepository extends JpaRepository<Matched, Long> {
             @Param("cursor") Long cursor,
             Pageable pageable
     );
+
+    /**
+     * 특정 게시글의 팀원인지 확인
+     */
+    boolean existsByPostAndUserAndCanceledFalse(Post post, User user);
 }
