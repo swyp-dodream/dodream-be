@@ -4,6 +4,7 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import swyp.dodream.common.exception.ExceptionType;
 import swyp.dodream.common.snowflake.SnowflakeIdService;
 import swyp.dodream.domain.bookmark.domain.Bookmark;
 import swyp.dodream.domain.post.domain.Post;
@@ -27,9 +28,9 @@ public class BookmarkService {
 
     public boolean toggleBookmark(Long userId, Long postId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("유저를 찾을 수 없습니다."));
+                .orElseThrow(ExceptionType.USER_NOT_FOUND::throwException);
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new EntityNotFoundException("모집글을 찾을 수 없습니다."));
+                .orElseThrow(ExceptionType.POST_NOT_FOUND::throwException);
 
         boolean exists = bookmarkRepository.existsByUserAndPost(user, post);
         if (exists) {
@@ -44,7 +45,7 @@ public class BookmarkService {
 
     public List<PostSummaryResponse> getBookmarkedPosts(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("유저를 찾을 수 없습니다."));
+                .orElseThrow(ExceptionType.USER_NOT_FOUND::throwException);
         return bookmarkRepository.findAllByUser(user).stream()
                 .map(Bookmark::getPost)
                 .map(PostSummaryResponse::fromEntity)
