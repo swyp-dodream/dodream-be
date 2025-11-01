@@ -290,6 +290,7 @@ public class PostService {
 
         // 마지막으로 모집글 삭제
         postRepository.delete(post);
+        postRepository.flush();
     }
 
     // 모집글 지원
