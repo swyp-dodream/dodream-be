@@ -15,8 +15,10 @@ public interface SuggestionRepository extends JpaRepository<Suggestion, Long> {
     @Query("""
         SELECT s FROM Suggestion s
         JOIN FETCH s.toUser
+        JOIN FETCH s.post p
         WHERE s.post.id = :postId
           AND s.fromUser.id = :fromUserId
+          AND p.deleted = false
         ORDER BY s.createdAt DESC
     """)
     Slice<Suggestion> findSuggestionsByPost(
@@ -31,9 +33,11 @@ public interface SuggestionRepository extends JpaRepository<Suggestion, Long> {
     @Query("""
         SELECT s FROM Suggestion s
         JOIN FETCH s.toUser
+        JOIN FETCH s.post p
         WHERE s.post.id = :postId
           AND s.fromUser.id = :fromUserId
           AND s.id < :cursor
+          AND p.deleted = false
         ORDER BY s.createdAt DESC
     """)
     Slice<Suggestion> findSuggestionsByPostAfterCursor(
@@ -45,16 +49,13 @@ public interface SuggestionRepository extends JpaRepository<Suggestion, Long> {
 
     /**
      * 특정 유저가 제안받은 모집글 목록 조회
-     *
-     * @param userId 유저 ID
-     * @param pageable 페이징 정보
-     * @return 제안받은 모집글 목록
      */
     @Query("""
         SELECT s FROM Suggestion s
         JOIN FETCH s.post p
         JOIN FETCH p.owner
         WHERE s.toUser.id = :userId
+          AND p.deleted = false
         ORDER BY s.createdAt DESC
     """)
     Slice<Suggestion> findSuggestionsByToUser(
@@ -71,6 +72,7 @@ public interface SuggestionRepository extends JpaRepository<Suggestion, Long> {
         JOIN FETCH p.owner
         WHERE s.toUser.id = :userId
           AND s.id < :cursor
+          AND p.deleted = false
         ORDER BY s.createdAt DESC
     """)
     Slice<Suggestion> findSuggestionsByToUserAfterCursor(
