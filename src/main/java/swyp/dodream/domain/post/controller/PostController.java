@@ -37,7 +37,7 @@ public class PostController {
     @Operation(
             summary = "모집글 생성",
             description = "새로운 프로젝트 또는 스터디 모집글을 작성합니다.",
-            security = @SecurityRequirement(name = "bearerAuth")
+            security = @SecurityRequirement(name = "JWT")
     )
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "등록 성공",
@@ -111,7 +111,7 @@ public class PostController {
     @Operation(
             summary = "모집글 수정",
             description = "작성자가 본인 모집글의 내용을 수정합니다.",
-            security = @SecurityRequirement(name = "bearerAuth")
+            security = @SecurityRequirement(name = "JWT")
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "수정 성공",
@@ -143,7 +143,7 @@ public class PostController {
     @Operation(
             summary = "모집글 삭제",
             description = "작성자가 본인 모집글을 삭제합니다.",
-            security = @SecurityRequirement(name = "bearerAuth")
+            security = @SecurityRequirement(name = "JWT")
     )
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "삭제 성공"),
@@ -168,7 +168,7 @@ public class PostController {
     @Operation(
             summary = "모집글 지원",
             description = "해당 모집글에 지원합니다.",
-            security = @SecurityRequirement(name = "bearerAuth")
+            security = @SecurityRequirement(name = "JWT")
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "지원 성공"),
