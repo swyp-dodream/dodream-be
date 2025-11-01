@@ -186,10 +186,8 @@ public class ProfileController {
 
     @Operation(summary = "AI 자기소개 초안 생성", description = "프로필 데이터 기반으로 200자 이내 자기소개 초안을 생성합니다.")
     @PostMapping("/intro/ai-draft")
-    public ResponseEntity<String> generateIntro(Authentication authentication,
-                                                @Valid @RequestBody IntroAiDraftRequest request) {
-        UserPrincipal user = (UserPrincipal) authentication.getPrincipal();
-        String draft = aiDraftService.createIntroDraft(user.getUserId(), request);
+    public ResponseEntity<String> generateIntro(@Valid @RequestBody IntroAiDraftRequest request) {
+        String draft = aiDraftService.createIntroDraft(null, request);
         return ResponseEntity.ok(draft);
     }
 

@@ -14,6 +14,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -37,8 +38,8 @@ public class NcpClovaServiceImpl implements AiService {
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.set("X-NCP-CLOVASTUDIO-API-KEY", apiKey);
-        headers.set("X-NCP-APIGW-API-KEY", apiKey);
+        headers.setBearerAuth(apiKey);
+        headers.set("X-NCP-CLOVASTUDIO-REQUEST-ID", generateRequestId());
 
         Map<String, Object> body = Map.of(
                 "messages", List.of(
@@ -49,7 +50,7 @@ public class NcpClovaServiceImpl implements AiService {
                 "topK", 0,
                 "maxTokens", 256,
                 "temperature", 0.5,
-                "repeatPenalty", 5.0,
+                "repeatPenalty", 1.1,
                 "stopBefore", List.of(),
                 "includeAiFilters", true,
                 "seed", 0
@@ -95,5 +96,12 @@ public class NcpClovaServiceImpl implements AiService {
 
         Object content = message.get("content");
         return content == null ? "" : content.toString();
+    }
+
+    /**
+     * Request ID 생성
+     */
+    private String generateRequestId() {
+        return UUID.randomUUID().toString().replace("-", "");
     }
 }

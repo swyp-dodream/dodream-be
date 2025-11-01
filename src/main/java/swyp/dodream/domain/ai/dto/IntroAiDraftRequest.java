@@ -33,7 +33,7 @@ public class IntroAiDraftRequest {
     private String introText;
 
     @Size(max = 3)
-    private Map<String, String> profileUrls;
+    List<String> profileUrls;
 
     @NotNull @Size(min = 1, max = 3)
     private List<String> roles;

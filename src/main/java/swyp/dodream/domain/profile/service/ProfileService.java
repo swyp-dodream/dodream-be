@@ -1,6 +1,7 @@
 package swyp.dodream.domain.profile.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import swyp.dodream.common.exception.CustomException;
@@ -34,6 +35,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ProfileService {
@@ -65,14 +67,55 @@ public class ProfileService {
         }
 
         // 2) 마스터 조회 + 개수 일치 검증
-        List<Role> roles = roleRepository.findByNameIn(request.roleNames());
-        requireSameCount(ExceptionType.NOT_FOUND, "직군", request.roleNames(), roles, Role::getName);
+        // 입력값 정규화 (트림 처리)
+        List<String> normalizedRoleNames = request.roleNames().stream()
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .toList();
+        List<String> normalizedInterestNames = request.interestKeywordNames().stream()
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .toList();
+        List<String> normalizedTechSkillNames = request.techSkillNames().stream()
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .toList();
 
-        List<InterestKeyword> interestKeywords = interestKeywordRepository.findByNameIn(request.interestKeywordNames());
-        requireSameCount(ExceptionType.INTEREST_NOT_FOUND, "관심 키워드", request.interestKeywordNames(), interestKeywords, InterestKeyword::getName);
+        log.info("프로필 생성 요청 - 직군: {}, 관심분야: {}, 기술스택: {}", normalizedRoleNames, normalizedInterestNames, normalizedTechSkillNames);
 
-        List<TechSkill> techSkills = techSkillRepository.findByNameIn(request.techSkillNames());
-        requireSameCount(ExceptionType.TECH_STACK_NOT_FOUND, "기술 스택", request.techSkillNames(), techSkills, TechSkill::getName);
+        // 모든 데이터를 가져와서 Java에서 필터링 (가장 확실한 방법)
+        List<Role> allRoles = roleRepository.findAll();
+        List<InterestKeyword> allInterests = interestKeywordRepository.findAll();
+        List<TechSkill> allTechSkills = techSkillRepository.findAll();
+        
+        log.info("전체 직군 개수: {}, 전체 관심분야 개수: {}, 전체 기술스택 개수: {}", 
+                allRoles.size(), allInterests.size(), allTechSkills.size());
+        
+        Set<String> roleNameSet = allRoles.stream().map(Role::getName).collect(Collectors.toSet());
+        
+        log.info("DB에 있는 직군 이름들: {}", roleNameSet);
+        log.info("요청한 직군 이름들: {}", normalizedRoleNames);
+        
+        // Java에서 필터링
+        List<Role> roles = allRoles.stream()
+                .filter(r -> normalizedRoleNames.contains(r.getName()))
+                .toList();
+        
+        List<InterestKeyword> interestKeywords = allInterests.stream()
+                .filter(ik -> normalizedInterestNames.contains(ik.getName()))
+                .toList();
+        
+        List<TechSkill> techSkills = allTechSkills.stream()
+                .filter(ts -> normalizedTechSkillNames.contains(ts.getName()))
+                .toList();
+        
+        log.info("조회된 직군 개수: {} / 요청: {}, 조회된 값: {}", roles.size(), normalizedRoleNames.size(), roles.stream().map(Role::getName).toList());
+        log.info("조회된 관심분야 개수: {} / 요청: {}, 조회된 값: {}", interestKeywords.size(), normalizedInterestNames.size(), interestKeywords.stream().map(InterestKeyword::getName).toList());
+        log.info("조회된 기술스택 개수: {} / 요청: {}, 조회된 값: {}", techSkills.size(), normalizedTechSkillNames.size(), techSkills.stream().map(TechSkill::getName).toList());
+        
+        requireSameCount(ExceptionType.NOT_FOUND, "직군", normalizedRoleNames, roles, Role::getName);
+        requireSameCount(ExceptionType.INTEREST_NOT_FOUND, "관심 키워드", normalizedInterestNames, interestKeywords, InterestKeyword::getName);
+        requireSameCount(ExceptionType.TECH_STACK_NOT_FOUND, "기술 스택", normalizedTechSkillNames, techSkills, TechSkill::getName);
 
         // 3) 프로필 생성 (공개 true 기본)
         Long profileId = snowflakeIdService.generateId();
@@ -227,8 +270,15 @@ public class ProfileService {
 
         // 직군
         if (req.getRoleNames() != null && !req.getRoleNames().isEmpty()) {
-            var roles = roleRepository.findByNameIn(req.getRoleNames());
-            requireSameCount(ExceptionType.NOT_FOUND, "직군", req.getRoleNames(), roles, Role::getName);
+            List<String> normalizedRoleNames = req.getRoleNames().stream()
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .toList();
+            List<Role> allRoles = roleRepository.findAll();
+            List<Role> roles = allRoles.stream()
+                    .filter(r -> normalizedRoleNames.contains(r.getName()))
+                    .toList();
+            requireSameCount(ExceptionType.NOT_FOUND, "직군", normalizedRoleNames, roles, Role::getName);
             profile.clearRoles();
             roles.forEach(profile::addRole);
         }
@@ -237,8 +287,15 @@ public class ProfileService {
         if (req.getInterestKeywordNames() != null && !req.getInterestKeywordNames().isEmpty()) {
             if (req.getInterestKeywordNames().size() > 5)
                 throw new CustomException(ExceptionType.BAD_REQUEST_INVALID, "관심 분야는 최대 5개까지 선택 가능합니다.");
-            var interests = interestKeywordRepository.findByNameIn(req.getInterestKeywordNames());
-            requireSameCount(ExceptionType.INTEREST_NOT_FOUND, "관심 키워드", req.getInterestKeywordNames(), interests, InterestKeyword::getName);
+            List<String> normalizedInterestNames = req.getInterestKeywordNames().stream()
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .toList();
+            List<InterestKeyword> allInterests = interestKeywordRepository.findAll();
+            List<InterestKeyword> interests = allInterests.stream()
+                    .filter(ik -> normalizedInterestNames.contains(ik.getName()))
+                    .toList();
+            requireSameCount(ExceptionType.INTEREST_NOT_FOUND, "관심 키워드", normalizedInterestNames, interests, InterestKeyword::getName);
             profile.clearInterestKeywords();
             interests.forEach(profile::addInterestKeyword);
         }
@@ -247,8 +304,15 @@ public class ProfileService {
         if (req.getTechSkillNames() != null && !req.getTechSkillNames().isEmpty()) {
             if (req.getTechSkillNames().size() > 5)
                 throw new CustomException(ExceptionType.BAD_REQUEST_INVALID, "기술 스택은 최대 5개까지 선택 가능합니다.");
-            var skills = techSkillRepository.findByNameIn(req.getTechSkillNames());
-            requireSameCount(ExceptionType.TECH_STACK_NOT_FOUND, "기술 스택", req.getTechSkillNames(), skills, TechSkill::getName);
+            List<String> normalizedTechSkillNames = req.getTechSkillNames().stream()
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .toList();
+            List<TechSkill> allTechSkills = techSkillRepository.findAll();
+            List<TechSkill> skills = allTechSkills.stream()
+                    .filter(ts -> normalizedTechSkillNames.contains(ts.getName()))
+                    .toList();
+            requireSameCount(ExceptionType.TECH_STACK_NOT_FOUND, "기술 스택", normalizedTechSkillNames, skills, TechSkill::getName);
             profile.clearTechSkills();
             skills.forEach(profile::addTechSkill);
         }

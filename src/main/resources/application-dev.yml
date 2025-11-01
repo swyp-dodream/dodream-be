@@ -10,10 +10,11 @@ spring:
   
   jpa:
     hibernate:
-      ddl-auto: create
+      ddl-auto: update
     show-sql: true
     properties:
       hibernate.default_batch_fetch_size: 64
+      hibernate.format_sql: true
   
   data:
     redis:
@@ -57,15 +58,27 @@ jwt:
   refresh-token-expiration: 604800000  # 7일 (밀리초)
 
 ai:
-  provider: openai  # AI 서비스 교체시 변경하기
+  provider: ncp  # NCP Clova 사용
 
-#ncp:
-#  api-key: ${NCP_CLOVA_API_KEY}
-#  apigw-key : ${NCP_CLOVA_API_KEY}
-#  base-url: https://clovastudio.apigw.ntruss.com/testapp/v1/chat-completions/HCX-005
-#  model: HCX-005
+ncp:
+  api-key: ${NCP_CLOVA_API_KEY}
+  base-url: https://clovastudio.stream.ntruss.com/v1/chat-completions/HCX-003
+  model: HCX-003
 
-openai:
-  api-key: ${OPENAI_API_KEY}
-  base-url: https://api.openai.com/v1/chat/completions
-  model: gpt-3.5-turbo
+# Qdrant 벡터 데이터베이스 설정
+qdrant:
+  host: localhost
+  port: 6333
+  grpc-port: 6334
+  timeout: 30
+  collection-name: posts_embeddings
+  vector-size: 1024  # NCP Clova Embedding 차원
+
+# NCP Clova Embedding 설정 (게시글 추천용)
+# 주의: 별도 Embedding 키가 없으면 NCP_CLOVA_API_KEY를 사용
+clova:
+  embedding:
+    api-key: ${CLOVA_EMBEDDING_API_KEY:}
+    api-gw-key: ${CLOVA_EMBEDDING_API_GW_KEY:}
+    base-url: ${CLOVA_EMBEDDING_BASE_URL:https://clovastudio.stream.ntruss.com/v1/api-tools/embedding/v2}
+    model: ${CLOVA_EMBEDDING_MODEL:nlp-embedding-ko-1.0.1}
