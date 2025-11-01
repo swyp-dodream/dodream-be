@@ -54,7 +54,7 @@ public class TechSkillController {
     @GetMapping
     public ResponseEntity<List<TechSkillResponse>> getSkillsByCategory(
             @Parameter(
-                    description = "기술 카테고리 ID (예: 1 = 백엔드, 2 = 프론트엔드 등). " +
+                    description = "기술 카테고리 ID (예: 1 = 프론트엔드, 2 = 백엔드 등). " +
                             "입력하지 않으면 전체 기술 스택을 반환합니다.",
                     example = "1"
             )
