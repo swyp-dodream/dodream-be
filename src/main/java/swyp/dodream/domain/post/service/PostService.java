@@ -417,6 +417,8 @@ public class PostService {
                     "유효하지 않은 탭 값입니다: " + tab + " (가능한 값: project, study)");
         }
 
+        if (status != null && status.isBlank()) status = null;
+
         // 4. 상태 파싱 (recruiting/completed, 선택)
         PostStatus postStatus = null;
         if (status != null && !status.isBlank()) {
