@@ -83,7 +83,7 @@ public class Post {
     @OneToMany(mappedBy = "post")
     private List<PostRole> roleRequirements = new ArrayList<>();
 
-    @OneToOne(mappedBy = "post")
+    @OneToOne(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     private PostView postView;
 
 //    PostField가 InterestKeyword와 매핑을 담당하므로 주석 처리
