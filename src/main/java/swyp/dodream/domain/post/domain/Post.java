@@ -6,6 +6,7 @@ import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.Where;
+import swyp.dodream.common.entity.BaseEntity;
 import swyp.dodream.domain.master.domain.InterestKeyword;
 import swyp.dodream.domain.post.common.ActivityMode;
 import swyp.dodream.domain.post.common.DurationPeriod;
@@ -23,7 +24,7 @@ import java.util.List;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @SQLDelete(sql = "UPDATE post SET deleted = true WHERE id = ?")
 @Where(clause = "deleted = false") // 항상 deleted=false 조건만 적용됨 (soft delete)
-public class Post {
+public class Post extends BaseEntity {
 
     @Id
     private Long id;
@@ -55,24 +56,7 @@ public class Post {
     @Lob
     private String content;
 
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
-
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
-
     private Boolean deleted = false;
-
-    @PrePersist
-    protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
-    }
 
     // 연관 관계 (Builder에서 제외)
     @OneToMany(mappedBy = "post")
@@ -119,7 +103,6 @@ public class Post {
 
     public void closeRecruitment() {
         this.status = PostStatus.COMPLETED;
-        this.updatedAt = LocalDateTime.now();
     }
 
     public void updateBasicInfo(
