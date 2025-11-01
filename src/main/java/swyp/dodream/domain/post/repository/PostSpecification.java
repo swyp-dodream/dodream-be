@@ -11,6 +11,7 @@ import swyp.dodream.domain.post.common.ActivityMode;
 import swyp.dodream.domain.post.common.PostStatus;
 import swyp.dodream.domain.post.common.ProjectType;
 import swyp.dodream.domain.post.domain.Post;
+import swyp.dodream.domain.post.domain.PostField;
 import swyp.dodream.domain.post.domain.PostRole;
 import swyp.dodream.domain.post.domain.PostStack;
 
@@ -38,7 +39,7 @@ public class PostSpecification {
 
     public static Specification<Post> hasAnyRole(List<String> roles) {
         return (root, query, cb) -> {
-            Join<Post, PostRole> postRole = root.join("postRoles", JoinType.LEFT);
+            Join<Post, PostRole> postRole = root.join("roleRequirements", JoinType.LEFT);
             CriteriaBuilder.In<String> inClause = cb.in(postRole.get("role").get("name"));
             roles.forEach(inClause::value);
             return inClause;
@@ -47,7 +48,7 @@ public class PostSpecification {
 
     public static Specification<Post> hasAnyTech(List<String> techs) {
         return (root, query, cb) -> {
-            Join<Post, PostStack> postStack = root.join("postStacks", JoinType.LEFT);
+            Join<Post, PostStack> postStack = root.join("stacks", JoinType.LEFT);
             CriteriaBuilder.In<String> inClause = cb.in(postStack.get("techSkill").get("name"));
             techs.forEach(inClause::value);
             return inClause;
@@ -56,8 +57,8 @@ public class PostSpecification {
 
     public static Specification<Post> hasAnyInterest(List<String> interests) {
         return (root, query, cb) -> {
-            Join<Post, InterestKeyword> interestJoin = root.join("interests", JoinType.LEFT);
-            CriteriaBuilder.In<String> inClause = cb.in(interestJoin.get("name"));
+            Join<Post, PostField> fieldJoin = root.join("fields", JoinType.LEFT);
+            CriteriaBuilder.In<String> inClause = cb.in(fieldJoin.get("interestKeyword").get("name"));
             interests.forEach(inClause::value);
             return inClause;
         };
