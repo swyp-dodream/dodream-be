@@ -3,15 +3,11 @@ package swyp.dodream.domain.post.domain;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-import org.hibernate.annotations.SQLDelete;
-import org.hibernate.annotations.Where;
 
 @Entity
 @Getter
 @Setter
 @Table(name = "post_view")
-@SQLDelete(sql="UPDATE post_view SET deleted=true WHERE post_id=?")
-@Where(clause="deleted=false")
 public class PostView {
 
     @Id

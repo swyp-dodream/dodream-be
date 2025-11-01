@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import swyp.dodream.domain.application.domain.Application;
@@ -112,6 +113,7 @@ public class PostService {
                 .build();
 
         matchedRepository.save(ownerMatched);
+        entityManager.flush();
 
         // 게시글 임베딩 생성 (Qdrant에 저장)
         createPostEmbeddingAsync(post);
@@ -193,7 +195,7 @@ public class PostService {
         PostView postView = postViewRepository.findById(postId)
                 .orElseGet(() -> {
                     PostView newView = new PostView();
-                    newView.setPost(post);
+                    newView.setPost(entityManager.getReference(Post.class, post.getId())); // ★ 세션 충돌/식별자 중복 방지
                     return postViewRepository.save(newView);
                 });
 
@@ -389,6 +391,8 @@ public class PostService {
                 pageable.getPageSize(),
                 sort
         );
+
+        Specification<Post> spec = Specification.where(PostSpecification.notDeleted());
 
         return postRepository.findAll(sortedPageable)
                 .map(post -> PostResponse.from(post, false)); // 목록에서는 작성자 여부 false

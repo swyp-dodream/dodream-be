@@ -55,8 +55,10 @@ public class Post {
     @Lob
     private String content;
 
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
 
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
     private Boolean deleted = false;
