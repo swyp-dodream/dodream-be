@@ -18,6 +18,10 @@ import java.util.List;
 
 public class PostSpecification {
 
+    public static Specification<Post> notDeleted() {
+        return (root, query, cb) -> cb.isFalse(root.get("deleted")); // ← 여기가 추가된 부분
+    }
+
     public static Specification<Post> hasType(ProjectType type) {
         return (root, query, cb) -> {
             if (type == ProjectType.ALL) return cb.conjunction();
