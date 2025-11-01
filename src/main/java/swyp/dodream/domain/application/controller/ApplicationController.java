@@ -1,0 +1,145 @@
+package swyp.dodream.domain.application.controller;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
+import swyp.dodream.domain.post.dto.res.MyApplicationDetailResponse;
+import swyp.dodream.domain.post.dto.res.MyApplicationListResponse;
+import swyp.dodream.domain.application.service.ApplicationService;
+import swyp.dodream.jwt.dto.UserPrincipal;
+
+@RestController
+@RequestMapping("/api/my")
+@RequiredArgsConstructor
+@Tag(name = "내 신청 내역", description = "일반 유저의 지원/제안/매칭 내역 조회")
+public class ApplicationController {
+
+    private final ApplicationService applicationService;
+
+    @Operation(
+            summary = "지원 취소",
+            description = """
+            수락되기 이전의 본인 지원을 취소합니다.
+            - '마이페이지 > 참여 내역 > 지원 내역'에서 취소 버튼 클릭
+            - 취소 시 status='WITHDRAWN', withdrawnAt 기록
+            (ACTV-04)
+            """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "취소 성공"),
+            @ApiResponse(responseCode = "400", description = "이미 처리된 지원은 취소할 수 없음"),
+            @ApiResponse(responseCode = "404", description = "지원 내역을 찾을 수 없음"),
+            @ApiResponse(responseCode = "401", description = "인증 필요")
+    })
+    @DeleteMapping("/applications/{applicationId}/cancel")
+    public ResponseEntity<Void> cancelMyApplication(
+            Authentication authentication,
+            @Parameter(name = "applicationId", description = "지원 ID", required = true)
+            @PathVariable("applicationId") Long applicationId
+    ) {
+        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+        applicationService.cancelByApplicant(applicationId, userPrincipal.getUserId());
+        return ResponseEntity.noContent().build(); // 204 반환 — 프론트에서 토스트 처리
+    }
+
+    @Operation(
+            summary = "내가 지원한 글 조회",
+            description = "내가 지원한 모집글 목록을 조회합니다 (무한 스크롤)"
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "401", description = "인증 필요")
+    })
+    @GetMapping("/applications")
+    public ResponseEntity<MyApplicationListResponse> getMyApplications(
+            Authentication authentication,
+
+            @Parameter(name = "cursor", description = "다음 페이지 커서")
+            @RequestParam(required = false) Long cursor,
+
+            @Parameter(name = "size", description = "페이지 크기 (기본 10개)")
+            @RequestParam(defaultValue = "10") Integer size
+    ) {
+        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+        MyApplicationListResponse response = applicationService.getMyApplications(
+                userPrincipal.getUserId(), cursor, size);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(
+            summary = "내가 제안받은 글 조회",
+            description = "리더가 나에게 제안한 모집글 목록을 조회합니다 (무한 스크롤)"
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "401", description = "인증 필요")
+    })
+    @GetMapping("/suggestions")
+    public ResponseEntity<MyApplicationListResponse> getMySuggestions(
+            Authentication authentication,
+
+            @Parameter(name = "cursor", description = "다음 페이지 커서")
+            @RequestParam(required = false) Long cursor,
+
+            @Parameter(name = "size", description = "페이지 크기 (기본 10개)")
+            @RequestParam(defaultValue = "10") Integer size
+    ) {
+        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+        MyApplicationListResponse response = applicationService.getMySuggestions(
+                userPrincipal.getUserId(), cursor, size);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(
+            summary = "내가 매칭된 글 조회",
+            description = "내가 수락되어 참여 중인 모집글 목록을 조회합니다 (무한 스크롤)"
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "401", description = "인증 필요")
+    })
+    @GetMapping("/matched")
+    public ResponseEntity<MyApplicationListResponse> getMyMatched(
+            Authentication authentication,
+
+            @Parameter(name = "cursor", description = "다음 페이지 커서")
+            @RequestParam(required = false) Long cursor,
+
+            @Parameter(name = "size", description = "페이지 크기 (기본 10개)")
+            @RequestParam(defaultValue = "10") Integer size
+    ) {
+        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+        MyApplicationListResponse response = applicationService.getMyMatched(
+                userPrincipal.getUserId(), cursor, size);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(
+            summary = "내 지원 상세 조회",
+            description = "내가 지원한 특정 모집글의 상세 정보를 조회합니다 (지원 메시지, 직군 등)"
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "401", description = "인증 필요"),
+            @ApiResponse(responseCode = "403", description = "권한 없음"),
+            @ApiResponse(responseCode = "404", description = "지원 정보 없음")
+    })
+    @GetMapping("/applications/{applicationId}")
+    public ResponseEntity<MyApplicationDetailResponse> getMyApplicationDetail(
+            Authentication authentication,
+
+            @Parameter(name = "applicationId", description = "지원 ID", required = true)
+            @PathVariable("applicationId") Long applicationId
+    ) {
+        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+        MyApplicationDetailResponse response = applicationService.getMyApplicationDetail(
+                userPrincipal.getUserId(), applicationId);
+        return ResponseEntity.ok(response);
+    }
+}

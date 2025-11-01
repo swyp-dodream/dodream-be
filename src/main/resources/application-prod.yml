@@ -31,3 +31,14 @@ jwt:
   secret: ${JWT_SECRET}
   access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:1800000}  # 30분
   refresh-token-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION:604800000}  # 7일
+
+#ncp:
+#  clova:
+#    base-url: https://clovastudio.apigw.ntruss.com/testapp/v1/chat-completions
+#    api-key: ${NCP_CLOVA_API_KEY}
+#    model: HCX-005
+
+openai:
+  api-key: ${OPENAI_API_KEY}
+  base-url: https://api.openai.com/v1/chat/completions
+  model: gpt-3.5-turbo

@@ -7,9 +7,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import swyp.dodream.common.exception.ExceptionType;
+import swyp.dodream.domain.user.dto.UserResponse;
 import swyp.dodream.jwt.dto.UserPrincipal;
 import swyp.dodream.login.dto.TokenResponse;
-import swyp.dodream.login.dto.UserResponse;
 import swyp.dodream.login.service.AuthService;
 
 import java.util.Map;
