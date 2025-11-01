@@ -66,7 +66,7 @@ public class PostService {
     @Transactional
     public PostResponse createPost(PostCreateRequest request, Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("회원이 아닙니다."));
+                .orElseThrow(ExceptionType.USER_NOT_FOUND::throwException);
 
         // 비즈니스 검증 (필수 값 등)
         validatePostRequest(request);
@@ -214,7 +214,7 @@ public class PostService {
     @Transactional
     public PostResponse updatePost(Long postId, PostUpdateRequest request, Long userId) {
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new EntityNotFoundException("모집글을 찾을 수 없습니다."));
+                .orElseThrow(ExceptionType.POST_NOT_FOUND::throwException);
 
         if (!post.getOwner().getId().equals(userId)) {
             throw new IllegalStateException("작성자만 모집글을 수정할 수 있습니다.");
@@ -272,7 +272,7 @@ public class PostService {
     @Transactional
     public void deletePost(Long postId, Long userId) {
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new EntityNotFoundException("모집글을 찾을 수 없습니다."));
+                .orElseThrow(ExceptionType.POST_NOT_FOUND::throwException);
 
         // 작성자 본인만 삭제 가능
         if (!post.getOwner().getId().equals(userId)) {
@@ -297,10 +297,10 @@ public class PostService {
     @Transactional
     public void applyToPost(Long postId, Long userId, ApplicationRequest request) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("회원이 아닙니다."));
+                .orElseThrow(ExceptionType.USER_NOT_FOUND::throwException);
 
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new EntityNotFoundException("모집글을 찾을 수 없습니다."));
+                .orElseThrow(ExceptionType.POST_NOT_FOUND::throwException);
 
         // 리더(작성자)는 지원 불가
         if (post.getOwner().getId().equals(user.getId())) {
@@ -326,7 +326,7 @@ public class PostService {
     @Transactional(readOnly = true)
     public boolean canApply(Long postId, Long userId) {
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new EntityNotFoundException("모집글을 찾을 수 없습니다."));
+                .orElseThrow(ExceptionType.POST_NOT_FOUND::throwException);
 
         // 리더는 지원 불가
         return !post.getOwner().getId().equals(userId);
@@ -337,7 +337,7 @@ public class PostService {
         if (request.getRoles() != null) {
             for (PostRoleDto roleDto : request.getRoles()) {
                 Role role = roleRepository.findById(roleDto.getRoleId())
-                        .orElseThrow(() -> new EntityNotFoundException("해당 Role이 존재하지 않습니다."));
+                        .orElseThrow(ExceptionType.ROLE_NOT_FOUND::throwException);
                 PostRole pr = new PostRole(snowflakeIdService.generateId(), post, role, roleDto.getCount());
                 postRoleRepository.save(pr);
             }
@@ -348,7 +348,7 @@ public class PostService {
         if (request.getStackIds() != null) {
             for (Long stackId : request.getStackIds()) {
                 TechSkill skill = techSkillRepository.findById(stackId)
-                        .orElseThrow(() -> new EntityNotFoundException("해당 TechSkill이 존재하지 않습니다."));
+                        .orElseThrow(ExceptionType.TECH_SKILL_NOT_FOUND::throwException);
                 PostStack ps = new PostStack(post, skill);
                 postStackRepository.save(ps);
             }
@@ -359,7 +359,7 @@ public class PostService {
         if (request.getCategoryIds() != null) {
             for (Long keywordId : request.getCategoryIds()) {
                 InterestKeyword keyword = interestKeywordRepository.findById(keywordId)
-                        .orElseThrow(() -> new EntityNotFoundException("해당 InterestKeyword가 존재하지 않습니다."));
+                        .orElseThrow(ExceptionType.INTEREST_NOT_FOUND::throwException);
                 PostField pf = new PostField(post, keyword);
                 postFieldRepository.save(pf);
             }
