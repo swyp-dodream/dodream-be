@@ -62,6 +62,7 @@ public interface PostRepository extends JpaRepository<Post, Long>, JpaSpecificat
      * 모집글의 리더(작성자) ID 조회
      * - 매칭 취소 시, 리더/멤버 판별을 위해 사용.
      */
-    @Query("SELECT p.owner.id FROM Post p WHERE p.id = :postId")
+    @Query("SELECT p.owner.id FROM Post p WHERE p.id = :postId AND p.deleted = false")
     Optional<Long> findOwnerUserIdByPostId(@Param("postId") Long postId);
+
 }
