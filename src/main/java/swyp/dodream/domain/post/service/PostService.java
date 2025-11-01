@@ -1,6 +1,7 @@
 package swyp.dodream.domain.post.service;
 
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -27,8 +28,17 @@ import swyp.dodream.domain.post.dto.*;
 import swyp.dodream.domain.post.repository.*;
 import swyp.dodream.domain.user.domain.User;
 import swyp.dodream.domain.user.repository.UserRepository;
+import swyp.dodream.domain.ai.service.EmbeddingService;
+import swyp.dodream.domain.recommendation.repository.VectorRepository;
+import swyp.dodream.domain.recommendation.util.TextExtractor;
+import swyp.dodream.domain.master.repository.RoleRepository;
+import swyp.dodream.domain.master.repository.TechSkillRepository;
+import swyp.dodream.domain.master.repository.InterestKeywordRepository;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -42,6 +52,15 @@ public class PostService {
     private final PostFieldRepository postFieldRepository;
     private final ApplicationRepository applicationRepository;
     private final MatchedRepository matchedRepository;
+    private final RoleRepository roleRepository;
+    private final TechSkillRepository techSkillRepository;
+    private final InterestKeywordRepository interestKeywordRepository;
+    private final EntityManager entityManager;
+    
+    
+    // 벡터 임베딩 관련 (옵션) - NCP 배포 시에만 활성화
+    private final Optional<EmbeddingService> embeddingService;
+    private final Optional<VectorRepository> vectorRepository;
 
     // 모집글 생성
     @Transactional
@@ -65,12 +84,8 @@ public class PostService {
                 .content(request.getContent())
                 .build();
 
-        postRepository.save(post);
-
-        // PostView 생성
-        PostView postView = new PostView();
-        postView.setPost(post);
-        postViewRepository.save(postView);
+        postRepository.save(post);  // Post 먼저 저장 (FK 참조 위해 필요)
+        postRepository.flush();  // Post를 DB에 즉시 반영 (PostView 저장 전 세션 정리)
 
         // 스터디(STUDY)가 아닐 때만 관심 분야 연결
         connectFields(request, post);
@@ -80,6 +95,11 @@ public class PostService {
 
         // 모집 직군 연결
         connectRoles(request, post);
+
+        // PostView 생성 및 연결 (OneToOne 양방향 연결)
+        PostView postView = new PostView();
+        postView.setPost(entityManager.getReference(Post.class, post.getId()));  // detached reference 사용
+        postViewRepository.save(postView);  // PostView 저장 (FK 연결)
 
         // 작성자를 Matched에 추가 (Application 없이)
         Matched ownerMatched = Matched.builder()
@@ -93,8 +113,42 @@ public class PostService {
 
         matchedRepository.save(ownerMatched);
 
+        // 게시글 임베딩 생성 (Qdrant에 저장)
+        createPostEmbeddingAsync(post);
+
         boolean isOwner = post.getOwner().getId().equals(userId);
         return PostResponse.from(post, isOwner);
+    }
+
+    /**
+     * 게시글 임베딩 생성 및 벡터 DB 저장 (비동기)
+     * 실패해도 게시글 생성에는 영향 없음
+     */
+    private void createPostEmbeddingAsync(Post post) {
+        if (embeddingService.isEmpty() || vectorRepository.isEmpty()) {
+            // 벡터 DB 미사용 환경
+            return;
+        }
+
+        try {
+            // 게시글 → 텍스트 → 임베딩 생성
+            String postText = TextExtractor.extractFromPost(post);
+            float[] embedding = embeddingService.get().embed(postText);
+
+            // payload 생성 (메타데이터)
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("title", post.getTitle());
+            payload.put("content", post.getContent());
+            payload.put("projectType", post.getProjectType().name());
+            payload.put("activityMode", post.getActivityMode().name());
+
+            // Qdrant에 저장 (payload 포함)
+            vectorRepository.get().upsertVector(post.getId(), embedding, payload);
+            
+        } catch (Exception e) {
+            // 임베딩 실패 시 로깅만 (게시글 생성은 정상 완료)
+            // TODO: 로깅
+        }
     }
 
     // 비즈니스 규칙 검증 메서드
@@ -207,6 +261,9 @@ public class PostService {
             }
         }
 
+        // 게시글 업데이트 시 임베딩 재생성
+        createPostEmbeddingAsync(post);
+
         boolean isOwner = post.getOwner().getId().equals(userId);
         return PostResponse.from(post, isOwner);
     }
@@ -220,6 +277,15 @@ public class PostService {
         // 작성자 본인만 삭제 가능
         if (!post.getOwner().getId().equals(userId)) {
             throw new IllegalStateException("작성자만 모집글을 삭제할 수 있습니다.");
+        }
+
+        // Qdrant에서 벡터 삭제
+        if (vectorRepository.isPresent()) {
+            try {
+                vectorRepository.get().deleteVector(postId);
+            } catch (Exception e) {
+                // 벡터 삭제 실패는 무시 (이미 DB 삭제됨)
+            }
         }
 
         // 마지막으로 모집글 삭제
@@ -269,46 +335,36 @@ public class PostService {
     private void connectRoles(PostRequest request, Post post) {
         if (request.getRoles() != null) {
             for (PostRoleDto roleDto : request.getRoles()) {
-                Role role = new Role();
-                role.setId(roleDto.getRoleId());
-                PostRole pr = new PostRole(post, role, roleDto.getCount());
+                Role role = roleRepository.findById(roleDto.getRoleId())
+                        .orElseThrow(() -> new EntityNotFoundException("해당 Role이 존재하지 않습니다."));
+                PostRole pr = new PostRole(snowflakeIdService.generateId(), post, role, roleDto.getCount());
                 postRoleRepository.save(pr);
             }
         }
     }
-
+    
     private void connectStacks(PostRequest request, Post post) {
         if (request.getStackIds() != null) {
             for (Long stackId : request.getStackIds()) {
-                TechSkill skill = new TechSkill();
-                skill.setId(stackId);
+                TechSkill skill = techSkillRepository.findById(stackId)
+                        .orElseThrow(() -> new EntityNotFoundException("해당 TechSkill이 존재하지 않습니다."));
                 PostStack ps = new PostStack(post, skill);
                 postStackRepository.save(ps);
             }
         }
     }
-
+    
     private void connectFields(PostRequest request, Post post) {
-        List<Long> categoryIds = request.getCategoryIds();
-
-        // 카테고리가 아예 없으면 아무것도 안 함 (선택 사항)
-        if (categoryIds == null || categoryIds.isEmpty()) {
-            return;
-        }
-
-        // 관심 분야는 최대 2개까지만 선택 가능
-        if (categoryIds.size() > 2) {
-            throw new IllegalArgumentException("분야는 최대 2개까지만 선택할 수 있습니다.");
-        }
-
-        // projectType이 PROJECT이든 STUDY이든, categoryIds가 있으면 저장
-        for (Long keywordId : categoryIds) {
-            InterestKeyword keyword = new InterestKeyword();
-            keyword.setId(keywordId);
-            PostField pf = new PostField(post, keyword);
-            postFieldRepository.save(pf);
+        if (request.getCategoryIds() != null) {
+            for (Long keywordId : request.getCategoryIds()) {
+                InterestKeyword keyword = interestKeywordRepository.findById(keywordId)
+                        .orElseThrow(() -> new EntityNotFoundException("해당 InterestKeyword가 존재하지 않습니다."));
+                PostField pf = new PostField(post, keyword);
+                postFieldRepository.save(pf);
+            }
         }
     }
+    
 
     @Transactional(readOnly = true)
     public Page<PostResponse> getPosts(PostSortType sortType, Pageable pageable) {

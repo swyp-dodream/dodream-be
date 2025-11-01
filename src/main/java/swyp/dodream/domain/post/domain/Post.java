@@ -18,10 +18,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Builder
 @Getter
 @Table(name = "post")
-@AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @SQLDelete(sql = "UPDATE post SET deleted = true WHERE id = ?")
 @Where(clause = "deleted = false") // 항상 deleted=false 조건만 적용됨 (soft delete)
@@ -75,17 +73,17 @@ public class Post {
         this.updatedAt = LocalDateTime.now();
     }
 
-    // 연관 관계
-    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    // 연관 관계 (Builder에서 제외)
+    @OneToMany(mappedBy = "post")
     private List<PostField> fields = new ArrayList<>();
 
-    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "post")
     private List<PostStack> stacks = new ArrayList<>();
 
-    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "post")
     private List<PostRole> roleRequirements = new ArrayList<>();
 
-    @OneToOne(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToOne(mappedBy = "post")
     private PostView postView;
 
 //    PostField가 InterestKeyword와 매핑을 담당하므로 주석 처리
@@ -96,6 +94,21 @@ public class Post {
 //            inverseJoinColumns = @JoinColumn(name = "interest_keyword_id")
 //    )
 //    private List<InterestKeyword> interests = new ArrayList<>();
+
+    @Builder
+    public Post(Long id, User owner, ProjectType projectType, ActivityMode activityMode, 
+                DurationPeriod duration, LocalDateTime deadlineAt, PostStatus status, 
+                String title, String content) {
+        this.id = id;
+        this.owner = owner;
+        this.projectType = projectType;
+        this.activityMode = activityMode;
+        this.duration = duration;
+        this.deadlineAt = deadlineAt;
+        this.status = status != null ? status : PostStatus.RECRUITING;
+        this.title = title;
+        this.content = content;
+    }
 
     public void increaseViewCount() {
         if (this.postView != null) {

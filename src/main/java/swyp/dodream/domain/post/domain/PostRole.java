@@ -26,7 +26,8 @@ public class PostRole {
     @Column(nullable = false)
     private int headcount;
 
-    public PostRole(Post post, Role role, int headcount) {
+    public PostRole(Long id, Post post, Role role, int headcount) {
+        this.id = id;
         this.post = post;
         this.role = role;
         this.headcount = headcount;

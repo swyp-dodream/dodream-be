@@ -27,7 +27,8 @@ public class SecurityConfig {
     private static final String[] WHITE_LIST = {
             "/oauth2/authorization/**",
             "/login/oauth2/code/**",
-            "/api/auth/reissue"
+            "/api/auth/reissue",
+            "/api/profiles/intro/ai-draft"
     };
 
     private static final String[] WHITE_LIST_SWAGGER = {
