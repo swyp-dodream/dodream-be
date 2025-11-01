@@ -31,6 +31,7 @@ public enum ExceptionType {
     PROFILE_NOT_FOUND(HttpStatus.NOT_FOUND, "프로필을 찾을 수 없습니다"),
     TECH_STACK_NOT_FOUND(HttpStatus.NOT_FOUND, "기술 스택을 찾을 수 없습니다"),
     INTEREST_NOT_FOUND(HttpStatus.NOT_FOUND, "관심 분야를 찾을 수 없습니다"),
+    POST_NOT_FOUND(HttpStatus.NOT_FOUND, "모집글을 찾을 수 없습니다"),
 
     // Conflict(409)
     CONFLICT_DUPLICATE(HttpStatus.CONFLICT, "이미 존재하는 데이터입니다"),

@@ -187,7 +187,7 @@ public class PostService {
     @Transactional
     public PostResponse getPostDetail(Long postId, Long userId) {
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new EntityNotFoundException("모집글을 찾을 수 없습니다."));
+                .orElseThrow(ExceptionType.POST_NOT_FOUND::throwException);
 
         // 조회수 조회 또는 생성
         PostView postView = postViewRepository.findById(postId)
