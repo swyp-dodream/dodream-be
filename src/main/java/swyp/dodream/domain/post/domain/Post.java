@@ -30,7 +30,6 @@ public class Post {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_user_id", nullable = false)
-    @OnDelete(action = OnDeleteAction.CASCADE)
     private User owner;
 
     @Enumerated(EnumType.STRING)
