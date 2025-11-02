@@ -18,10 +18,12 @@ public class SearchService {
 
     public List<PostResponse> searchPosts(String keyword) {
 
-        List<PostDocument> docs = postDocumentRepository.searchByTitleOrContent(keyword);
+        List<PostDocument> docs = postDocumentRepository.searchWithFuzzy(keyword);
 
         return docs.stream()
-                .map(doc -> postRepository.findById(doc.getId()).get())   // DB로부터 실제 Post 조회
+                .map(doc -> postRepository.findById(doc.getId())
+                        .orElseThrow(() -> new RuntimeException("POST not found in DB: " + doc.getId()))
+                )
                 .map(post -> PostResponse.from(post, false))
                 .toList();
     }

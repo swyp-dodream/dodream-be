@@ -20,5 +20,16 @@ public interface PostDocumentRepository extends ElasticsearchRepository<PostDocu
             """)
     List<PostDocument> searchByTitleOrContent(String keyword);
 
+    @Query("""
+            {
+              "multi_match": {
+                "query": "?0",
+                "fields": ["title", "content"],
+                "operator": "or",
+                "fuzziness": "AUTO"
+              }
+            }
+            """)
+    List<PostDocument> searchWithFuzzy(String keyword);
 }
 
