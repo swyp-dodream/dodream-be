@@ -405,7 +405,7 @@ public class PostService {
                 sort = Sort.by(Sort.Direction.ASC, "deadlineAt"); // 마감이 가까운 순
                 break;
             case POPULAR:
-                sort = Sort.by(Sort.Direction.DESC, "postView.viewCount"); // 조회수 순 (PostView 연관 필드)
+                sort = Sort.by(Sort.Direction.DESC, "postView.views"); // 인기순 (조회수 많은 순)
                 break;
             case LATEST:
             default:

@@ -21,6 +21,9 @@ public class PostSummaryResponse {
     private String status;
     private String activityMode;
 
+    // createdAt 필드를 DTO에 추가합니다.
+    private LocalDateTime createdAt;
+
     public static PostSummaryResponse fromEntity(Post post) {
         return PostSummaryResponse.builder()
                 .id(post.getId())
@@ -40,6 +43,10 @@ public class PostSummaryResponse {
                 .deadline(post.getDeadlineAt())
                 .status(post.getStatus().name())
                 .activityMode(post.getActivityMode().name())
+
+                // post 객체가 BaseEntity로부터 물려받은 getCreatedAt()을 호출해 DTO에 매핑합니다.
+                .createdAt(post.getCreatedAt())
+
                 .build();
     }
 }
