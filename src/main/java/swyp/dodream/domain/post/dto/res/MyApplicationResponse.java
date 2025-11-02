@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 
 @Builder
 public record MyApplicationResponse(
+    Long id,
     Long postId,
     String postTitle,
     String projectType,        // project / study
@@ -30,6 +31,7 @@ public record MyApplicationResponse(
         User leader = post.getOwner();
         
         return MyApplicationResponse.builder()
+            .id(application.getId())
             .postId(post.getId())
             .postTitle(post.getTitle())
             .projectType(post.getProjectType().name().toLowerCase())
