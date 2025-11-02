@@ -204,31 +204,24 @@ public class FeedbackService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * 특정 게시글에서 받은 피드백 조회
-     */
     @Transactional(readOnly = true)
     public List<FeedbackReceivedResponse> getReceivedFeedbacksByPost(Long userId, Long postId) {
-        // 1. 유저 확인
-        userRepository.findByIdAndStatusTrue(userId)
+        // 1) 유저/게시글 로드
+        User me = userRepository.findByIdAndStatusTrue(userId)
                 .orElseThrow(() -> new CustomException(ExceptionType.UNAUTHORIZED, "탈퇴한 사용자입니다."));
-
-        // 2. 게시글 확인
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new CustomException(ExceptionType.NOT_FOUND, "게시글을 찾을 수 없습니다."));
 
-        // 3. 해당 게시글의 팀원인지 확인
-        boolean isMember = matchedRepository.existsByPostAndUserAndIsCanceledFalse(post,
-                userRepository.findById(userId).orElseThrow());
-
-        if (!isMember) {
-            throw new CustomException(ExceptionType.FORBIDDEN, "해당 게시글의 팀원이 아닙니다.");
+        // 2) 권한: 작성자이거나 or 멤버(매칭되고 취소되지 않음)
+        boolean isOwner = post.getOwner().getId().equals(userId);
+        boolean isMember = matchedRepository.existsByPostAndUserAndIsCanceledFalse(post, me);
+        if (!(isOwner || isMember)) {
+            throw new CustomException(ExceptionType.FORBIDDEN, "해당 게시글의 팀원이 아니거나 권한이 없습니다.");
         }
 
-        // 4. 해당 게시글에서 받은 피드백 조회
+        // 3) “내가 받은” 피드백만 조회 (to_user == me)
         List<Feedback> feedbacks = feedbackRepository
-                .findByPostAndToUserOrderByCreatedAtDesc(post,
-                        userRepository.findById(userId).orElseThrow());
+                .findByPostAndToUserOrderByCreatedAtDesc(post, me);
 
         return feedbacks.stream()
                 .map(FeedbackReceivedResponse::from)
