@@ -21,7 +21,9 @@ import swyp.dodream.domain.application.dto.ApplicationRequest;
 import swyp.dodream.domain.application.dto.CanApplyResponse;
 import swyp.dodream.domain.post.common.PostSortType;
 import swyp.dodream.domain.post.dto.*;
+import swyp.dodream.domain.post.dto.res.SuggestionResponse;
 import swyp.dodream.domain.post.service.PostService;
+import swyp.dodream.domain.post.service.SuggestionService;
 import swyp.dodream.jwt.dto.UserPrincipal;
 
 @RestController
@@ -30,6 +32,7 @@ import swyp.dodream.jwt.dto.UserPrincipal;
 public class PostController {
 
     private final PostService postService;
+    private final SuggestionService suggestionService;
 
     // ==============================
     // 모집글 생성
@@ -249,5 +252,43 @@ public class PostController {
                 userPrincipal.getUserId(), tab, status, page, size
         );
         return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "회원 제안 보내기", description = "리더가 특정 회원에게 제안을 전송합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "제안 성공"),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청"),
+            @ApiResponse(responseCode = "403", description = "권한 없음"),
+            @ApiResponse(responseCode = "404", description = "게시글 또는 유저 없음")
+    })
+    @PreAuthorize("isAuthenticated()")
+    @PostMapping("/{postId}/suggestions")
+    public ResponseEntity<SuggestionResponse> sendSuggestion(
+            Authentication authentication,
+            @PathVariable Long postId,
+            @RequestBody @Valid SuggestionRequest request
+    ) {
+        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+        SuggestionResponse response = suggestionService.createSuggestion(
+                userPrincipal.getUserId(), postId, request
+        );
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @Operation(summary = "회원 제안 취소", description = "리더가 보낸 제안을 취소합니다.", security = @SecurityRequirement(name = "JWT"))
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "취소 성공"),
+            @ApiResponse(responseCode = "403", description = "권한 없음"),
+            @ApiResponse(responseCode = "404", description = "제안 내역 없음")
+    })
+    @PreAuthorize("isAuthenticated()")
+    @DeleteMapping("/suggestions/{suggestionId}/cancel")
+    public ResponseEntity<Void> cancelSuggestion(
+            Authentication authentication,
+            @PathVariable Long suggestionId
+    ) {
+        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+        suggestionService.cancelSuggestion(suggestionId, userPrincipal.getUserId());
+        return ResponseEntity.noContent().build();
     }
 }
