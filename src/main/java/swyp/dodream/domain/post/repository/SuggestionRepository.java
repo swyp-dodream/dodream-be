@@ -18,7 +18,7 @@ public interface SuggestionRepository extends JpaRepository<Suggestion, Long> {
         JOIN FETCH s.post p
         WHERE s.post.id = :postId
           AND s.fromUser.id = :fromUserId
-          AND s.withdrawnAt IS NULL         
+          AND s.withdrawnAt IS NULL   
           AND p.deleted = false
         ORDER BY s.createdAt DESC
     """)
@@ -38,7 +38,7 @@ public interface SuggestionRepository extends JpaRepository<Suggestion, Long> {
         WHERE s.post.id = :postId
           AND s.fromUser.id = :fromUserId
           AND s.id < :cursor
-          AND s.withdrawnAt IS NULL          
+          AND s.withdrawnAt IS NULL  
           AND p.deleted = false
         ORDER BY s.createdAt DESC
     """)
@@ -57,7 +57,7 @@ public interface SuggestionRepository extends JpaRepository<Suggestion, Long> {
         JOIN FETCH s.post p
         JOIN FETCH p.owner
         WHERE s.toUser.id = :userId
-          AND s.withdrawnAt IS NULL          
+          AND s.withdrawnAt IS NULL   
           AND p.deleted = false
         ORDER BY s.createdAt DESC
     """)
@@ -75,7 +75,7 @@ public interface SuggestionRepository extends JpaRepository<Suggestion, Long> {
         JOIN FETCH p.owner
         WHERE s.toUser.id = :userId
           AND s.id < :cursor
-          AND s.withdrawnAt IS NULL          
+          AND s.withdrawnAt IS NULL  
           AND p.deleted = false
         ORDER BY s.createdAt DESC
     """)

@@ -5,6 +5,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import swyp.dodream.common.entity.BaseEntity;
+import swyp.dodream.domain.master.domain.SuggestionStatus;
 import swyp.dodream.domain.user.domain.User;
 
 import java.time.LocalDateTime;
@@ -34,6 +35,10 @@ public class Suggestion extends BaseEntity {
     @JoinColumn(name = "to_user_id", nullable = false)
     private User toUser;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private SuggestionStatus status = SuggestionStatus.SENT;
+
     @Column(name = "withdrawn_at")
     private LocalDateTime withdrawnAt;
 
@@ -50,5 +55,9 @@ public class Suggestion extends BaseEntity {
             throw new IllegalStateException("이미 취소된 제안입니다.");
         }
         this.withdrawnAt = LocalDateTime.now();
+    }
+
+    public void markAsAccepted() {
+        this.status = SuggestionStatus.ACCEPTED;
     }
 }

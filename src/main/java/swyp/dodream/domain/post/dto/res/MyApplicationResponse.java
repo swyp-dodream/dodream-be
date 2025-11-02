@@ -52,6 +52,7 @@ public record MyApplicationResponse(
         User leader = post.getOwner();
         
         return MyApplicationResponse.builder()
+            .id(suggestion.getId())
             .postId(post.getId())
             .postTitle(post.getTitle())
             .projectType(post.getProjectType().name().toLowerCase())
@@ -72,6 +73,7 @@ public record MyApplicationResponse(
         User leader = post.getOwner();
         
         return MyApplicationResponse.builder()
+            .id(matched.getId())
             .postId(post.getId())
             .postTitle(post.getTitle())
             .projectType(post.getProjectType().name().toLowerCase())

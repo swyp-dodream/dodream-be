@@ -21,7 +21,7 @@ public interface MatchedRepository extends JpaRepository<Matched, Long> {
         SELECT m FROM Matched m
         JOIN FETCH m.user
         WHERE m.post.id = :postId
-          AND m.isCanceled = false
+          AND m.isCanceled = false 
         ORDER BY m.matchedAt DESC
     """)
     Slice<Matched> findMembersByPost(
@@ -36,7 +36,7 @@ public interface MatchedRepository extends JpaRepository<Matched, Long> {
         SELECT m FROM Matched m
         JOIN FETCH m.user
         WHERE m.post.id = :postId
-          AND m.isCanceled = false
+          AND m.isCanceled = false 
           AND m.id < :cursor
         ORDER BY m.matchedAt DESC
     """)
@@ -48,17 +48,13 @@ public interface MatchedRepository extends JpaRepository<Matched, Long> {
 
     /**
      * 특정 유저가 매칭된 모집글 목록 조회
-     *
-     * @param userId 유저 ID
-     * @param pageable 페이징 정보
-     * @return 매칭된 모집글 목록
      */
     @Query("""
         SELECT m FROM Matched m
         JOIN FETCH m.post p
         JOIN FETCH p.owner
         WHERE m.user.id = :userId
-          AND m.isCanceled = false
+          AND m.isCanceled = false 
         ORDER BY m.matchedAt DESC
     """)
     Slice<Matched> findMatchedByUser(
@@ -74,7 +70,7 @@ public interface MatchedRepository extends JpaRepository<Matched, Long> {
         JOIN FETCH m.post p
         JOIN FETCH p.owner
         WHERE m.user.id = :userId
-          AND m.isCanceled = false
+          AND m.isCanceled = false   
           AND m.id < :cursor
         ORDER BY m.matchedAt DESC
     """)
@@ -91,7 +87,6 @@ public interface MatchedRepository extends JpaRepository<Matched, Long> {
 
     /**
      * 리더의 모집글 단위 매칭 취소 횟수 계산
-     * - 모집글(post_id) 기준으로 leader가 취소한 매칭 수를 센다.
      */
     @Query("""
         SELECT COUNT(m)
@@ -104,7 +99,6 @@ public interface MatchedRepository extends JpaRepository<Matched, Long> {
 
     /**
      * 멤버의 월 기준 매칭 취소 횟수 계산
-     * - 특정 유저(user_id)가 'MEMBER'로 매칭 취소한 건수를 기간 내 집계한다.
      */
     @Query("""
         SELECT COUNT(m)
@@ -120,9 +114,7 @@ public interface MatchedRepository extends JpaRepository<Matched, Long> {
             @Param("end") LocalDateTime end
     );
 
-    /**
-     * 매칭 단건 조회
-     * - 서비스에서 취소 주체(리더/멤버) 판별용으로 사용.
-     */
     Optional<Matched> findById(Long id);
+
+    boolean existsByPostIdAndUserId(Long postId, Long id);
 }
