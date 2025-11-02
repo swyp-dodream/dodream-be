@@ -82,3 +82,7 @@ clova:
     api-gw-key: ${CLOVA_EMBEDDING_API_GW_KEY:}
     base-url: ${CLOVA_EMBEDDING_BASE_URL:https://clovastudio.stream.ntruss.com/v1/api-tools/embedding/v2}
     model: ${CLOVA_EMBEDDING_MODEL:nlp-embedding-ko-1.0.1}
+
+spring:
+  elasticsearch:
+    uris: http://localhost:9200 # 연결할 Elasticsearch 주소

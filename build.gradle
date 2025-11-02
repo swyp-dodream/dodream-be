@@ -40,7 +40,10 @@ dependencies {
     // Qdrant 벡터 데이터베이스 (REST API 사용)
     implementation 'com.squareup.okhttp3:okhttp:4.12.0'
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
-    
+
+    // Elasticsearch
+    implementation 'org.springframework.boot:spring-boot-starter-data-elasticsearch'
+
     // Lombok
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
