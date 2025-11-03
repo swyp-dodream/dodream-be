@@ -6,6 +6,10 @@ import swyp.dodream.domain.post.common.ActivityMode;
 import swyp.dodream.domain.post.common.PostStatus;
 import swyp.dodream.domain.post.common.ProjectType;
 import swyp.dodream.domain.post.domain.*;
+import swyp.dodream.domain.post.domain.Post;
+import swyp.dodream.domain.post.domain.PostField;
+import swyp.dodream.domain.post.domain.PostRole;
+import swyp.dodream.domain.post.domain.PostStack;
 
 import java.util.List;
 
