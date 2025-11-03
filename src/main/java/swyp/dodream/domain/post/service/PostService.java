@@ -27,6 +27,8 @@ import swyp.dodream.domain.post.common.ProjectType;
 import swyp.dodream.domain.post.domain.*;
 import swyp.dodream.domain.post.dto.*;
 import swyp.dodream.domain.post.repository.*;
+import swyp.dodream.domain.search.document.PostDocument;
+import swyp.dodream.domain.search.repository.PostDocumentRepository;
 import swyp.dodream.domain.user.domain.User;
 import swyp.dodream.domain.user.repository.UserRepository;
 import swyp.dodream.domain.ai.service.EmbeddingService;
@@ -57,6 +59,7 @@ public class PostService {
     private final TechSkillRepository techSkillRepository;
     private final InterestKeywordRepository interestKeywordRepository;
     private final EntityManager entityManager;
+    private final PostDocumentRepository postDocumentRepository;
     
     
     // 벡터 임베딩 관련 (옵션) - NCP 배포 시에만 활성화
@@ -117,6 +120,14 @@ public class PostService {
 
         // 게시글 임베딩 생성 (Qdrant에 저장)
         createPostEmbeddingAsync(post);
+
+        postDocumentRepository.save(
+                PostDocument.builder()
+                        .id(post.getId())
+                        .title(post.getTitle())
+                        .content(post.getContent())
+                        .build()
+        );
 
         boolean isOwner = post.getOwner().getId().equals(userId);
         return PostResponse.from(post, isOwner);
@@ -266,6 +277,14 @@ public class PostService {
         // 게시글 업데이트 시 임베딩 재생성
         createPostEmbeddingAsync(post);
 
+        postDocumentRepository.save(
+                PostDocument.builder()
+                        .id(post.getId())
+                        .title(post.getTitle())
+                        .content(post.getContent())
+                        .build()
+        );
+
         boolean isOwner = post.getOwner().getId().equals(userId);
         return PostResponse.from(post, isOwner);
     }
@@ -293,6 +312,14 @@ public class PostService {
         // 마지막으로 모집글 삭제
         postRepository.delete(post);
         postRepository.flush();
+
+        postDocumentRepository.save(
+                PostDocument.builder()
+                        .id(post.getId())
+                        .title(post.getTitle())
+                        .content(post.getContent())
+                        .build()
+        );
     }
 
     // 모집글 지원
