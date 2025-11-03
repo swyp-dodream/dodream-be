@@ -5,12 +5,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import swyp.dodream.common.exception.CustomException;
 import swyp.dodream.common.exception.ExceptionType;
+import swyp.dodream.common.snowflake.SnowflakeIdService;
+import swyp.dodream.domain.application.domain.Application;
+import swyp.dodream.domain.application.repository.ApplicationRepository;
 import swyp.dodream.domain.post.common.CancelBy;
 import swyp.dodream.domain.post.common.CancelReasonCode;
 import swyp.dodream.domain.matched.domain.Matched;
 import swyp.dodream.domain.matched.dto.MatchingCancelRequest;
 import swyp.dodream.domain.matched.repository.MatchedRepository;
+import swyp.dodream.domain.post.domain.Post;
+import swyp.dodream.domain.post.domain.Suggestion;
 import swyp.dodream.domain.post.repository.PostRepository;
+import swyp.dodream.domain.post.repository.SuggestionRepository;
 
 import java.time.LocalDateTime;
 import java.time.YearMonth;
@@ -23,13 +29,16 @@ public class MatchedService {
 
     private final MatchedRepository matchedRepository;
     private final PostRepository postRepository;
+    private final ApplicationRepository applicationRepository;
+    private final SnowflakeIdService snowflakeIdService;
+    private final SuggestionRepository suggestionRepository;
 
     // 정책 상수
     private static final int LEADER_CANCEL_LIMIT_PER_POST = 2; // 모집글 당 2회
     private static final int MEMBER_MONTHLY_CANCEL_LIMIT_AFTER_24H = 2; // 24시간 이후 월 2회
 
     /**
-     * ✅ 매칭 취소
+     *  매칭 취소
      * - 리더 또는 멤버가 매칭을 취소한다.
      * - 리더: 모집글 단위로 최대 2회 취소 가능
      * - 멤버: 매칭 24시간 내 무제한 / 이후 월 2회 제한
@@ -79,5 +88,66 @@ public class MatchedService {
 
         matched.cancel(cancelBy, reason);
         matchedRepository.save(matched);
+    }
+
+    @Transactional
+    public void acceptApplication(Long leaderId, Long postId, Long applicationId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new CustomException(ExceptionType.NOT_FOUND, "게시글을 찾을 수 없습니다."));
+
+        if (!post.getOwner().getId().equals(leaderId)) {
+            throw new CustomException(ExceptionType.FORBIDDEN, "리더만 수락할 수 있습니다.");
+        }
+
+        Application app = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new CustomException(ExceptionType.NOT_FOUND, "지원 내역을 찾을 수 없습니다."));
+
+        // 매칭 중복 방지
+        if (matchedRepository.existsByPostIdAndUserId(postId, app.getApplicant().getId())) {
+            throw new CustomException(ExceptionType.BAD_REQUEST_INVALID, "이미 매칭된 사용자입니다.");
+        }
+
+        // 매칭 생성
+        Matched matched = Matched.builder()
+                .id(snowflakeIdService.generateId())
+                .post(post)
+                .user(app.getApplicant())
+                .application(app)
+                .matchedAt(LocalDateTime.now())
+                .isCanceled(false)
+                .build();
+
+        matchedRepository.save(matched);
+    }
+
+    @Transactional
+    public void acceptSuggestion(Long userId, Long suggestionId) {
+        Suggestion suggestion = suggestionRepository.findById(suggestionId)
+                .orElseThrow(() -> new CustomException(ExceptionType.NOT_FOUND, "제안을 찾을 수 없습니다."));
+
+        if (!suggestion.getToUser().getId().equals(userId)) {
+            throw new CustomException(ExceptionType.FORBIDDEN, "본인에게 온 제안만 수락할 수 있습니다.");
+        }
+
+        Post post = suggestion.getPost();
+
+        // 중복 매칭 방지
+        if (matchedRepository.existsByPostIdAndUserId(post.getId(), userId)) {
+            throw new CustomException(ExceptionType.BAD_REQUEST_INVALID, "이미 매칭된 사용자입니다.");
+        }
+
+        Matched matched = Matched.builder()
+                .id(snowflakeIdService.generateId())
+                .post(post)
+                .user(suggestion.getToUser())
+                .application(null) // 제안 기반 매칭이라 application 없음
+                .matchedAt(LocalDateTime.now())
+                .isCanceled(false)
+                .build();
+
+        matchedRepository.save(matched);
+
+        // 제안 상태 변경
+        suggestion.markAsAccepted();
     }
 }

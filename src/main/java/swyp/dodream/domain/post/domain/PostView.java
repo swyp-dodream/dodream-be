@@ -21,6 +21,9 @@ public class PostView {
     @Column(nullable = false)
     private Long views = 0L;
 
+    @Column(nullable = false)
+    private Boolean deleted = false;
+
     public void increment() {
         this.views++;
     }

@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import swyp.dodream.domain.application.domain.Application;
@@ -26,6 +27,8 @@ import swyp.dodream.domain.post.common.ProjectType;
 import swyp.dodream.domain.post.domain.*;
 import swyp.dodream.domain.post.dto.*;
 import swyp.dodream.domain.post.repository.*;
+import swyp.dodream.domain.search.document.PostDocument;
+import swyp.dodream.domain.search.repository.PostDocumentRepository;
 import swyp.dodream.domain.user.domain.User;
 import swyp.dodream.domain.user.repository.UserRepository;
 import swyp.dodream.domain.ai.service.EmbeddingService;
@@ -56,6 +59,7 @@ public class PostService {
     private final TechSkillRepository techSkillRepository;
     private final InterestKeywordRepository interestKeywordRepository;
     private final EntityManager entityManager;
+    private final PostDocumentRepository postDocumentRepository;
     
     
     // 벡터 임베딩 관련 (옵션) - NCP 배포 시에만 활성화
@@ -66,7 +70,7 @@ public class PostService {
     @Transactional
     public PostResponse createPost(PostCreateRequest request, Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("회원이 아닙니다."));
+                .orElseThrow(ExceptionType.USER_NOT_FOUND::throwException);
 
         // 비즈니스 검증 (필수 값 등)
         validatePostRequest(request);
@@ -112,9 +116,18 @@ public class PostService {
                 .build();
 
         matchedRepository.save(ownerMatched);
+        entityManager.flush();
 
         // 게시글 임베딩 생성 (Qdrant에 저장)
         createPostEmbeddingAsync(post);
+
+        postDocumentRepository.save(
+                PostDocument.builder()
+                        .id(post.getId())
+                        .title(post.getTitle())
+                        .content(post.getContent())
+                        .build()
+        );
 
         boolean isOwner = post.getOwner().getId().equals(userId);
         return PostResponse.from(post, isOwner);
@@ -187,13 +200,13 @@ public class PostService {
     @Transactional
     public PostResponse getPostDetail(Long postId, Long userId) {
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new EntityNotFoundException("모집글을 찾을 수 없습니다."));
+                .orElseThrow(ExceptionType.POST_NOT_FOUND::throwException);
 
         // 조회수 조회 또는 생성
         PostView postView = postViewRepository.findById(postId)
                 .orElseGet(() -> {
                     PostView newView = new PostView();
-                    newView.setPost(post);
+                    newView.setPost(entityManager.getReference(Post.class, post.getId())); // ★ 세션 충돌/식별자 중복 방지
                     return postViewRepository.save(newView);
                 });
 
@@ -214,7 +227,7 @@ public class PostService {
     @Transactional
     public PostResponse updatePost(Long postId, PostUpdateRequest request, Long userId) {
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new EntityNotFoundException("모집글을 찾을 수 없습니다."));
+                .orElseThrow(ExceptionType.POST_NOT_FOUND::throwException);
 
         if (!post.getOwner().getId().equals(userId)) {
             throw new IllegalStateException("작성자만 모집글을 수정할 수 있습니다.");
@@ -264,6 +277,14 @@ public class PostService {
         // 게시글 업데이트 시 임베딩 재생성
         createPostEmbeddingAsync(post);
 
+        postDocumentRepository.save(
+                PostDocument.builder()
+                        .id(post.getId())
+                        .title(post.getTitle())
+                        .content(post.getContent())
+                        .build()
+        );
+
         boolean isOwner = post.getOwner().getId().equals(userId);
         return PostResponse.from(post, isOwner);
     }
@@ -272,7 +293,7 @@ public class PostService {
     @Transactional
     public void deletePost(Long postId, Long userId) {
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new EntityNotFoundException("모집글을 찾을 수 없습니다."));
+                .orElseThrow(ExceptionType.POST_NOT_FOUND::throwException);
 
         // 작성자 본인만 삭제 가능
         if (!post.getOwner().getId().equals(userId)) {
@@ -290,16 +311,25 @@ public class PostService {
 
         // 마지막으로 모집글 삭제
         postRepository.delete(post);
+        postRepository.flush();
+
+        postDocumentRepository.save(
+                PostDocument.builder()
+                        .id(post.getId())
+                        .title(post.getTitle())
+                        .content(post.getContent())
+                        .build()
+        );
     }
 
     // 모집글 지원
     @Transactional
     public void applyToPost(Long postId, Long userId, ApplicationRequest request) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("회원이 아닙니다."));
+                .orElseThrow(ExceptionType.USER_NOT_FOUND::throwException);
 
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new EntityNotFoundException("모집글을 찾을 수 없습니다."));
+                .orElseThrow(ExceptionType.POST_NOT_FOUND::throwException);
 
         // 리더(작성자)는 지원 불가
         if (post.getOwner().getId().equals(user.getId())) {
@@ -325,7 +355,7 @@ public class PostService {
     @Transactional(readOnly = true)
     public boolean canApply(Long postId, Long userId) {
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new EntityNotFoundException("모집글을 찾을 수 없습니다."));
+                .orElseThrow(ExceptionType.POST_NOT_FOUND::throwException);
 
         // 리더는 지원 불가
         return !post.getOwner().getId().equals(userId);
@@ -336,7 +366,7 @@ public class PostService {
         if (request.getRoles() != null) {
             for (PostRoleDto roleDto : request.getRoles()) {
                 Role role = roleRepository.findById(roleDto.getRoleId())
-                        .orElseThrow(() -> new EntityNotFoundException("해당 Role이 존재하지 않습니다."));
+                        .orElseThrow(ExceptionType.ROLE_NOT_FOUND::throwException);
                 PostRole pr = new PostRole(snowflakeIdService.generateId(), post, role, roleDto.getCount());
                 postRoleRepository.save(pr);
             }
@@ -347,7 +377,7 @@ public class PostService {
         if (request.getStackIds() != null) {
             for (Long stackId : request.getStackIds()) {
                 TechSkill skill = techSkillRepository.findById(stackId)
-                        .orElseThrow(() -> new EntityNotFoundException("해당 TechSkill이 존재하지 않습니다."));
+                        .orElseThrow(ExceptionType.TECH_SKILL_NOT_FOUND::throwException);
                 PostStack ps = new PostStack(post, skill);
                 postStackRepository.save(ps);
             }
@@ -358,7 +388,7 @@ public class PostService {
         if (request.getCategoryIds() != null) {
             for (Long keywordId : request.getCategoryIds()) {
                 InterestKeyword keyword = interestKeywordRepository.findById(keywordId)
-                        .orElseThrow(() -> new EntityNotFoundException("해당 InterestKeyword가 존재하지 않습니다."));
+                        .orElseThrow(ExceptionType.INTEREST_NOT_FOUND::throwException);
                 PostField pf = new PostField(post, keyword);
                 postFieldRepository.save(pf);
             }
@@ -389,6 +419,8 @@ public class PostService {
                 sort
         );
 
+        Specification<Post> spec = Specification.where(PostSpecification.notDeleted());
+
         return postRepository.findAll(sortedPageable)
                 .map(post -> PostResponse.from(post, false)); // 목록에서는 작성자 여부 false
     }
@@ -415,6 +447,8 @@ public class PostService {
             throw new CustomException(ExceptionType.BAD_REQUEST_INVALID,
                     "유효하지 않은 탭 값입니다: " + tab + " (가능한 값: project, study)");
         }
+
+        if (status != null && status.isBlank()) status = null;
 
         // 4. 상태 파싱 (recruiting/completed, 선택)
         PostStatus postStatus = null;

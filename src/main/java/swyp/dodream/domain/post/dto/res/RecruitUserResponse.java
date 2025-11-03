@@ -10,6 +10,8 @@ import java.time.LocalDateTime;
 
 @Builder
 public record RecruitUserResponse(
+        Long suggestionId,
+        Long applicationId,
         Long userId,
         String nickname,
         String profileImage,
@@ -24,6 +26,8 @@ public record RecruitUserResponse(
         User user = suggestion.getToUser();
 
         return RecruitUserResponse.builder()
+                .suggestionId(suggestion.getId())
+                .applicationId(null)
                 .userId(user.getId())
                 .nickname(user.getName())
                 .profileImage(user.getProfileImageUrl())
@@ -39,6 +43,8 @@ public record RecruitUserResponse(
         User user = application.getApplicant();
 
         return RecruitUserResponse.builder()
+                .suggestionId(null)    // 지원 이니까 제안 id에 데해서 null 처리
+                .applicationId(application.getId())
                 .userId(user.getId())
                 .nickname(user.getName())
                 .profileImage(user.getProfileImageUrl())
@@ -54,6 +60,8 @@ public record RecruitUserResponse(
         User user = matched.getUser();
 
         return RecruitUserResponse.builder()
+                .suggestionId(null)     // 메칭 이니까 제안 id에 대해서 null 처리
+                .applicationId(null)
                 .userId(user.getId())
                 .nickname(user.getName())
                 .profileImage(user.getProfileImageUrl())

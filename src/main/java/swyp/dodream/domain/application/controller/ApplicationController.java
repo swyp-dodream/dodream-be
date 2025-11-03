@@ -45,7 +45,7 @@ public class ApplicationController {
     ) {
         UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
         applicationService.cancelByApplicant(applicationId, userPrincipal.getUserId());
-        return ResponseEntity.noContent().build(); // 204 반환 — 프론트에서 토스트 처리
+        return ResponseEntity.noContent().build();
     }
 
     @Operation(

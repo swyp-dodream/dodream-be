@@ -19,9 +19,12 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import swyp.dodream.domain.application.dto.ApplicationRequest;
 import swyp.dodream.domain.application.dto.CanApplyResponse;
+import swyp.dodream.domain.matched.service.MatchedService;
 import swyp.dodream.domain.post.common.PostSortType;
 import swyp.dodream.domain.post.dto.*;
+import swyp.dodream.domain.post.dto.res.SuggestionResponse;
 import swyp.dodream.domain.post.service.PostService;
+import swyp.dodream.domain.post.service.SuggestionService;
 import swyp.dodream.jwt.dto.UserPrincipal;
 
 @RestController
@@ -30,6 +33,8 @@ import swyp.dodream.jwt.dto.UserPrincipal;
 public class PostController {
 
     private final PostService postService;
+    private final SuggestionService suggestionService;
+    private final MatchedService matchedService;
 
     // ==============================
     // 모집글 생성
@@ -37,7 +42,7 @@ public class PostController {
     @Operation(
             summary = "모집글 생성",
             description = "새로운 프로젝트 또는 스터디 모집글을 작성합니다.",
-            security = @SecurityRequirement(name = "bearerAuth")
+            security = @SecurityRequirement(name = "JWT")
     )
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "등록 성공",
@@ -111,7 +116,7 @@ public class PostController {
     @Operation(
             summary = "모집글 수정",
             description = "작성자가 본인 모집글의 내용을 수정합니다.",
-            security = @SecurityRequirement(name = "bearerAuth")
+            security = @SecurityRequirement(name = "JWT")
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "수정 성공",
@@ -143,7 +148,7 @@ public class PostController {
     @Operation(
             summary = "모집글 삭제",
             description = "작성자가 본인 모집글을 삭제합니다.",
-            security = @SecurityRequirement(name = "bearerAuth")
+            security = @SecurityRequirement(name = "JWT")
     )
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "삭제 성공"),
@@ -168,7 +173,7 @@ public class PostController {
     @Operation(
             summary = "모집글 지원",
             description = "해당 모집글에 지원합니다.",
-            security = @SecurityRequirement(name = "bearerAuth")
+            security = @SecurityRequirement(name = "JWT")
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "지원 성공"),
@@ -249,5 +254,76 @@ public class PostController {
                 userPrincipal.getUserId(), tab, status, page, size
         );
         return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "회원 제안 보내기", description = "리더가 특정 회원에게 제안을 전송합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "제안 성공"),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청"),
+            @ApiResponse(responseCode = "403", description = "권한 없음"),
+            @ApiResponse(responseCode = "404", description = "게시글 또는 유저 없음")
+    })
+    @PreAuthorize("isAuthenticated()")
+    @PostMapping("/{postId}/suggestions")
+    public ResponseEntity<SuggestionResponse> sendSuggestion(
+            Authentication authentication,
+            @PathVariable Long postId,
+            @RequestBody @Valid SuggestionRequest request
+    ) {
+        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+        SuggestionResponse response = suggestionService.createSuggestion(
+                userPrincipal.getUserId(), postId, request
+        );
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @Operation(summary = "회원 제안 취소", description = "리더가 보낸 제안을 취소합니다.", security = @SecurityRequirement(name = "JWT"))
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "취소 성공"),
+            @ApiResponse(responseCode = "403", description = "권한 없음"),
+            @ApiResponse(responseCode = "404", description = "제안 내역 없음")
+    })
+    @PreAuthorize("isAuthenticated()")
+    @DeleteMapping("/suggestions/{suggestionId}/cancel")
+    public ResponseEntity<Void> cancelSuggestion(
+            Authentication authentication,
+            @PathVariable Long suggestionId
+    ) {
+        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+        suggestionService.cancelSuggestion(suggestionId, userPrincipal.getUserId());
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "지원 수락", description = "리더가 특정 지원자를 수락하여 매칭을 생성합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "매칭 생성 성공"),
+            @ApiResponse(responseCode = "403", description = "권한 없음"),
+            @ApiResponse(responseCode = "404", description = "게시글 또는 지원자 없음")
+    })
+    @PostMapping("/{postId}/applications/{applicationId}/accept")
+    public ResponseEntity<Void> acceptApplication(
+            Authentication authentication,
+            @PathVariable Long postId,
+            @PathVariable Long applicationId
+    ) {
+        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+        matchedService.acceptApplication(userPrincipal.getUserId(), postId, applicationId);
+        return ResponseEntity.status(201).build();
+    }
+
+    @Operation(summary = "제안 수락", description = "유저가 리더의 제안을 수락하여 매칭을 생성합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "매칭 생성 성공"),
+            @ApiResponse(responseCode = "403", description = "권한 없음"),
+            @ApiResponse(responseCode = "404", description = "제안 내역 없음")
+    })
+    @PostMapping("/suggestions/{suggestionId}/accept")
+    public ResponseEntity<Void> acceptSuggestion(
+            Authentication authentication,
+            @PathVariable Long suggestionId
+    ) {
+        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+        matchedService.acceptSuggestion(userPrincipal.getUserId(), suggestionId);
+        return ResponseEntity.status(201).build();
     }
 }

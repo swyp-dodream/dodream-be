@@ -29,8 +29,18 @@ public enum ExceptionType {
     NOT_FOUND(HttpStatus.NOT_FOUND, "데이터가 존재하지 않음"),
     NOT_FOUND_USER(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다"),
     PROFILE_NOT_FOUND(HttpStatus.NOT_FOUND, "프로필을 찾을 수 없습니다"),
+    ROLE_NOT_FOUND(HttpStatus.NOT_FOUND, "직군을 찾을 수 없습니다"),
+    TECH_SKILL_NOT_FOUND(HttpStatus.NOT_FOUND, "기술 스킬을 찾을 수 없습니다"),
+    TECH_CATEGORY_NOT_FOUND(HttpStatus.NOT_FOUND, "기술 카테고리를 찾을 수 없습니다"),
     TECH_STACK_NOT_FOUND(HttpStatus.NOT_FOUND, "기술 스택을 찾을 수 없습니다"),
     INTEREST_NOT_FOUND(HttpStatus.NOT_FOUND, "관심 분야를 찾을 수 없습니다"),
+    POST_NOT_FOUND(HttpStatus.NOT_FOUND, "모집글을 찾을 수 없습니다"),
+    USER_NOT_FOUND(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다"),
+    APPLICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "지원 내역을 찾을 수 없습니다"),
+    MATCHED_NOT_FOUND(HttpStatus.NOT_FOUND, "매칭 내역을 찾을 수 없습니다"),
+    MASTER_DATA_NOT_FOUND(HttpStatus.NOT_FOUND, "마스터 데이터를 찾을 수 없습니다"),
+    CHAT_ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "채팅방을 찾을 수 없습니다"),
+    MESSAGE_NOT_FOUND(HttpStatus.NOT_FOUND, "메시지를 찾을 수 없습니다"),
 
     // Conflict(409)
     CONFLICT_DUPLICATE(HttpStatus.CONFLICT, "이미 존재하는 데이터입니다"),
