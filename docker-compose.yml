@@ -72,6 +72,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      qdrant:
+        condition: service_healthy
     ports:
       # 호스트:컨테이너 포트 매핑 (외부 8080 → 내부 8080)
       - "8080:8080"
@@ -91,8 +93,12 @@ services:
       # OAuth2 설정
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - NAVER_CLIENT_ID=${NAVER_CLIENT_ID}
+      - NAVER_CLIENT_SECRET=${NAVER_CLIENT_SECRET}
       # JWT 설정
       - JWT_SECRET=${JWT_SECRET}
+      # NCP Clova 설정
+      - NCP_CLOVA_API_KEY=${NCP_CLOVA_API_KEY}
       - JWT_ACCESS_TOKEN_EXPIRATION=1800000
       - JWT_REFRESH_TOKEN_EXPIRATION=604800000
     networks:

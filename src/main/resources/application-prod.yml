@@ -5,9 +5,13 @@ spring:
     password: ${MYSQL_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
   
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  
   jpa:
     hibernate:
-      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:update}  # 운영에서도 테이블 자동 생성
+      ddl-auto: validate  # Flyway가 스키마를 관리하므로 validate 사용
     show-sql: ${SPRING_JPA_SHOW_SQL:false}  # 운영에서는 SQL 로그 비활성화
   
   data:
@@ -32,13 +36,28 @@ jwt:
   access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:1800000}  # 30분
   refresh-token-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION:604800000}  # 7일
 
-#ncp:
-#  clova:
-#    base-url: https://clovastudio.apigw.ntruss.com/testapp/v1/chat-completions
-#    api-key: ${NCP_CLOVA_API_KEY}
-#    model: HCX-005
+ai:
+  provider: ncp  # NCP Clova 사용
 
-openai:
-  api-key: ${OPENAI_API_KEY}
-  base-url: https://api.openai.com/v1/chat/completions
-  model: gpt-3.5-turbo
+ncp:
+  api-key: ${NCP_CLOVA_API_KEY}
+  base-url: https://clovastudio.stream.ntruss.com/v1/chat-completions/HCX-003
+  model: HCX-003
+
+# Qdrant 벡터 데이터베이스 설정
+qdrant:
+  host: qdrant  # docker-compose의 qdrant 서비스명
+  port: 6333
+  grpc-port: 6334
+  timeout: 30
+  collection-name: posts_embeddings
+  vector-size: 1024  # NCP Clova Embedding 차원
+
+# NCP Clova Embedding 설정 (게시글 추천용)
+# 주의: 별도 Embedding 키가 없으면 NCP_CLOVA_API_KEY를 사용
+clova:
+  embedding:
+    api-key: ${CLOVA_EMBEDDING_API_KEY:}
+    api-gw-key: ${CLOVA_EMBEDDING_API_GW_KEY:}
+    base-url: ${CLOVA_EMBEDDING_BASE_URL:https://clovastudio.stream.ntruss.com/v1/api-tools/embedding/v2}
+    model: ${CLOVA_EMBEDDING_MODEL:nlp-embedding-ko-1.0.1}
