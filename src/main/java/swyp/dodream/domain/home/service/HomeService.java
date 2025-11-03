@@ -22,12 +22,8 @@ public class HomeService {
 
     private final PostRepository postRepository;
 
-    // ==============================
-    // 홈 목록 조회 (필터 + 검색 + 정렬 + 페이지네이션)
-    // ==============================
     public Page<PostSummaryResponse> getHomePosts(
             ProjectType type,
-            String keyword,
             List<String> roles,
             List<String> techs,
             List<String> interests,
@@ -37,31 +33,41 @@ public class HomeService {
             Pageable pageable
     ) {
         // 초기 스펙
-        Specification<Post> spec = Specification.where(null);
+        Specification<Post> spec = PostSpecification.notDeleted();
 
         // 프로젝트 유형 필터
         if (type != null && type != ProjectType.ALL) {
             spec = spec.and(PostSpecification.hasType(type));
         }
 
-        // 키워드 검색
-        if (keyword != null && !keyword.isBlank()) {
-            spec = spec.and(PostSpecification.containsKeyword(keyword));
-        }
-
-        // 다중 선택된 직군 필터
+        // 다중 선택된 직군 필터 (빈 문자열 제거)
         if (roles != null && !roles.isEmpty()) {
-            spec = spec.and(PostSpecification.hasAnyRole(roles));
+            List<String> filteredRoles = roles.stream()
+                    .filter(role -> role != null && !role.isBlank())
+                    .toList(); // .collect(Collectors.toList()); (Java 11)
+            if (!filteredRoles.isEmpty()) {
+                spec = spec.and(PostSpecification.hasAnyRole(filteredRoles));
+            }
         }
 
-        // 다중 선택된 기술 필터
+        // 다중 선택된 기술 필터 (빈 문자열 제거)
         if (techs != null && !techs.isEmpty()) {
-            spec = spec.and(PostSpecification.hasAnyTech(techs));
+            List<String> filteredTechs = techs.stream()
+                    .filter(tech -> tech != null && !tech.isBlank())
+                    .toList(); // .collect(Collectors.toList()); (Java 11)
+            if (!filteredTechs.isEmpty()) {
+                spec = spec.and(PostSpecification.hasAnyTech(filteredTechs));
+            }
         }
 
-        // 스터디(STUDY)는 interest 필터 무시
-        if (type != ProjectType.STUDY && interests != null && !interests.isEmpty()) {
-            spec = spec.and(PostSpecification.hasAnyInterest(interests));
+        // 관심 분야 필터 (빈 문자열 제거)
+        if (interests != null && !interests.isEmpty()) {
+            List<String> filteredInterests = interests.stream()
+                    .filter(interest -> interest != null && !interest.isBlank())
+                    .toList(); // .collect(Collectors.toList()); (Java 11)
+            if (!filteredInterests.isEmpty()) {
+                spec = spec.and(PostSpecification.hasAnyInterest(filteredInterests));
+            }
         }
 
         // 활동 방식 필터
@@ -74,19 +80,16 @@ public class HomeService {
             spec = spec.and(PostSpecification.hasStatus(PostStatus.RECRUITING));
         }
 
-        // 정렬 기준 설정
         Sort sorting = switch (sort.toLowerCase()) {
-            case "popular" -> Sort.by(Sort.Direction.DESC, "viewCount");
-            case "deadline" -> Sort.by(Sort.Direction.ASC, "recruitEndDate");
+            case "popular" -> Sort.by(Sort.Direction.DESC, "postView.views");
+            case "deadline" -> Sort.by(Sort.Direction.ASC, "deadlineAt");
             default -> Sort.by(Sort.Direction.DESC, "createdAt");
         };
 
         Pageable sortedPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sorting);
 
-        // DB 조회
         Page<Post> posts = postRepository.findAll(spec, sortedPageable);
 
-        // DTO 매핑
         return posts.map(PostSummaryResponse::fromEntity);
     }
 }
