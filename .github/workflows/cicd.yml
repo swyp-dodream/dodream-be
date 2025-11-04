@@ -108,7 +108,10 @@ jobs:
           # 새 애플리케이션 컨테이너 실행 (host 네트워크 모드 사용)
           # host 네트워크를 사용하면 서버의 localhost로 포트가 노출된 다른 Docker 컨테이너에 접근 가능
           # MySQL, Redis, Elasticsearch, Qdrant는 모두 서버에서 Docker로 실행 중이며 포트가 호스트에 매핑되어 있음
-          docker run -d --name dodream-app --restart unless-stopped --network host -e SPRING_PROFILES_ACTIVE=prod -e SPRING_DATASOURCE_URL="${{ secrets.SPRING_DATASOURCE_URL }}" -e SPRING_DATASOURCE_USERNAME="${{ secrets.MYSQL_USER }}" -e SPRING_DATASOURCE_PASSWORD="${{ secrets.MYSQL_PASSWORD }}" -e SPRING_DATA_REDIS_HOST=localhost -e SPRING_DATA_REDIS_PORT=6379 -e SPRING_ELASTICSEARCH_URIS=http://localhost:9200 -e QDRANT_HOST=localhost -e GOOGLE_CLIENT_ID="${{ secrets.GOOGLE_CLIENT_ID }}" -e GOOGLE_CLIENT_SECRET="${{ secrets.GOOGLE_CLIENT_SECRET }}" -e NAVER_CLIENT_ID="${{ secrets.NAVER_CLIENT_ID }}" -e NAVER_CLIENT_SECRET="${{ secrets.NAVER_CLIENT_SECRET }}" -e JWT_SECRET="${{ secrets.JWT_SECRET }}" -e JWT_ACCESS_TOKEN_EXPIRATION=1800000 -e JWT_REFRESH_TOKEN_EXPIRATION=604800000 -e NCP_CLOVA_API_KEY="${{ secrets.NCP_CLOVA_API_KEY }}" ${{ secrets.DOCKER_USERNAME }}/dodream-backend:latest
+          # SPRING_DATASOURCE_URL에서 mysql 호스트명을 localhost로 변경 (host 네트워크 사용 시)
+          DATASOURCE_URL="${{ secrets.SPRING_DATASOURCE_URL }}"
+          DATASOURCE_URL=$(echo "$DATASOURCE_URL" | sed 's|mysql:3306|localhost:3306|g')
+          docker run -d --name dodream-app --restart unless-stopped --network host -e SPRING_PROFILES_ACTIVE=prod -e SPRING_DATASOURCE_URL="$DATASOURCE_URL" -e SPRING_DATASOURCE_USERNAME="${{ secrets.MYSQL_USER }}" -e SPRING_DATASOURCE_PASSWORD="${{ secrets.MYSQL_PASSWORD }}" -e SPRING_DATA_REDIS_HOST=localhost -e SPRING_DATA_REDIS_PORT=6379 -e SPRING_ELASTICSEARCH_URIS=http://localhost:9200 -e QDRANT_HOST=localhost -e GOOGLE_CLIENT_ID="${{ secrets.GOOGLE_CLIENT_ID }}" -e GOOGLE_CLIENT_SECRET="${{ secrets.GOOGLE_CLIENT_SECRET }}" -e NAVER_CLIENT_ID="${{ secrets.NAVER_CLIENT_ID }}" -e NAVER_CLIENT_SECRET="${{ secrets.NAVER_CLIENT_SECRET }}" -e JWT_SECRET="${{ secrets.JWT_SECRET }}" -e JWT_ACCESS_TOKEN_EXPIRATION=1800000 -e JWT_REFRESH_TOKEN_EXPIRATION=604800000 -e NCP_CLOVA_API_KEY="${{ secrets.NCP_CLOVA_API_KEY }}" ${{ secrets.DOCKER_USERNAME }}/dodream-backend:latest
           
           # 컨테이너가 실행되었는지 확인 (이미지 정리 전에 확인)
           sleep 5
