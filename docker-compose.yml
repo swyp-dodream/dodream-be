@@ -1,95 +1,27 @@
 version: '3.8'
 
 services:
-  mysql:
-    # MySQL 컨테이너 (데이터베이스)
-    image: mysql:8.0
-    container_name: dodream-mysql
-    restart: unless-stopped
-    ports:
-      - "3306:3306"
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-    volumes:
-      - mysql-data:/var/lib/mysql
-    networks:
-      - dodream-network
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 10s
-      timeout: 3s
-      retries: 3
-
-  redis:
-    # Redis 컨테이너 (Refresh Token 저장용)
-    image: redis:7-alpine
-    container_name: dodream-redis
-    restart: unless-stopped
-    ports:
-      - "6379:6379"
-    # Redis 데이터 영속화 (배포 시에도 데이터 유지)
-    volumes:
-      - redis-data:/data
-    # AOF(Append Only File) 활성화로 데이터 영속성 보장
-    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
-    networks:
-      - dodream-network
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 3s
-      retries: 3
-
-  qdrant:
-    # Qdrant 벡터 데이터베이스 (게시글 추천용)
-    image: qdrant/qdrant:latest
-    container_name: dodream-qdrant
-    restart: unless-stopped
-    ports:
-      - "6333:6333"  # HTTP API
-      - "6334:6334"  # gRPC API
-    volumes:
-      - qdrant-storage:/qdrant/storage
-    networks:
-      - dodream-network
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:6333/"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-
   dodream-app:
-    # Docker Hub에서 최신 이미지 사용 (johoon/dodream-backend:latest)
+    # Docker Hub에서 최신 이미지 사용
+    # MySQL, Redis, Qdrant, Elasticsearch는 서버에서 별도로 관리
     image: ${DOCKER_USERNAME}/dodream-backend:latest
     container_name: dodream-app
     # 컨테이너가 예상치 못하게 종료되면 자동 재시작
     restart: unless-stopped
-    depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      qdrant:
-        condition: service_healthy
-    ports:
-      # 호스트:컨테이너 포트 매핑 (외부 8080 → 내부 8080)
-      - "8080:8080"
+    # 호스트 네트워크를 사용하여 localhost로 연결 (서버에서 별도 관리하는 DB와 연결)
+    network_mode: host
     environment:
       # Spring Boot 프로파일 설정 (운영 환경)
       - SPRING_PROFILES_ACTIVE=prod
-      # Docker MySQL 연결 정보
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/${MYSQL_DATABASE}?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8&allowPublicKeyRetrieval=true
+      # 서버에서 별도로 관리하는 MySQL 연결 (localhost 사용)
+      - SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL}
       - SPRING_DATASOURCE_USERNAME=${MYSQL_USER}
       - SPRING_DATASOURCE_PASSWORD=${MYSQL_PASSWORD}
-      # JPA 설정 (운영 환경)
-      - SPRING_JPA_HIBERNATE_DDL_AUTO=update  # 운영에서도 테이블 자동 생성
-      - SPRING_JPA_SHOW_SQL=false  # 운영에서는 SQL 로그 비활성화
-      # Redis 설정
-      - SPRING_DATA_REDIS_HOST=redis
+      # Redis 설정 (서버에서 별도 관리, localhost 사용)
+      - SPRING_DATA_REDIS_HOST=localhost
       - SPRING_DATA_REDIS_PORT=6379
+      # Elasticsearch 설정 (서버에서 별도 관리, localhost 사용)
+      - SPRING_ELASTICSEARCH_URIS=http://localhost:9200
       # OAuth2 설정
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
@@ -97,29 +29,14 @@ services:
       - NAVER_CLIENT_SECRET=${NAVER_CLIENT_SECRET}
       # JWT 설정
       - JWT_SECRET=${JWT_SECRET}
-      # NCP Clova 설정
-      - NCP_CLOVA_API_KEY=${NCP_CLOVA_API_KEY}
       - JWT_ACCESS_TOKEN_EXPIRATION=1800000
       - JWT_REFRESH_TOKEN_EXPIRATION=604800000
-    networks:
-      - dodream-network
+      # NCP Clova 설정
+      - NCP_CLOVA_API_KEY=${NCP_CLOVA_API_KEY}
     healthcheck:
       # 헬스체크: 30초마다 애플리케이션 상태 확인
-      # 애플리케이션이 응답하지 않으면 자동으로 재시작됨
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080 || exit 1"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1"]
       interval: 30s       # 30초마다 체크
       timeout: 10s        # 10초 안에 응답 없으면 실패
       retries: 3          # 3번 연속 실패하면 unhealthy 상태
-      start_period: 40s   # 시작 후 40초 동안은 실패해도 카운트 안 함
-
-networks:
-  dodream-network:
-    driver: bridge
-
-volumes:
-  mysql-data:
-    driver: local
-  redis-data:
-    driver: local
-  qdrant-storage:
-    driver: local
+      start_period: 60s   # 시작 후 60초 동안은 실패해도 카운트 안 함

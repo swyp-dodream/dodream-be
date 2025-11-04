@@ -95,38 +95,46 @@ jobs:
           mkdir -p ~/dodream
           cd ~/dodream
           
-          # .env 파일 생성 (환경변수 설정)
-          # docker-compose에서 이 값들을 읽어 컨테이너에 주입
-          cat > .env << EOF
-          DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
-          MYSQL_DATABASE=${{ secrets.MYSQL_DATABASE }}
-          MYSQL_USER=${{ secrets.MYSQL_USER }}
-          MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }}
-          MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}
-          GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
-          GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
-          NAVER_CLIENT_ID=${{ secrets.NAVER_CLIENT_ID }}
-          NAVER_CLIENT_SECRET=${{ secrets.NAVER_CLIENT_SECRET }}
-          JWT_SECRET=${{ secrets.JWT_SECRET }}
-          NCP_CLOVA_API_KEY=${{ secrets.NCP_CLOVA_API_KEY }}
-          EOF
-          
-          # GitHub에서 docker-compose.yml 다운로드
-          curl -o docker-compose.yml https://raw.githubusercontent.com/${{ github.repository }}/${{ github.ref_name }}/docker-compose.yml
-          
           # Docker Hub 로그인 (Private Repository 접근용)
           echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
           
+          # 기존 애플리케이션 컨테이너 중지 및 제거
+          docker stop dodream-app || true
+          docker rm dodream-app || true
+          
           # 최신 Docker 이미지 pull
-          docker compose pull || docker-compose pull
+          docker pull ${{ secrets.DOCKER_USERNAME }}/dodream-backend:latest
           
-          # 기존 컨테이너 중지 및 제거
-          docker compose down || docker-compose down
-          
-          # 새 컨테이너 실행 (백그라운드)
-          docker compose up -d || docker-compose up -d
+          # 새 애플리케이션 컨테이너 실행 (host 네트워크 모드 사용)
+          # host 네트워크를 사용하면 서버의 localhost로 포트가 노출된 다른 Docker 컨테이너에 접근 가능
+          # MySQL, Redis, Elasticsearch, Qdrant는 모두 서버에서 Docker로 실행 중이며 포트가 호스트에 매핑되어 있음
+          docker run -d \
+            --name dodream-app \
+            --restart unless-stopped \
+            --network host \
+            -e SPRING_PROFILES_ACTIVE=prod \
+            -e SPRING_DATASOURCE_URL=${{ secrets.SPRING_DATASOURCE_URL }} \
+            -e SPRING_DATASOURCE_USERNAME=${{ secrets.MYSQL_USER }} \
+            -e SPRING_DATASOURCE_PASSWORD=${{ secrets.MYSQL_PASSWORD }} \
+            -e SPRING_DATA_REDIS_HOST=localhost \
+            -e SPRING_DATA_REDIS_PORT=6379 \
+            -e SPRING_ELASTICSEARCH_URIS=http://localhost:9200 \
+            -e QDRANT_HOST=localhost \
+            -e GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }} \
+            -e GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }} \
+            -e NAVER_CLIENT_ID=${{ secrets.NAVER_CLIENT_ID }} \
+            -e NAVER_CLIENT_SECRET=${{ secrets.NAVER_CLIENT_SECRET }} \
+            -e JWT_SECRET=${{ secrets.JWT_SECRET }} \
+            -e JWT_ACCESS_TOKEN_EXPIRATION=1800000 \
+            -e JWT_REFRESH_TOKEN_EXPIRATION=604800000 \
+            -e NCP_CLOVA_API_KEY=${{ secrets.NCP_CLOVA_API_KEY }} \
+            ${{ secrets.DOCKER_USERNAME }}/dodream-backend:latest
           
           # 사용하지 않는 이미지 정리 (디스크 공간 확보)
           docker image prune -af
+          
+          # 컨테이너 상태 확인
+          sleep 5
+          docker ps | grep dodream-app || echo "⚠️ 컨테이너가 실행되지 않았습니다"
           
           echo "✅ 배포 완료!"

@@ -3,7 +3,7 @@ SET NAMES utf8mb4;
 SET time_zone = '+00:00';
 
 -- =========================================================
--- USER 테이블은 외부 시스템(회원)이라고 가정: user(id) FK만 참조
+-- USER 테이블은 외부 시스템(회원)이라고 가정: users(id) FK만 참조
 -- =========================================================
 
 -- =======================
@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS post (
                                     updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                                     deleted_at      BOOLEAN DEFAULT FALSE, -- (요구사항 명칭 그대로 사용: 삭제 여부)
                                     CONSTRAINT fk_post_owner_user
-                                        FOREIGN KEY (owner_user_id) REFERENCES user(id) ON DELETE CASCADE
+                                        FOREIGN KEY (owner_user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE INDEX idx_post_status_deadline ON post(status, deadline_at);
@@ -131,7 +131,7 @@ CREATE TABLE IF NOT EXISTS application (
                                            updated_at            DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                                            withdrawn_at          DATETIME NULL,
                                            CONSTRAINT fk_app_post FOREIGN KEY (post_id) REFERENCES post(id) ON DELETE CASCADE,
-                                           CONSTRAINT fk_app_user FOREIGN KEY (applicant_user_id) REFERENCES user(id) ON DELETE CASCADE,
+                                           CONSTRAINT fk_app_user FOREIGN KEY (applicant_user_id) REFERENCES users(id) ON DELETE CASCADE,
                                            CONSTRAINT uk_app_unique UNIQUE (post_id, applicant_user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -146,8 +146,8 @@ CREATE TABLE IF NOT EXISTS suggestion (
                                           to_user_id         BIGINT NOT NULL,
                                           created_at         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                                           CONSTRAINT fk_sugg_post FOREIGN KEY (post_id) REFERENCES post(id) ON DELETE CASCADE,
-                                          CONSTRAINT fk_sugg_from FOREIGN KEY (from_user_id) REFERENCES user(id) ON DELETE CASCADE,
-                                          CONSTRAINT fk_sugg_to   FOREIGN KEY (to_user_id)   REFERENCES user(id) ON DELETE CASCADE,
+                                          CONSTRAINT fk_sugg_from FOREIGN KEY (from_user_id) REFERENCES users(id) ON DELETE CASCADE,
+                                          CONSTRAINT fk_sugg_to   FOREIGN KEY (to_user_id)   REFERENCES users(id) ON DELETE CASCADE,
                                           CONSTRAINT uk_sugg UNIQUE (post_id, to_user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -165,7 +165,7 @@ CREATE TABLE IF NOT EXISTS matched (
                                        cancel_reason_code ENUM('other_member','schedule','role_mismatch','other') NULL,
                                        canceled           BOOLEAN NOT NULL DEFAULT FALSE,
                                        CONSTRAINT fk_matched_post FOREIGN KEY (post_id) REFERENCES post(id) ON DELETE CASCADE,
-                                       CONSTRAINT fk_matched_user FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
+                                       CONSTRAINT fk_matched_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
                                        CONSTRAINT fk_matched_app  FOREIGN KEY (application_id) REFERENCES application(id) ON DELETE CASCADE,
                                        CONSTRAINT uk_matched UNIQUE (post_id, user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -181,8 +181,8 @@ CREATE TABLE IF NOT EXISTS feedback (
                                         polarity       ENUM('positive','negative') NOT NULL,
                                         created_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                                         CONSTRAINT fk_feedback_match  FOREIGN KEY (match_id) REFERENCES matched(id) ON DELETE CASCADE,
-                                        CONSTRAINT fk_feedback_writer FOREIGN KEY (writer_user_id) REFERENCES user(id) ON DELETE CASCADE,
-                                        CONSTRAINT fk_feedback_target FOREIGN KEY (target_user_id) REFERENCES user(id) ON DELETE CASCADE
+                                        CONSTRAINT fk_feedback_writer FOREIGN KEY (writer_user_id) REFERENCES users(id) ON DELETE CASCADE,
+                                        CONSTRAINT fk_feedback_target FOREIGN KEY (target_user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS feedback_detail_dict (
@@ -210,8 +210,8 @@ CREATE TABLE IF NOT EXISTS chat_room (
                                          created_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                                          first_message_at DATETIME NULL,
                                          CONSTRAINT fk_chat_post   FOREIGN KEY (post_id)        REFERENCES post(id) ON DELETE CASCADE,
-                                         CONSTRAINT fk_chat_leader FOREIGN KEY (leader_user_id) REFERENCES user(id) ON DELETE CASCADE,
-                                         CONSTRAINT fk_chat_member FOREIGN KEY (member_user_id) REFERENCES user(id) ON DELETE CASCADE,
+                                         CONSTRAINT fk_chat_leader FOREIGN KEY (leader_user_id) REFERENCES users(id) ON DELETE CASCADE,
+                                         CONSTRAINT fk_chat_member FOREIGN KEY (member_user_id) REFERENCES users(id) ON DELETE CASCADE,
                                          CONSTRAINT uk_chat_triplet UNIQUE (post_id, leader_user_id, member_user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
