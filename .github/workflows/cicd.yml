@@ -1,129 +1,140 @@
-# name: CI/CD
+name: CI/CD
 
-# # 트리거: release/** 브랜치에 PR이 생성되거나 merge될 때 실행
-# on:
-#   pull_request:
-#     branches:
-#       - 'release/**'  # release/DODREAM-0.1.0 등
-#     types: [opened, synchronize, reopened]
-#   push:
-#     branches:
-#       - 'release/**'  # PR merge 시 자동으로 push 이벤트 발생
+# 트리거: release/** 브랜치에 PR이 생성되거나 merge될 때 실행
+on:
+  pull_request:
+    branches:
+      - 'release/**'  # release/DODREAM-0.1.0 등
+    types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - 'release/**'  # PR merge 시 자동으로 push 이벤트 발생
 
-# jobs:
-#   # Job 1: 빌드 및 테스트
-#   build-and-test:
-#     runs-on: ubuntu-latest
+jobs:
+  # Job 1: 빌드 및 테스트
+  build-and-test:
+    runs-on: ubuntu-latest
     
-#     steps:
-#     - name: 코드 체크아웃
-#       uses: actions/checkout@v4
+    steps:
+    - name: 코드 체크아웃
+      uses: actions/checkout@v4
     
-#     - name: JDK 21 설정
-#       uses: actions/setup-java@v4
-#       with:
-#         java-version: '21'
-#         distribution: 'temurin'
-#         cache: gradle 
+    - name: JDK 21 설정
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+        cache: gradle 
     
-#     - name: Gradle 실행 권한 부여
-#       run: chmod +x gradlew
+    - name: Gradle 실행 권한 부여
+      run: chmod +x gradlew
     
-#     - name: Gradle 빌드 (테스트 제외)
-#       run: ./gradlew clean build -x test
+    - name: Gradle 빌드 (테스트 제외)
+      run: ./gradlew clean build -x test
     
-#     - name: 테스트 실행
-#       run: ./gradlew test
+    - name: 테스트 실행
+      run: ./gradlew test
 
-#   # Job 2: Docker 이미지 빌드 및 푸시
-#   build-and-push-docker:
-#     needs: build-and-test  # build-and-test가 성공해야 실행됨
-#     runs-on: ubuntu-latest
-#     # release 브랜치에 push된 경우에만 실행 (PR은 제외)
-#     if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/release/')
+  # Job 2: Docker 이미지 빌드 및 푸시
+  build-and-push-docker:
+    needs: build-and-test  # build-and-test가 성공해야 실행됨
+    runs-on: ubuntu-latest
+    # release 브랜치에 push된 경우에만 실행 (PR은 제외)
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/release/')
     
-#     steps:
-#     - name: 코드 체크아웃
-#       uses: actions/checkout@v4
+    steps:
+    - name: 코드 체크아웃
+      uses: actions/checkout@v4
     
-#     - name: Docker Buildx 설정
-#       uses: docker/setup-buildx-action@v3
+    - name: Docker Buildx 설정
+      uses: docker/setup-buildx-action@v3
     
-#     - name: Docker Hub 로그인
-#       uses: docker/login-action@v3
-#       with:
-#         username: ${{ secrets.DOCKER_USERNAME }}  
-#         password: ${{ secrets.DOCKER_PASSWORD }}  
+    - name: Docker Hub 로그인
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}  
+        password: ${{ secrets.DOCKER_PASSWORD }}  
     
-#     - name: 브랜치명에서 버전 추출
-#       id: extract_version
-#       run: |
-#         # release/DODREAM-0.1.0 → DODREAM-0.1.0
-#         VERSION=${GITHUB_REF#refs/heads/release/}
-#         echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-#         echo "Extracted version: $VERSION"
+    - name: 브랜치명에서 버전 추출
+      id: extract_version
+      run: |
+        # release/DODREAM-0.1.0 → DODREAM-0.1.0
+        VERSION=${GITHUB_REF#refs/heads/release/}
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+        echo "Extracted version: $VERSION"
     
-#     - name: Docker 이미지 빌드 및 푸시
-#       uses: docker/build-push-action@v5
-#       with:
-#         context: .
-#         push: true
-#         tags: |
-#           ${{ secrets.DOCKER_USERNAME }}/dodream-backend:latest
-#           ${{ secrets.DOCKER_USERNAME }}/dodream-backend:${{ steps.extract_version.outputs.VERSION }}
-#         cache-from: type=gha
-#         cache-to: type=gha,mode=max
+    - name: Docker 이미지 빌드 및 푸시
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: true
+        tags: |
+          ${{ secrets.DOCKER_USERNAME }}/dodream-backend:latest
+          ${{ secrets.DOCKER_USERNAME }}/dodream-backend:${{ steps.extract_version.outputs.VERSION }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
 
-#   # Job 3: NCP 서버에 배포
-#   deploy:
-#     needs: build-and-push-docker  # Docker 이미지가 푸시된 후 실행
-#     runs-on: ubuntu-latest
+  # Job 3: NCP 서버에 배포
+  deploy:
+    needs: build-and-push-docker  # Docker 이미지가 푸시된 후 실행
+    runs-on: ubuntu-latest
     
-#     steps:
-#     - name: 코드 체크아웃
-#       uses: actions/checkout@v4
+    steps:
+    - name: 코드 체크아웃
+      uses: actions/checkout@v4
     
-#     - name: NCP 서버에 SSH 접속하여 배포
-#       uses: appleboy/ssh-action@master
-#       with:
-#         host: ${{ secrets.NCP_HOST }}
-#         username: ${{ secrets.NCP_USERNAME }}
-#         key: ${{ secrets.NCP_SSH_KEY }}
-#         port: 22
-#         script: |
-#           # 배포 디렉토리 생성
-#           mkdir -p ~/dodream
-#           cd ~/dodream
+    - name: NCP 서버에 SSH 접속하여 배포
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.NCP_HOST }}
+        username: ${{ secrets.NCP_USERNAME }}
+        key: ${{ secrets.NCP_SSH_KEY }}
+        port: 22
+        script: |
+          # 배포 디렉토리 생성
+          mkdir -p ~/dodream
+          cd ~/dodream
           
-#           # .env 파일 생성 (환경변수 설정)
-#           # docker-compose에서 이 값들을 읽어 컨테이너에 주입
-#           cat > .env << EOF
-#           DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
-#           MYSQL_DATABASE=${{ secrets.MYSQL_DATABASE }}
-#           MYSQL_USER=${{ secrets.MYSQL_USER }}
-#           MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }}
-#           MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}
-#           GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
-#           GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
-#           JWT_SECRET=${{ secrets.JWT_SECRET }}
-#           EOF
+          # Docker Hub 로그인 (Private Repository 접근용)
+          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
           
-#           # GitHub에서 docker-compose.yml 다운로드
-#           curl -o docker-compose.yml https://raw.githubusercontent.com/${{ github.repository }}/${{ github.ref_name }}/docker-compose.yml
+          # 기존 애플리케이션 컨테이너 중지 및 제거
+          docker stop dodream-app || true
+          docker rm dodream-app || true
           
-#           # Docker Hub 로그인 (Private Repository 접근용)
-#           echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+          # 최신 Docker 이미지 pull
+          docker pull ${{ secrets.DOCKER_USERNAME }}/dodream-backend:latest
           
-#           # 최신 Docker 이미지 pull
-#           docker compose pull || docker-compose pull
+          # 새 애플리케이션 컨테이너 실행 (host 네트워크 모드 사용)
+          # host 네트워크를 사용하면 서버의 localhost로 포트가 노출된 다른 Docker 컨테이너에 접근 가능
+          # MySQL, Redis, Elasticsearch, Qdrant는 모두 서버에서 Docker로 실행 중이며 포트가 호스트에 매핑되어 있음
+          docker run -d \
+            --name dodream-app \
+            --restart unless-stopped \
+            --network host \
+            -e SPRING_PROFILES_ACTIVE=prod \
+            -e SPRING_DATASOURCE_URL=${{ secrets.SPRING_DATASOURCE_URL }} \
+            -e SPRING_DATASOURCE_USERNAME=${{ secrets.MYSQL_USER }} \
+            -e SPRING_DATASOURCE_PASSWORD=${{ secrets.MYSQL_PASSWORD }} \
+            -e SPRING_DATA_REDIS_HOST=localhost \
+            -e SPRING_DATA_REDIS_PORT=6379 \
+            -e SPRING_ELASTICSEARCH_URIS=http://localhost:9200 \
+            -e QDRANT_HOST=localhost \
+            -e GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }} \
+            -e GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }} \
+            -e NAVER_CLIENT_ID=${{ secrets.NAVER_CLIENT_ID }} \
+            -e NAVER_CLIENT_SECRET=${{ secrets.NAVER_CLIENT_SECRET }} \
+            -e JWT_SECRET=${{ secrets.JWT_SECRET }} \
+            -e JWT_ACCESS_TOKEN_EXPIRATION=1800000 \
+            -e JWT_REFRESH_TOKEN_EXPIRATION=604800000 \
+            -e NCP_CLOVA_API_KEY=${{ secrets.NCP_CLOVA_API_KEY }} \
+            ${{ secrets.DOCKER_USERNAME }}/dodream-backend:latest
           
-#           # 기존 컨테이너 중지 및 제거
-#           docker compose down || docker-compose down
+          # 사용하지 않는 이미지 정리 (디스크 공간 확보)
+          docker image prune -af
           
-#           # 새 컨테이너 실행 (백그라운드)
-#           docker compose up -d || docker-compose up -d
+          # 컨테이너 상태 확인
+          sleep 5
+          docker ps | grep dodream-app || echo "⚠️ 컨테이너가 실행되지 않았습니다"
           
-#           # 사용하지 않는 이미지 정리 (디스크 공간 확보)
-#           docker image prune -af
-          
-#           echo "✅ 배포 완료!"
+          echo "✅ 배포 완료!"
