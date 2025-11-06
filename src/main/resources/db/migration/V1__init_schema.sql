@@ -124,15 +124,17 @@ CREATE TABLE IF NOT EXISTS post_stack (
 CREATE TABLE IF NOT EXISTS application (
                                            id                    BIGINT AUTO_INCREMENT PRIMARY KEY,
                                            post_id               BIGINT NOT NULL,
-                                           applicant_user_id     BIGINT NOT NULL,
+                                           applicant_id          BIGINT NOT NULL,
+                                           role_id               BIGINT NOT NULL,
                                            application_message   VARCHAR(1000) NOT NULL,
                                            status  ENUM('applied','withdrawn','accepted','rejected') NOT NULL DEFAULT 'applied',
                                            created_at            DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                                            updated_at            DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                                            withdrawn_at          DATETIME NULL,
                                            CONSTRAINT fk_app_post FOREIGN KEY (post_id) REFERENCES post(id) ON DELETE CASCADE,
-                                           CONSTRAINT fk_app_user FOREIGN KEY (applicant_user_id) REFERENCES users(id) ON DELETE CASCADE,
-                                           CONSTRAINT uk_app_unique UNIQUE (post_id, applicant_user_id)
+                                           CONSTRAINT fk_app_user FOREIGN KEY (applicant_id) REFERENCES users(id) ON DELETE CASCADE,
+                                           CONSTRAINT fk_app_role FOREIGN KEY (role_id) REFERENCES role(id),
+                                           CONSTRAINT uk_app_unique UNIQUE (post_id, applicant_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- =======================
