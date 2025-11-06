@@ -32,13 +32,10 @@ public class ChatService {
     private final ChatParticipantRepository chatParticipantRepository;
     private final ChatMessageRepository chatMessageRepository;
 
-    // --- (주의) 실제 프로젝트의 리포지토리 주입 ---
     private final PostRepository postRepository;
     private final UserRepository userRepository;
-    // ---
 
     private final SimpMessagingTemplate messagingTemplate;
-    // private final NotificationService notificationService; // (요청에 따라 제거)
 
     /**
      * CHAT-01, BR-02-02: '채팅하기' 버튼 클릭 시 (REST API)
@@ -52,7 +49,7 @@ public class ChatService {
         Post post = postRepository.findById(postId) // soft delete(@Where) 적용됨
                 .orElseThrow(() -> new EntityNotFoundException("모집글을 찾을 수 없습니다. ID: " + postId));
 
-        // (주의) post.owner.id가 리더 ID
+        // post.owner.id가 리더 ID
         Long leaderId = post.getOwner().getId();
 
         // 정책: 리더는 (이 버튼으로) 채팅방 생성 불가

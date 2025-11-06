@@ -68,6 +68,8 @@ public class SecurityConfig {
                                         .flatMap(Arrays::stream)
                                         .toArray(String[]::new)
                         ).permitAll()
+                        // WebSocket(SockJS) 핸드셰이크를 위한 경로 허용
+                        .requestMatchers("/ws-stomp/**").permitAll()
                         // 나머지 요청은 인증 필요
                         .anyRequest().authenticated()
                 )

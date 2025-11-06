@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>채팅 기능 테스트</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <style>
+        body { font-family: sans-serif; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 20px; }
+        .control-panel, .chat-panel { border: 1px solid #ccc; padding: 15px; border-radius: 8px; }
+        .control-panel h3, .chat-panel h3 { margin-top: 0; }
+        .input-group { margin-bottom: 10px; }
+        .input-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .input-group input, .input-group textarea { width: 95%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        .input-group textarea { height: 100px; }
+        button { padding: 10px 15px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 5px; }
+        button:disabled { background-color: #ccc; }
+        #log, #chat-messages {
+            border: 1px solid #eee; background: #f9f9f9;
+            height: 200px; overflow-y: scroll; padding: 10px; margin-top: 10px;
+        }
+        #chat-messages div { margin-bottom: 5px; }
+        #chat-messages .me { text-align: right; color: blue; }
+        #chat-messages .other { text-align: left; color: green; }
+        #chat-messages .system { text-align: center; color: #888; font-style: italic; }
+    </style>
+</head>
+<body>
+
+<div class="control-panel">
+    <h3>WebSocket 테스트 제어판</h3>
+
+    <div class="input-group">
+        <label for="jwtToken">JWT (Bearer 제외)</label>
+        <textarea id="jwtToken" placeholder="로그인 후 발급받은 JWT 토큰을 여기에 붙여넣으세요..."></textarea>
+    </div>
+
+    <div class="input-group">
+        <label for="postId">Post ID (게시글 ID)</label>
+        <input type="number" id="postId" value="1">
+    </div>
+
+    <hr>
+    <h4>1. REST API (채팅방 정보 가져오기)</h4>
+    <button id="btn-init" onclick="initiateChat()">1. 채팅방 초기화 (Initiate)</button>
+
+    <hr>
+    <h4>2. WebSocket (연결 및 구독)</h4>
+    <button id="btn-connect" onclick="connect()" disabled>2. WebSocket 연결</button>
+    <button id="btn-disconnect" onclick="disconnect()" disabled>3. WebSocket 연결 해제</button>
+
+    <hr>
+    <h4>시스템 로그</h4>
+    <pre id="log"></pre>
+</div>
+
+<div class="chat-panel">
+    <h3>채팅창</h3>
+    <div id="chat-messages">
+    </div>
+
+    <div class="input-group">
+        <label for="message-body">메시지</label>
+        <input type="text" id="message-body" placeholder="메시지를 입력하세요...">
+    </div>
+    <button id="btn-send" onclick="sendMessage()" disabled>메시지 전송</button>
+</div>
+
+<script>
+    // 전역 변수
+    let stompClient = null;
+    let subscription = null;
+
+    // --- (A) REST API 응답에서 채워질 변수 ---
+    let currentJwtToken = "";
+    let topicId = "";       // (예: /topic/chat/post/1/leader/10/member/20)
+    let roomId = null;      // (기존 방이 있으면 ID, 없으면 null)
+    let leaderId = null;    // 상대방 (리더)
+    let memberId = null;    // 본인 (멤버)
+
+    // UI 요소
+    const btnInit = document.getElementById('btn-init');
+    const btnConnect = document.getElementById('btn-connect');
+    const btnDisconnect = document.getElementById('btn-disconnect');
+    const btnSend = document.getElementById('btn-send');
+    const inputJwt = document.getElementById('jwtToken');
+    const inputPostId = document.getElementById('postId');
+    const inputMessage = document.getElementById('message-body');
+    const logArea = document.getElementById('log');
+    const chatArea = document.getElementById('chat-messages');
+
+    /**
+     * (A) 1. '채팅방 초기화' 버튼 클릭 (REST API 호출)
+     */
+    async function initiateChat() {
+        currentJwtToken = inputJwt.value.trim();
+        const postId = inputPostId.value;
+
+        if (!currentJwtToken || !postId) {
+            logMessage("JWT 토큰과 Post ID를 입력해야 합니다.");
+            return;
+        }
+
+        logMessage(`[API] /api/chat/initiate 호출 (PostId: ${postId})...`);
+
+        try {
+            const response = await fetch("/api/chat/initiate", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + currentJwtToken
+                },
+                body: JSON.stringify({ postId: postId })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(`API 오류: ${response.status} - ${errorData.message || 'Unknown error'}`);
+            }
+
+            const data = await response.json();
+
+            // 전역 변수 저장
+            topicId = data.topicId;
+            roomId = data.roomId; // (주의) 첫 채팅방이면 null일 수 있음
+            leaderId = data.leaderId;
+            memberId = data.memberId;
+
+            logMessage("[API] 성공. WebSocket 연결 준비 완료.");
+            logMessage(`- Topic ID: ${topicId}`);
+            logMessage(`- Room ID: ${roomId || '(신규 방, 첫 메시지 전송 시 생성됨)'}`);
+            logMessage(`- Leader ID (상대): ${leaderId}`);
+            logMessage(`- Member ID (본인): ${memberId}`);
+
+            // 기존 대화 내역 표시
+            chatArea.innerHTML = '';
+            if (data.history && data.history.length > 0) {
+                logMessage(`- 기존 대화 ${data.history.length}건 로드.`);
+                data.history.forEach(showChatMessage);
+            }
+
+            // UI 활성화
+            btnConnect.disabled = false;
+            btnInit.disabled = true;
+
+        } catch (error) {
+            logMessage(`[API] 실패: ${error.message}`);
+            console.error(error);
+        }
+    }
+
+    /**
+     * (B) 2. 'WebSocket 연결' 버튼 클릭 (STOMP 연결)
+     */
+    function connect() {
+        if (!topicId) {
+            logMessage("[WS] Topic ID가 없습니다. '채팅방 초기화'를 먼저 실행하세요.");
+            return;
+        }
+        if (!currentJwtToken) {
+            logMessage("[WS] JWT 토큰이 없습니다.");
+            return;
+        }
+
+        const socket = new SockJS('/ws-stomp'); // WebSocketConfig의 엔드포인트
+        stompClient = Stomp.over(socket);
+
+        // (중요) StompAuthChannelInterceptor 인증을 위한 헤더
+        const connectHeaders = {
+            "Authorization": "Bearer " + currentJwtToken
+        };
+
+        stompClient.connect(connectHeaders, onConnected, onError);
+        logMessage(`[WS] 연결 시도 중... (헤더에 토큰 포함)`);
+    }
+
+    // 연결 성공 콜백
+    function onConnected(frame) {
+        logMessage(`[WS] 연결 성공. (Frame: ${frame})`);
+
+        // (중요) 1번에서 받은 Topic ID 구독
+        logMessage(`[WS] 토픽 구독 시도: ${topicId}`);
+        subscription = stompClient.subscribe(topicId, onMessageReceived);
+
+        // UI 상태 변경
+        btnConnect.disabled = true;
+        btnDisconnect.disabled = false;
+        btnSend.disabled = false;
+    }
+
+    // 연결 실패 콜백
+    function onError(error) {
+        logMessage(`[WS] 연결 실패: ${error}`);
+        if (error.toString().includes("SecurityException")) {
+            logMessage("[WS] (오류 원인) STOMP 인증 실패. JWT 토큰이 유효하지 않을 수 있습니다.");
+        }
+    }
+
+    // 3. 'WebSocket 연결 해제' 버튼 클릭
+    function disconnect() {
+        if (subscription) {
+            subscription.unsubscribe();
+            subscription = null;
+        }
+        if (stompClient !== null) {
+            stompClient.disconnect();
+            stompClient = null;
+            logMessage("[WS] 연결 해제됨.");
+        }
+
+        // UI 상태 초기화
+        btnInit.disabled = false;
+        btnConnect.disabled = true;
+        btnDisconnect.disabled = true;
+        btnSend.disabled = true;
+    }
+
+    /**
+     * (C) 4. '메시지 전송' 버튼 클릭
+     */
+    function sendMessage() {
+        const messageBody = inputMessage.value.trim();
+        if (messageBody && stompClient) {
+
+            // (중요) ChatService 로직에 맞게 DTO 구성
+            const chatMessageDto = {
+                body: messageBody,
+                messageType: 'TALK',
+                roomId: roomId // (기존 방 ID, 없으면 null)
+            };
+
+            // (C-1) 첫 메시지인 경우 (roomId가 null)
+            if (roomId === null) {
+                chatMessageDto.postId = inputPostId.value;
+                chatMessageDto.receiverId = leaderId; // (상대방 ID)
+                logMessage("[WS] 첫 메시지 전송 (PostId, ReceiverId 포함)");
+            } else {
+                logMessage("[WS] 후속 메시지 전송 (RoomId 포함)");
+            }
+
+            // /pub/chat/message (WebSocketConfig의 /pub + ChatController의 @MessageMapping)
+            stompClient.send("/pub/chat/message", {}, JSON.stringify(chatMessageDto));
+
+            // 입력창 초기화
+            inputMessage.value = '';
+        }
+    }
+
+    // 메시지 수신 콜백
+    function onMessageReceived(payload) {
+        const message = JSON.parse(payload.body);
+        logMessage(`[WS] 메시지 수신 (Type: ${message.messageType})`);
+
+        // (중요) 첫 메시지 전송 후, 브로드캐스트된 메시지에서 roomId를 획득
+        if (roomId === null && message.roomId) {
+            roomId = message.roomId;
+            logMessage(`[SYSTEM] 신규 RoomId [${roomId}]가 설정되었습니다.`);
+        }
+
+        showChatMessage(message);
+    }
+
+    // --- 유틸리티 함수 ---
+
+    // 시스템 로그 출력
+    function logMessage(message) {
+        console.log(message);
+        logArea.innerHTML += `<div>${message}</div>`;
+        logArea.scrollTop = logArea.scrollHeight;
+    }
+
+    // 채팅창에 메시지 표시
+    function showChatMessage(message) {
+        let messageElement = document.createElement('div');
+
+        if (message.messageType === 'TALK') {
+            // (주의) memberId는 '본인' ID
+            if (message.senderId === memberId) {
+                messageElement.classList.add('me');
+                messageElement.textContent = `나: ${message.body}`;
+            } else {
+                messageElement.classList.add('other');
+                messageElement.textContent = `상대: ${message.body}`;
+            }
+        } else {
+            // ENTER, LEAVE 등 시스템 메시지
+            messageElement.classList.add('system');
+            messageElement.textContent = `[${message.body}]`;
+        }
+
+        chatArea.appendChild(messageElement);
+        chatArea.scrollTop = chatArea.scrollHeight;
+    }
+
+</script>
+
+</body>
+</html>
