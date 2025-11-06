@@ -7,12 +7,16 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import swyp.dodream.jwt.filter.JwtAuthenticationFilter;
 import swyp.dodream.jwt.util.JwtUtil;
 import swyp.dodream.login.handler.OAuth2SuccessHandler;
 import swyp.dodream.login.service.CustomOAuth2UserService;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Stream;
 
 @Configuration
@@ -52,6 +56,9 @@ public class SecurityConfig {
                 // CSRF 비활성화 (REST API용)
                 .csrf(csrf -> csrf.disable())
                 
+                // CORS 설정
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                
                 // 세션 사용하지 않음 (JWT 사용)
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
@@ -81,6 +88,54 @@ public class SecurityConfig {
                 );
 
         return http.build();
+    }
+
+    /**
+     * CORS 설정
+     * 프론트엔드 도메인(https://dodream.store)에서의 요청을 허용
+     */
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        
+        // 허용할 Origin (프론트엔드 도메인)
+        configuration.setAllowedOrigins(List.of(
+                "https://dodream.store",
+                "https://www.dodream.store"
+        ));
+        
+        // 허용할 HTTP 메서드
+        configuration.setAllowedMethods(Arrays.asList(
+                "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"
+        ));
+        
+        // 허용할 헤더
+        configuration.setAllowedHeaders(Arrays.asList(
+                "Authorization",
+                "Content-Type",
+                "X-Requested-With",
+                "Accept",
+                "Origin",
+                "Access-Control-Request-Method",
+                "Access-Control-Request-Headers"
+        ));
+        
+        // 인증 정보(쿠키, Authorization 헤더 등) 허용
+        configuration.setAllowCredentials(true);
+        
+        // Preflight 요청의 결과를 캐시할 시간(초)
+        configuration.setMaxAge(3600L);
+        
+        // 응답 헤더에 노출할 헤더
+        configuration.setExposedHeaders(Arrays.asList(
+                "Authorization",
+                "Content-Type"
+        ));
+        
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        
+        return source;
     }
 }
 
