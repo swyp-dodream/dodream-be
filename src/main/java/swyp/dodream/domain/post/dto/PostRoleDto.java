@@ -1,11 +1,11 @@
-package swyp.dodream.domain.post.dto.request;
+package swyp.dodream.domain.post.dto;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor
-public class PostRoleReqeust {
+public class PostRoleDto {
     private Long roleId;  // 직군 id
     private int count;    // 인원 수
 }

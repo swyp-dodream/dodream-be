@@ -5,6 +5,7 @@ import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import swyp.dodream.domain.post.common.*;
+import swyp.dodream.domain.post.dto.PostRoleDto;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -52,5 +53,5 @@ public class PostCreateRequest implements PostRequest {
 
     @NotEmpty(message = "모집 직군은 최소 1개 이상 선택해야 합니다.")
     @Schema(description = "모집 직군 목록")
-    private List<PostRoleReqeust> roles;
+    private List<PostRoleDto> roles;
 }

@@ -26,7 +26,7 @@ import swyp.dodream.domain.post.common.ProjectType;
 import swyp.dodream.domain.post.domain.*;
 import swyp.dodream.domain.post.dto.request.PostCreateRequest;
 import swyp.dodream.domain.post.dto.request.PostRequest;
-import swyp.dodream.domain.post.dto.request.PostRoleReqeust;
+import swyp.dodream.domain.post.dto.PostRoleDto;
 import swyp.dodream.domain.post.dto.request.PostUpdateRequest;
 import swyp.dodream.domain.post.dto.response.MyPostListResponse;
 import swyp.dodream.domain.post.dto.response.MyPostResponse;
@@ -368,7 +368,7 @@ public class PostService {
 
     private void connectRoles(PostRequest request, Post post) {
         if (request.getRoles() != null) {
-            for (PostRoleReqeust roleDto : request.getRoles()) {
+            for (PostRoleDto roleDto : request.getRoles()) {
                 Role role = roleRepository.findById(roleDto.getRoleId())
                         .orElseThrow(ExceptionType.ROLE_NOT_FOUND::throwException);
                 PostRole pr = new PostRole(snowflakeIdService.generateId(), post, role, roleDto.getCount());
