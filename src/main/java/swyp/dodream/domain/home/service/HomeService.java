@@ -9,7 +9,7 @@ import swyp.dodream.domain.post.common.ActivityMode;
 import swyp.dodream.domain.post.common.PostStatus;
 import swyp.dodream.domain.post.common.ProjectType;
 import swyp.dodream.domain.post.domain.Post;
-import swyp.dodream.domain.post.dto.PostSummaryResponse;
+import swyp.dodream.domain.post.dto.response.PostSummaryResponse;
 import swyp.dodream.domain.post.repository.PostRepository;
 import swyp.dodream.domain.post.repository.PostSpecification;
 

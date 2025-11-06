@@ -1,4 +1,4 @@
-package swyp.dodream.domain.post.dto;
+package swyp.dodream.domain.post.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
@@ -52,5 +52,5 @@ public class PostCreateRequest implements PostRequest {
 
     @NotEmpty(message = "모집 직군은 최소 1개 이상 선택해야 합니다.")
     @Schema(description = "모집 직군 목록")
-    private List<PostRoleDto> roles;
+    private List<PostRoleReqeust> roles;
 }

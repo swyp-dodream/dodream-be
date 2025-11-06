@@ -1,4 +1,4 @@
-package swyp.dodream.domain.post.dto.res;
+package swyp.dodream.domain.post.dto.response;
 
 import lombok.Builder;
 import swyp.dodream.domain.application.domain.Application;

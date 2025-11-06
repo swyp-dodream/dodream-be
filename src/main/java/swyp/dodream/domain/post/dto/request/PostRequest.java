@@ -1,4 +1,4 @@
-package swyp.dodream.domain.post.dto;
+package swyp.dodream.domain.post.dto.request;
 
 import swyp.dodream.domain.post.common.ActivityMode;
 import swyp.dodream.domain.post.common.ProjectType;
@@ -28,5 +28,5 @@ public interface PostRequest {
 
     String getContent();
 
-    List<PostRoleDto> getRoles();
+    List<PostRoleReqeust> getRoles();
 }

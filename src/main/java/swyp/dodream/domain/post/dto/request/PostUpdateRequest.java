@@ -1,4 +1,4 @@
-package swyp.dodream.domain.post.dto;
+package swyp.dodream.domain.post.dto.request;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -22,5 +22,5 @@ public class PostUpdateRequest implements PostRequest {
     private List<Long> stackIds;
     private String title;
     private String content;
-    private List<PostRoleDto> roles;
+    private List<PostRoleReqeust> roles;
 }

@@ -2,7 +2,7 @@ package swyp.dodream.domain.search.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import swyp.dodream.domain.post.dto.PostResponse;
+import swyp.dodream.domain.post.dto.response.PostResponse;
 import swyp.dodream.domain.post.repository.PostRepository;
 import swyp.dodream.domain.search.document.PostDocument;
 import swyp.dodream.domain.search.repository.PostDocumentRepository;
