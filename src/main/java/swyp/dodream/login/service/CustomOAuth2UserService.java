@@ -35,13 +35,14 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         String registrationId = userRequest.getClientRegistration().getRegistrationId();
         AuthProvider provider = AuthProvider.valueOf(registrationId.toUpperCase());
         
-        String email, name, picture;
+        String email, name, picture, providerId;
         
         if (provider == AuthProvider.GOOGLE) {
             // Google OAuth2 사용자 정보 추출
             email = oAuth2User.getAttribute("email");
             name = oAuth2User.getAttribute("name");
             picture = oAuth2User.getAttribute("picture");
+            providerId = oAuth2User.getAttribute("sub");
         } else if (provider == AuthProvider.NAVER) {
             // Naver OAuth2 사용자 정보 추출 (네이버는 response 객체 안에 정보가 있음)
             java.util.Map<String, Object> naverResponse = oAuth2User.getAttribute("response");
@@ -49,6 +50,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                 email = (String) naverResponse.get("email");
                 name = (String) naverResponse.get("name");
                 picture = (String) naverResponse.get("profile_image");
+                providerId = (String) naverResponse.get("id");
             } else {
                 throw new OAuth2AuthenticationException("네이버 사용자 정보를 가져올 수 없습니다.");
             }
@@ -61,7 +63,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                 .orElseGet(() -> {
                     // 새 사용자 생성 (스노우플레이크 ID 사용)
                     Long snowflakeId = snowflakeIdService.generateId();
-                    User newUser = new User(snowflakeId, name, email, picture);
+                    User newUser = new User(snowflakeId, name, email, picture, provider, providerId);
                     User savedUser = userRepository.save(newUser);
                     
                     // OAuth 계정 생성 (스노우플레이크 ID 사용)
