@@ -23,6 +23,9 @@ public class User {
     @Column(nullable = false)
     private String name;
 
+    @Column(nullable = false)
+    private String email;
+
     private String profileImageUrl;
 
     @Column(nullable = false)
@@ -35,15 +38,17 @@ public class User {
     @LastModifiedDate
     private LocalDateTime updatedAt;
 
-    public User(String name, String profileImageUrl) {
+    public User(String name, String email, String profileImageUrl) {
         this.name = name;
+        this.email = email;
         this.profileImageUrl = profileImageUrl;
     }
     
     // Snowflake ID를 사용하는 생성자
-    public User(Long id, String name, String profileImageUrl) {
+    public User(Long id, String name, String email, String profileImageUrl) {
         this.id = id;
         this.name = name;
+        this.email = email;
         this.profileImageUrl = profileImageUrl;
     }
 
