@@ -3,13 +3,12 @@ package swyp.dodream.domain.chat.service;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.access.AccessDeniedException;
-// import org.springframework.security.core.context.SecurityContextHolder; // [수정] 사용하지 않는 import 제거
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.AntPathMatcher;
+import swyp.dodream.common.snowflake.SnowflakeIdService;
 import swyp.dodream.domain.chat.domain.*;
 import swyp.dodream.domain.chat.dto.response.ChatInitiateResponse;
 import swyp.dodream.domain.chat.dto.ChatMessageDto;
@@ -19,7 +18,6 @@ import swyp.dodream.domain.post.domain.Post;
 import swyp.dodream.domain.post.repository.PostRepository;
 import swyp.dodream.domain.user.domain.User;
 import swyp.dodream.domain.user.repository.UserRepository;
-import swyp.dodream.domain.chat.domain.ReadStatus;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -39,10 +37,12 @@ public class ChatService {
     private final UserRepository userRepository;
 
     private final SimpMessagingTemplate messagingTemplate;
+    private final SnowflakeIdService snowflakeIdService;
 
     private static final AntPathMatcher pathMatcher = new AntPathMatcher();
     public static final String CHAT_TOPIC_PATTERN = "/topic/chat/post/{postId}/leader/{leaderId}/member/{memberId}";
 
+    // ==================== 1. 채팅 시작 ====================
     @Transactional(readOnly = true)
     public ChatInitiateResponse initiateChat(Long postId, Long memberId) {
         Post post = postRepository.findById(postId)
@@ -70,54 +70,77 @@ public class ChatService {
                     .map(ChatMessage::toDto)
                     .collect(Collectors.toList());
 
+            String myRole = "MEMBER";
+
             log.info("기존 채팅방 입장. RoomId: {}, TopicId: {}", room.getId(), topicId);
-            return new ChatInitiateResponse(room.getId(), topicId, leaderId, memberId, history);
+            return new ChatInitiateResponse(
+                    room.getId(),
+                    topicId,
+                    String.valueOf(leaderId),
+                    String.valueOf(memberId),
+                    myRole,
+                    history
+            );
         } else {
             log.info("신규 채팅방 초기화. TopicId: {}", topicId);
-            return new ChatInitiateResponse(null, topicId, leaderId, memberId, Collections.emptyList());
+            return new ChatInitiateResponse(
+                    null,
+                    topicId,
+                    String.valueOf(leaderId),
+                    String.valueOf(memberId),
+                    "MEMBER",
+                    Collections.emptyList()
+            );
         }
     }
 
+    // ==================== 2. 메시지 처리 ====================
     @Transactional
     public ChatMessage processMessage(ChatMessageDto messageDto, Long senderId) {
-        messageDto.setSenderId(senderId);
+        if (senderId == null) {
+            throw new AccessDeniedException("인증되지 않은 사용자입니다.");
+        }
+
+        messageDto.setSenderId(String.valueOf(senderId));
+
         String topicId;
         ChatRoom room;
 
         if (messageDto.getRoomId() == null) {
-            Post post = postRepository.findById(messageDto.getPostId())
-                    .orElseThrow(() -> new EntityNotFoundException("모집글을 찾을 수 없습니다. ID: " + messageDto.getPostId()));
+            Long postIdLong = Long.parseLong(messageDto.getPostId());
+            Post post = postRepository.findById(postIdLong)
+                    .orElseThrow(() -> new EntityNotFoundException("모집글을 찾을 수 없습니다."));
 
             Long leaderId = post.getOwner().getId();
             Long memberId;
 
             if (senderId.equals(leaderId)) {
-                if (messageDto.getReceiverId() == null ||
-                        !userRepository.existsByIdAndStatusTrue(messageDto.getReceiverId()) ||
-                        messageDto.getReceiverId().equals(leaderId)) {
+                Long receiverIdLong = messageDto.getReceiverId() != null
+                        ? Long.parseLong(messageDto.getReceiverId()) : null;
+                if (receiverIdLong == null || receiverIdLong.equals(leaderId)) {
                     throw new IllegalArgumentException("잘못된 수신자입니다.");
                 }
-                memberId = messageDto.getReceiverId();
+                memberId = receiverIdLong;
             } else {
-                if (messageDto.getReceiverId() == null || !leaderId.equals(messageDto.getReceiverId())) {
+                Long receiverIdLong = messageDto.getReceiverId() != null
+                        ? Long.parseLong(messageDto.getReceiverId()) : null;
+                if (receiverIdLong == null || !leaderId.equals(receiverIdLong)) {
                     throw new IllegalArgumentException("수신자가 모집글의 리더와 일치하지 않습니다.");
                 }
                 memberId = senderId;
             }
 
-            room = findOrCreateRoom(post.getId(), leaderId, memberId);
-            topicId = buildTopicId(post.getId(), leaderId, memberId);
+            room = findOrCreateRoom(postIdLong, leaderId, memberId);
+            topicId = buildTopicId(postIdLong, leaderId, memberId);
             messageDto.setRoomId(room.getId());
 
         } else {
             room = chatRoomRepository.findById(messageDto.getRoomId())
-                    .orElseThrow(() -> new EntityNotFoundException("채팅방을 찾을 수 없습니다. ID: " + messageDto.getRoomId()));
-
+                    .orElseThrow(() -> new EntityNotFoundException("채팅방을 찾을 수 없습니다."));
             checkParticipantStatus(room.getId(), senderId);
             topicId = buildTopicId(room.getPostId(), room.getLeaderUserId(), room.getMemberUserId());
         }
 
-        // 3. 메시지 저장
         ChatMessage chatMessage = new ChatMessage();
         chatMessage.setChatRoom(room);
         chatMessage.setSenderUserId(senderId);
@@ -125,7 +148,6 @@ public class ChatService {
         chatMessage.setDeletedAt(false);
 
         ChatMessage savedMessage = chatMessageRepository.save(chatMessage);
-        log.debug("메시지 저장 완료. RoomId: {}, MsgId: {}", savedMessage.getChatRoom().getId(), savedMessage.getId());
 
         Long recipientId = senderId.equals(room.getLeaderUserId()) ? room.getMemberUserId() : room.getLeaderUserId();
         userRepository.findById(recipientId).ifPresent(recipient -> {
@@ -139,171 +161,150 @@ public class ChatService {
         });
 
         messagingTemplate.convertAndSend(topicId, savedMessage.toDto());
-        log.debug("메시지 브로드캐스트. Topic: {}", topicId);
-
         return savedMessage;
     }
 
+    // ==================== 3. 구독 검증 ====================
     public void validateSubscription(Long userId, String topicDestination) {
         if (!pathMatcher.match(CHAT_TOPIC_PATTERN, topicDestination)) {
-            log.warn("유효하지 않은 토픽 구독 시도: {}", topicDestination);
             throw new AccessDeniedException("유효하지 않은 채팅방 토픽입니다.");
         }
 
-        java.util.Map<String, String> uriVariables =
-                pathMatcher.extractUriTemplateVariables(CHAT_TOPIC_PATTERN, topicDestination);
-
+        Map<String, String> uriVariables = pathMatcher.extractUriTemplateVariables(CHAT_TOPIC_PATTERN, topicDestination);
         Long leaderId = Long.parseLong(uriVariables.get("leaderId"));
         Long memberId = Long.parseLong(uriVariables.get("memberId"));
 
         if (!userId.equals(leaderId) && !userId.equals(memberId)) {
-            log.warn("채팅방 구독 권한 없음. UserId: {}, Topic: {}", userId, topicDestination);
             throw new AccessDeniedException("이 채팅방을 구독할 권한이 없습니다.");
         }
-        log.debug("STOMP user subscribed: User: {}, Topic: {}", userId, topicDestination);
     }
 
+    // ==================== 4. 채팅방 생성/조회 ====================
     private ChatRoom findOrCreateRoom(Long postId, Long leaderId, Long memberId) {
-        try {
-            Optional<ChatRoom> existingRoom = chatRoomRepository.findByPostIdAndLeaderUserIdAndMemberUserId(postId, leaderId, memberId);
-            if (existingRoom.isPresent()) {
-                ChatRoom room = existingRoom.get();
-                if (room.getFirstMessageAt() == null) {
-                    room.setFirstMessageAt(LocalDateTime.now());
-                    return chatRoomRepository.save(room);
-                }
-                return room;
+        Optional<ChatRoom> existingRoom = chatRoomRepository
+                .findByPostIdAndLeaderUserIdAndMemberUserId(postId, leaderId, memberId);
+
+        if (existingRoom.isPresent()) {
+            ChatRoom room = existingRoom.get();
+            if (room.getFirstMessageAt() == null) {
+                room.setFirstMessageAt(LocalDateTime.now());
+                return chatRoomRepository.save(room);
             }
-
-            ChatRoom newRoom = new ChatRoom();
-            newRoom.setPostId(postId);
-            newRoom.setLeaderUserId(leaderId);
-            newRoom.setMemberUserId(memberId);
-            newRoom.setFirstMessageAt(LocalDateTime.now());
-
-            ChatRoom savedRoom = chatRoomRepository.save(newRoom);
-
-            ChatParticipant leaderPart = new ChatParticipant(savedRoom, leaderId);
-            ChatParticipant memberPart = new ChatParticipant(savedRoom, memberId);
-            chatParticipantRepository.saveAll(Arrays.asList(leaderPart, memberPart));
-
-            log.info("신규 채팅방 생성 완료. RoomId: {}", savedRoom.getId());
-            return savedRoom;
-
-        } catch (DataIntegrityViolationException e) {
-            log.warn("채팅방 생성 중 Race Condition 발생. 기존 방 조회. PostId: {}, Leader: {}, Member: {}", postId, leaderId, memberId);
-            return chatRoomRepository.findByPostIdAndLeaderUserIdAndMemberUserId(postId, leaderId, memberId)
-                    .orElseThrow(() -> new IllegalStateException("채팅방 생성/조회 실패 (Race Condition 후)"));
+            return room;
         }
+
+        ChatRoom newRoom = new ChatRoom(postId, leaderId, memberId, snowflakeIdService);
+        ChatRoom savedRoom = chatRoomRepository.save(newRoom);
+
+        ChatParticipant leaderPart = new ChatParticipant(savedRoom, leaderId);
+        ChatParticipant memberPart = new ChatParticipant(savedRoom, memberId);
+        chatParticipantRepository.saveAll(Arrays.asList(leaderPart, memberPart));
+
+        log.info("신규 채팅방 생성 완료. RoomId: {}", savedRoom.getId());
+        return savedRoom;
     }
 
+    // ==================== 5. 나가기 ====================
     @Transactional
-    public void leaveRoom(Long roomId, Long userId) {
+    public void leaveRoom(String roomId, Long userId) {
         ChatParticipant participant = chatParticipantRepository.findById(new ChatParticipantId(roomId, userId))
                 .orElseThrow(() -> new EntityNotFoundException("채팅방 참여자가 아닙니다."));
 
         if (participant.getLeftAt() == null) {
-            participant.setLeftAt(LocalDateTime.now());
+            participant.leave();  // 메서드 사용
             chatParticipantRepository.save(participant);
-            log.info("유저가 채팅방을 나갔습니다. RoomId: {}, UserId: {}", roomId, userId);
 
             ChatRoom room = chatRoomRepository.findById(roomId).orElseThrow();
             String topicId = buildTopicId(room.getPostId(), room.getLeaderUserId(), room.getMemberUserId());
 
             ChatMessageDto leaveMessage = new ChatMessageDto(
-                    null, roomId, room.getPostId(), userId, null,
+                    null, roomId, String.valueOf(room.getPostId()),
+                    String.valueOf(userId), null,
                     "상대방이 채팅방을 나갔습니다.",
-                    LocalDateTime.now(), ChatMessageDto.MessageType.LEAVE
+                    LocalDateTime.now(),
+                    ChatMessageDto.MessageType.LEAVE
             );
             messagingTemplate.convertAndSend(topicId, leaveMessage);
         }
     }
 
-    // 내 채팅방 조회
+    // ==================== 6. 내 채팅방 목록 ====================
     @Transactional(readOnly = true)
     public List<MyChatListResponse> getMyChatRooms(Long myUserId) {
-        // 1. 현재 유저 객체 조회
-        User me = userRepository.findById(myUserId)
-                .orElseThrow(() -> new EntityNotFoundException("member cannot be found"));
-
-        // 2. 내 참여 정보 조회
-        List<ChatParticipant> myParticipants = chatParticipantRepository.findAllByUserId(myUserId);
-
-        // 3. DTO로 변환
-        return myParticipants.stream()
+        return chatParticipantRepository.findAllByUserId(myUserId).stream()
                 .map(cp -> {
                     ChatRoom room = cp.getChatRoom();
-
-                    // 3-1. 상대방 ID 및 이름 찾기
-                    Long otherUserId = myUserId.equals(room.getLeaderUserId()) ? room.getMemberUserId() : room.getLeaderUserId();
+                    Long otherUserId = myUserId.equals(room.getLeaderUserId())
+                            ? room.getMemberUserId() : room.getLeaderUserId();
                     String roomName = userRepository.findById(otherUserId)
-                            .map(User::getName) // (User 엔티티에 getName()이 있다고 가정)
+                            .map(User::getName)
                             .orElse("알 수 없는 사용자");
 
-                    // 3-2. 안 읽은 메시지 수 카운트 (새로운 ReadStatus 구조 기반)
-                    Long unReadCount = readStatusRepository.countByChatRoomAndUserAndIsReadFalse(room, me);
+                    Long unReadCount = readStatusRepository.countByChatRoomAndUserAndIsReadFalse(room,
+                            userRepository.getReferenceById(myUserId));
+
+                    String myRole = myUserId.equals(room.getLeaderUserId()) ? "LEADER" : "MEMBER";
+                    String topicId = buildTopicId(room.getPostId(), room.getLeaderUserId(), room.getMemberUserId());
 
                     return MyChatListResponse.builder()
                             .roomId(room.getId())
                             .roomName(roomName)
                             .unReadCount(unReadCount)
+                            .topicId(topicId)
+                            .leaderId(String.valueOf(room.getLeaderUserId()))
+                            .memberId(String.valueOf(room.getMemberUserId()))
+                            .myRole(myRole)
                             .build();
                 })
                 .collect(Collectors.toList());
     }
 
-    // 메시지 읽음 처리
+    // ==================== 7. 읽음 처리 ====================
     @Transactional
-    public void messageRead(Long roomId, Long myUserId) {
+    public void messageRead(String roomId, Long myUserId) {
         ChatRoom chatRoom = chatRoomRepository.findById(roomId)
-                .orElseThrow(() -> new EntityNotFoundException("room cannot be found"));
+                .orElseThrow(() -> new EntityNotFoundException("채팅방을 찾을 수 없습니다."));
         User me = userRepository.findById(myUserId)
-                .orElseThrow(() -> new EntityNotFoundException("member cannot be found"));
+                .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다."));
 
-        // 1. 참여자인지 확인 (checkParticipantStatus가 이미 AccessDeniedException 처리)
         checkParticipantStatus(roomId, myUserId);
 
-        // 2. 이 유저가 해당 방에서 안 읽은 ReadStatus 조회 (최적화)
         List<ReadStatus> unreadStatuses = readStatusRepository.findByChatRoomAndUserAndIsReadFalse(chatRoom, me);
+        unreadStatuses.forEach(r -> r.updateIsRead(true));
 
-        // 3. 모두 읽음 처리
-        for (ReadStatus r : unreadStatuses) {
-            r.updateIsRead(true);
-        }
-        // @Transactional에 의해 dirty checking으로 자동 save (flush) 됨
         log.info("메시지 읽음 처리. RoomId: {}, UserId: {}, Count: {}", roomId, myUserId, unreadStatuses.size());
     }
 
-    // 채팅 내역 조회
+    // ==================== 8. 채팅 내역 조회 ====================
     @Transactional(readOnly = true)
-    public List<ChatMessageDto> getChatHistory(Long roomId, Long myUserId) {
-        // 1. 내가 해당 채팅방의 참여자인지 확인 (나갔는지 여부 포함)
-        ChatParticipant participant = chatParticipantRepository.findById(new ChatParticipantId(roomId, myUserId))
-                .orElseThrow(() -> new IllegalArgumentException("본인이 속하지 않은 채팅방입니다."));
+    public List<ChatMessageDto> getChatHistory(String roomId, Long myUserId) {
+        ChatRoom chatRoom = chatRoomRepository.findById(roomId)
+                .orElseThrow(() -> new EntityNotFoundException("채팅방을 찾을 수 없습니다."));
 
-        // 2. CHAT-02 정책: 나간 채팅방 히스토리 조회 불가
-        if (participant.getLeftAt() != null) {
-            throw new AccessDeniedException("이미 나간 채팅방의 대화 내역은 조회할 수 없습니다.");
+        boolean isLeader = myUserId.equals(chatRoom.getLeaderUserId());
+
+        if (!isLeader) {
+            ChatParticipant participant = chatParticipantRepository.findById(
+                            new ChatParticipantId(roomId, myUserId))
+                    .orElseThrow(() -> new IllegalArgumentException("본인이 속하지 않은 채팅방입니다."));
+
+            if (participant.getLeftAt() != null) {
+                throw new AccessDeniedException("이미 나간 채팅방의 대화 내역은 조회할 수 없습니다.");
+            }
         }
 
-        ChatRoom chatRoom = participant.getChatRoom();
-
-        // 3. 특정 room에 대한 message조회
-        // (findByRoomIdOrderByCreatedAtAsc -> findByChatRoomOrderByCreatedAtAsc)
-        List<ChatMessage> chatMessages = chatMessageRepository.findByChatRoomOrderByCreatedAtAsc(chatRoom);
-
-        // 4. DTO로 변환
-        return chatMessages.stream()
-                .map(ChatMessage::toDto) // (지난번에 추가한 toDto() 메서드 재활용)
+        return chatMessageRepository.findByChatRoomOrderByCreatedAtAsc(chatRoom)
+                .stream()
+                .map(ChatMessage::toDto)
                 .collect(Collectors.toList());
     }
 
-    // --- Helper Methods ---
+    // ==================== Helper ====================
     private String buildTopicId(Long postId, Long leaderId, Long memberId) {
         return String.format("/topic/chat/post/%d/leader/%d/member/%d", postId, leaderId, memberId);
     }
 
-    private void checkParticipantStatus(Long roomId, Long userId) {
+    private void checkParticipantStatus(String roomId, Long userId) {
         chatParticipantRepository.findById(new ChatParticipantId(roomId, userId))
                 .ifPresent(p -> {
                     if (p.getLeftAt() != null) {
