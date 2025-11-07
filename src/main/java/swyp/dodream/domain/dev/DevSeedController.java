@@ -14,6 +14,16 @@ import swyp.dodream.domain.post.common.ActivityMode;
 import swyp.dodream.domain.post.common.DurationPeriod;
 import swyp.dodream.domain.post.common.PostStatus;
 import swyp.dodream.domain.post.common.ProjectType;
+import swyp.dodream.domain.profile.domain.Profile;
+import swyp.dodream.domain.profile.enums.Experience;
+import swyp.dodream.domain.profile.enums.Gender;
+import swyp.dodream.domain.profile.enums.AgeBand;
+import swyp.dodream.domain.profile.repository.ProfileRepository;
+import swyp.dodream.domain.post.domain.Post;
+import swyp.dodream.domain.post.repository.PostRepository;
+import swyp.dodream.domain.ai.service.EmbeddingService;
+import swyp.dodream.domain.recommendation.repository.VectorRepository;
+import swyp.dodream.domain.recommendation.util.TextExtractor;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
@@ -37,21 +47,20 @@ public class DevSeedController {
 
     private final JdbcTemplate jdbcTemplate;
     private final SnowflakeIdService snowflake;
+    private final ProfileRepository profileRepository;
+    private final PostRepository postRepository;
+    private final Optional<EmbeddingService> embeddingService;
+    private final Optional<VectorRepository> vectorRepository;
 
     private static final long OWNER_ID = 110435692680581120L;
     private static final int TOTAL = 100;
     private static final int PROJECT_CNT = 50;
     private static final int STUDY_CNT = 50;
-    private static final int[] ROLE_IDS = {1, 2, 3, 4, 5, 6, 7, 8};
-    private static final int[] FE_STACK = {1, 2, 3, 4, 5, 6};
-    private static final int[] BE_STACK = {7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20};
-    private static final int[] MO_STACK = {21, 22, 23, 24, 25};
-    private static final int[] DE_STACK = {26, 27, 28, 29};
-    private static final int[] IK_TECH = {1, 2, 3};
-    private static final int[] IK_BIZ = {4, 5, 6};
-    private static final int[] IK_SOC = {7, 8, 9};
-    private static final int[] IK_LIFE = {10, 11, 12, 13, 14, 15};
-    private static final int[] IK_CULT = {16, 17, 18};
+    
+    // DB에서 동적으로 조회하도록 변경 (Snowflake ID 사용)
+    private List<Long> roleIds;
+    private List<Long> techSkillIds;
+    private List<Long> interestKeywordIds;
     private static final ActivityMode[] MODES = {ActivityMode.ONLINE, ActivityMode.OFFLINE, ActivityMode.HYBRID};
     private static final DurationPeriod[] DURATIONS = {
             DurationPeriod.UNDECIDED, DurationPeriod.ONE_MONTH, DurationPeriod.TWO_MONTHS,
@@ -75,11 +84,11 @@ public class DevSeedController {
         List<Long> createdPostIds = new ArrayList<>(TOTAL);
 
         for (int i = 0; i < PROJECT_CNT; i++) {
-            long postId = createOnePost(ProjectType.PROJECT, i, now);
+            long postId = createOnePost(ProjectType.PROJECT, i, now, OWNER_ID);
             createdPostIds.add(postId);
         }
         for (int i = 0; i < STUDY_CNT; i++) {
-            long postId = createOnePost(ProjectType.STUDY, i, now);
+            long postId = createOnePost(ProjectType.STUDY, i, now, OWNER_ID);
             createdPostIds.add(postId);
         }
 
@@ -142,7 +151,7 @@ public class DevSeedController {
 
     // === 내부 구현 ===
 
-    private long createOnePost(ProjectType type, int seq, LocalDateTime now) {
+    private long createOnePost(ProjectType type, int seq, LocalDateTime now, long ownerId) {
         ThreadLocalRandom rnd = ThreadLocalRandom.current();
 
         long postId = snowflake.generateId();
@@ -156,7 +165,7 @@ public class DevSeedController {
         int viewCount = rnd.nextInt(1000); // 0~999
 
         // 1. Post 삽입
-        insertPost(postId, type, mode, duration, deadline, status, title, content, now);
+        insertPost(postId, ownerId, type, mode, duration, deadline, status, title, content, now);
 
         // 2. PostView 삽입
         insertPostView(postId, viewCount);
@@ -173,6 +182,7 @@ public class DevSeedController {
     }
 
     private void insertPost(long postId,
+                            long ownerId,
                             ProjectType projectType,
                             ActivityMode activityMode,
                             DurationPeriod duration,
@@ -188,7 +198,7 @@ public class DevSeedController {
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         jdbcTemplate.update(sql,
-                postId, OWNER_ID, projectType.name(), activityMode.name(), duration.name(),
+                postId, ownerId, projectType.name(), activityMode.name(), duration.name(),
                 Timestamp.valueOf(deadlineAt), status.name(), title, content,
                 0, Timestamp.valueOf(now), Timestamp.valueOf(now)
         );
@@ -210,8 +220,11 @@ public class DevSeedController {
 
     private void insertRoles(long postId, int roleCount) {
         ThreadLocalRandom rnd = ThreadLocalRandom.current();
-        int[] picked = pickDistinct(ROLE_IDS, roleCount, rnd);
-        for (int roleId : picked) {
+        if (roleIds == null || roleIds.isEmpty()) {
+            loadMasterData();
+        }
+        long[] picked = pickDistinctLongs(roleIds, roleCount, rnd);
+        for (long roleId : picked) {
             long prId = snowflake.generateId();
             int headcount = 1 + rnd.nextInt(3);
             String sql = "INSERT INTO post_role_requirement (id, post_id, role_id, headcount) VALUES (?, ?, ?, ?)";
@@ -221,36 +234,26 @@ public class DevSeedController {
 
     private void insertStacks(long postId, int stackCount, ProjectType type, int seq) {
         ThreadLocalRandom rnd = ThreadLocalRandom.current();
-        List<Integer> pool = new ArrayList<>();
-        if (type == ProjectType.PROJECT) {
-            addAll(pool, BE_STACK);
-            addAll(pool, FE_STACK);
-            if (seq % 3 == 0) addAll(pool, DE_STACK);
-        } else {
-            addAll(pool, FE_STACK);
-            addAll(pool, MO_STACK);
-            if (seq % 4 == 0) addAll(pool, BE_STACK);
+        if (techSkillIds == null || techSkillIds.isEmpty()) {
+            loadMasterData();
         }
-        int[] poolArr = pool.stream().mapToInt(Integer::intValue).toArray();
-        int[] picked = pickDistinct(poolArr, stackCount, rnd);
+        // 전체 기술 스택에서 랜덤 선택
+        long[] picked = pickDistinctLongs(techSkillIds, stackCount, rnd);
         String sql = "INSERT INTO post_stack (post_id, tech_skill_id) VALUES (?, ?)";
-        for (int skillId : picked) {
+        for (long skillId : picked) {
             jdbcTemplate.update(sql, postId, skillId);
         }
     }
 
     private void insertFields(long postId, int fieldCount, int seq) {
         ThreadLocalRandom rnd = ThreadLocalRandom.current();
-        List<int[]> buckets = Arrays.asList(IK_TECH, IK_BIZ, IK_SOC, IK_LIFE, IK_CULT);
-        List<Integer> pool = new ArrayList<>();
-        Collections.shuffle(buckets, new Random(seq * 31L + 7));
-        for (int i = 0; i < Math.min(fieldCount, buckets.size()); i++) {
-            int[] b = buckets.get(i);
-            pool.add(b[ rnd.nextInt(b.length) ]);
+        if (interestKeywordIds == null || interestKeywordIds.isEmpty()) {
+            loadMasterData();
         }
-        int[] picked = pool.stream().distinct().mapToInt(Integer::intValue).toArray();
+        // 전체 관심 키워드에서 랜덤 선택
+        long[] picked = pickDistinctLongs(interestKeywordIds, fieldCount, rnd);
         String sql = "INSERT INTO post_field (post_id, interest_keyword_id) VALUES (?, ?)";
-        for (int ikId : picked) {
+        for (long ikId : picked) {
             jdbcTemplate.update(sql, postId, ikId);
         }
     }
@@ -275,7 +278,499 @@ public class DevSeedController {
         return Arrays.copyOf(copy, k);
     }
 
+    private static long[] pickDistinctLongs(List<Long> source, int k, ThreadLocalRandom rnd) {
+        if (source == null || source.isEmpty()) {
+            throw new IllegalStateException("소스 리스트가 비어있습니다.");
+        }
+        if (k <= 0) {
+            return new long[0];
+        }
+        if (k >= source.size()) {
+            return source.stream().mapToLong(Long::longValue).toArray();
+        }
+        List<Long> copy = new ArrayList<>(source);
+        Collections.shuffle(copy, new Random(rnd.nextLong()));
+        return copy.stream().limit(k).mapToLong(Long::longValue).toArray();
+    }
+
     private static void addAll(List<Integer> list, int... arr) {
         for (int v : arr) list.add(v);
+    }
+
+    // ==================== 프로필 및 게시글 대량 생성 ====================
+
+    @PostMapping("/seed/recommendation")
+    @Operation(
+            summary = "추천 테스트용 데이터 생성",
+            description = """
+                프로필 100개와 게시글 100개를 생성합니다.
+                추천 기능 테스트용 시드 데이터입니다.
+                """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "시드 생성 성공",
+                    content = @Content(schema = @Schema(implementation = Map.class)))
+    })
+    @Transactional
+    public Map<String, Object> seedRecommendationData() {
+        final LocalDateTime now = LocalDateTime.now();
+        List<Long> createdProfileIds = new ArrayList<>();
+        List<Long> createdPostIds = new ArrayList<>();
+
+        // 0. 마스터 데이터 조회 (Snowflake ID 사용)
+        loadMasterData();
+
+        // 1. 사용자 100명 생성 (프로필 생성을 위해)
+        List<Long> userIds = createUsers(100);
+
+        // 2. 프로필 100개 생성
+        for (int i = 0; i < 100; i++) {
+            long profileId = createOneProfile(userIds.get(i), i, now);
+            createdProfileIds.add(profileId);
+        }
+
+        // 3. 게시글 100개 생성 (생성된 사용자 ID 사용)
+        ThreadLocalRandom rnd = ThreadLocalRandom.current();
+        for (int i = 0; i < PROJECT_CNT; i++) {
+            long ownerId = userIds.get(rnd.nextInt(userIds.size())); // 랜덤 사용자 선택
+            long postId = createOnePost(ProjectType.PROJECT, i, now, ownerId);
+            createdPostIds.add(postId);
+        }
+        for (int i = 0; i < STUDY_CNT; i++) {
+            long ownerId = userIds.get(rnd.nextInt(userIds.size())); // 랜덤 사용자 선택
+            long postId = createOnePost(ProjectType.STUDY, i, now, ownerId);
+            createdPostIds.add(postId);
+        }
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("created_users", userIds.size());
+        result.put("created_profiles", createdProfileIds.size());
+        result.put("created_posts", createdPostIds.size());
+        result.put("profileIds", createdProfileIds);
+        result.put("postIds", createdPostIds);
+        return result;
+    }
+
+    /**
+     * 마스터 데이터 조회 (Snowflake ID 사용)
+     */
+    private void loadMasterData() {
+        // Role 조회
+        roleIds = jdbcTemplate.queryForList(
+                "SELECT id FROM role ORDER BY id",
+                Long.class
+        );
+        if (roleIds == null || roleIds.isEmpty()) {
+            throw new IllegalStateException("Role 데이터가 없습니다. 마스터 데이터를 먼저 생성해주세요.");
+        }
+
+        // TechSkill 조회
+        techSkillIds = jdbcTemplate.queryForList(
+                "SELECT id FROM tech_skill ORDER BY id",
+                Long.class
+        );
+        if (techSkillIds == null || techSkillIds.isEmpty()) {
+            throw new IllegalStateException("TechSkill 데이터가 없습니다. 마스터 데이터를 먼저 생성해주세요.");
+        }
+
+        // InterestKeyword 조회
+        interestKeywordIds = jdbcTemplate.queryForList(
+                "SELECT id FROM interest_keyword ORDER BY id",
+                Long.class
+        );
+        if (interestKeywordIds == null || interestKeywordIds.isEmpty()) {
+            throw new IllegalStateException("InterestKeyword 데이터가 없습니다. 마스터 데이터를 먼저 생성해주세요.");
+        }
+    }
+
+    /**
+     * 사용자 생성 (프로필 생성을 위해 필요)
+     */
+    private List<Long> createUsers(int count) {
+        List<Long> userIds = new ArrayList<>();
+        
+        for (int i = 0; i < count; i++) {
+            long userId = snowflake.generateId();
+            String name = String.format("테스트유저%d", i + 1);
+            
+            // users 테이블에 삽입
+            String sql = "INSERT INTO users (id, name, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?)";
+            jdbcTemplate.update(sql,
+                    userId,
+                    name,
+                    1, // status = true
+                    Timestamp.valueOf(LocalDateTime.now()),
+                    Timestamp.valueOf(LocalDateTime.now())
+            );
+            
+            userIds.add(userId);
+        }
+        
+        return userIds;
+    }
+
+    /**
+     * 프로필 1개 생성
+     */
+    private long createOneProfile(long userId, int seq, LocalDateTime now) {
+        ThreadLocalRandom rnd = ThreadLocalRandom.current();
+        
+        long profileId = snowflake.generateId();
+        String nickname = String.format("테스트프로필%d", seq + 1);
+        Experience experience = Experience.values()[rnd.nextInt(Experience.values().length)];
+        swyp.dodream.domain.profile.enums.ActivityMode activityMode = 
+                swyp.dodream.domain.profile.enums.ActivityMode.values()[rnd.nextInt(swyp.dodream.domain.profile.enums.ActivityMode.values().length)];
+        Gender gender = Gender.values()[rnd.nextInt(Gender.values().length)];
+        AgeBand ageBand = AgeBand.values()[rnd.nextInt(AgeBand.values().length)];
+        String introText = String.format("테스트 프로필 #%d입니다. 추천 기능 테스트용 데이터입니다.", seq + 1);
+        boolean isPublic = true;
+        int profileImageCode = 1 + rnd.nextInt(10);
+
+        // 1. Profile 삽입
+        String profileSql = "INSERT INTO profiles " +
+                "(id, user_id, nickname, gender, age_band, experience, activity_mode, intro_text, is_public, profile_image_code, created_at, updated_at) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        
+        jdbcTemplate.update(profileSql,
+                profileId, userId, nickname, gender.name(), ageBand.name(), experience.name(),
+                activityMode.name(), introText, isPublic ? 1 : 0, profileImageCode,
+                Timestamp.valueOf(now), Timestamp.valueOf(now)
+        );
+
+        // 2. ProposalNotification 삽입
+        long pnId = snowflake.generateId();
+        String pnSql = "INSERT INTO proposal_notifications (id, profile_id, proposal_project_on, proposal_study_on, created_at, updated_at) " +
+                "VALUES (?, ?, ?, ?, ?, ?)";
+        jdbcTemplate.update(pnSql, pnId, profileId, 1, 1, Timestamp.valueOf(now), Timestamp.valueOf(now));
+
+        // 3. ManyToMany 관계 삽입
+        int roleCount = 1 + rnd.nextInt(3);
+        insertProfileRoles(profileId, roleCount);
+        
+        int interestCount = 2 + rnd.nextInt(4); // 2~5개
+        insertProfileInterests(profileId, interestCount);
+        
+        int techCount = 2 + rnd.nextInt(4); // 2~5개
+        insertProfileTechSkills(profileId, techCount);
+
+        return profileId;
+    }
+
+    private void insertProfileRoles(long profileId, int roleCount) {
+        ThreadLocalRandom rnd = ThreadLocalRandom.current();
+        if (roleIds == null || roleIds.isEmpty()) {
+            loadMasterData();
+        }
+        long[] picked = pickDistinctLongs(roleIds, roleCount, rnd);
+        String sql = "INSERT INTO profiles_roles (profile_id, roles_id) VALUES (?, ?)";
+        for (long roleId : picked) {
+            jdbcTemplate.update(sql, profileId, roleId);
+        }
+    }
+
+    private void insertProfileInterests(long profileId, int interestCount) {
+        ThreadLocalRandom rnd = ThreadLocalRandom.current();
+        if (interestKeywordIds == null || interestKeywordIds.isEmpty()) {
+            loadMasterData();
+        }
+        // 전체 관심 키워드에서 랜덤 선택
+        long[] picked = pickDistinctLongs(interestKeywordIds, interestCount, rnd);
+        String sql = "INSERT INTO profiles_interest_keywords (profile_id, interest_keywords_id) VALUES (?, ?)";
+        for (long ikId : picked) {
+            jdbcTemplate.update(sql, profileId, ikId);
+        }
+    }
+
+    private void insertProfileTechSkills(long profileId, int techCount) {
+        ThreadLocalRandom rnd = ThreadLocalRandom.current();
+        if (techSkillIds == null || techSkillIds.isEmpty()) {
+            loadMasterData();
+        }
+        // 전체 기술 스택에서 랜덤 선택
+        long[] picked = pickDistinctLongs(techSkillIds, techCount, rnd);
+        String sql = "INSERT INTO profiles_tech_skills (profile_id, tech_skills_id) VALUES (?, ?)";
+        for (long skillId : picked) {
+            jdbcTemplate.update(sql, profileId, skillId);
+        }
+    }
+
+    // ==================== 벡터 저장 배치 작업 ====================
+
+    @PostMapping("/seed/vectorize-profiles")
+    @Operation(
+            summary = "프로필 벡터 저장",
+            description = """
+                생성된 모든 프로필에 대해 벡터를 생성하고 저장합니다.
+                시드 데이터 생성 후 이 API를 호출하여 벡터를 저장해야 추천 기능이 동작합니다.
+                """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "벡터 저장 성공",
+                    content = @Content(schema = @Schema(implementation = Map.class)))
+    })
+    @Transactional
+    public Map<String, Object> vectorizeProfiles() {
+        if (embeddingService.isEmpty() || vectorRepository.isEmpty()) {
+            return Map.of(
+                    "success", false,
+                    "message", "벡터 DB 미사용 환경입니다. EmbeddingService와 VectorRepository가 필요합니다."
+            );
+        }
+
+        List<Profile> profiles = profileRepository.findAll();
+        int successCount = 0;
+        int failCount = 0;
+        List<Long> failedProfileIds = new ArrayList<>();
+        List<String> errors = new ArrayList<>();
+
+        // Rate limit 방지를 위해 각 요청 사이에 지연 추가
+        for (Profile profile : profiles) {
+            try {
+                // 프로필 텍스트 추출
+                String profileText = TextExtractor.extractFromProfile(profile);
+                if (profileText == null || profileText.trim().isEmpty()) {
+                    continue;
+                }
+
+                // 임베딩 생성 (재시도 로직 포함)
+                float[] embedding = null;
+                int retryCount = 0;
+                int maxRetries = 3;
+                while (retryCount < maxRetries) {
+                    try {
+                        embedding = embeddingService.get().embed(profileText);
+                        break;
+                    } catch (Exception e) {
+                        retryCount++;
+                        if (retryCount < maxRetries && e.getMessage() != null && e.getMessage().contains("429")) {
+                            // Rate limit 오류인 경우 대기 후 재시도
+                            Thread.sleep(2000 * retryCount); // 2초, 4초, 6초 대기
+                            continue;
+                        }
+                        throw e;
+                    }
+                }
+
+                if (embedding == null) {
+                    throw new IllegalStateException("임베딩 생성 실패");
+                }
+
+                // 벡터 저장 (userId를 profileId로 사용)
+                vectorRepository.get().upsertProfileVector(profile.getUserId(), embedding);
+                successCount++;
+                
+                // Rate limit 방지를 위한 지연 (100ms)
+                Thread.sleep(100);
+            } catch (Exception e) {
+                failCount++;
+                failedProfileIds.add(profile.getId());
+                String errorMsg = e.getMessage();
+                if (errorMsg != null && errorMsg.length() > 200) {
+                    errorMsg = errorMsg.substring(0, 200) + "...";
+                }
+                errors.add(String.format("프로필 ID %d: %s", profile.getId(), errorMsg));
+            }
+        }
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("success", true);
+        result.put("total", profiles.size());
+        result.put("successCount", successCount);
+        result.put("failCount", failCount);
+        if (!failedProfileIds.isEmpty()) {
+            result.put("failedProfileIds", failedProfileIds);
+        }
+        if (!errors.isEmpty()) {
+            result.put("errors", errors.subList(0, Math.min(10, errors.size()))); // 최대 10개만
+        }
+        return result;
+    }
+
+    @PostMapping("/seed/vectorize-posts")
+    @Operation(
+            summary = "게시글 벡터 저장",
+            description = """
+                생성된 모든 게시글에 대해 벡터를 생성하고 저장합니다.
+                시드 데이터 생성 후 이 API를 호출하여 벡터를 저장해야 추천 기능이 동작합니다.
+                """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "벡터 저장 성공",
+                    content = @Content(schema = @Schema(implementation = Map.class)))
+    })
+    @Transactional
+    public Map<String, Object> vectorizePosts() {
+        if (embeddingService.isEmpty() || vectorRepository.isEmpty()) {
+            return Map.of(
+                    "success", false,
+                    "message", "벡터 DB 미사용 환경입니다. EmbeddingService와 VectorRepository가 필요합니다."
+            );
+        }
+
+        List<Post> posts = postRepository.findAll();
+        int successCount = 0;
+        int failCount = 0;
+        List<Long> failedPostIds = new ArrayList<>();
+        List<String> errors = new ArrayList<>();
+
+        // Rate limit 방지를 위해 각 요청 사이에 지연 추가
+        for (Post post : posts) {
+            try {
+                // 게시글 텍스트 추출
+                String postText = TextExtractor.extractFromPost(post);
+                if (postText == null || postText.trim().isEmpty()) {
+                    continue;
+                }
+
+                // 임베딩 생성 (재시도 로직 포함)
+                float[] embedding = null;
+                int retryCount = 0;
+                int maxRetries = 3;
+                while (retryCount < maxRetries) {
+                    try {
+                        embedding = embeddingService.get().embed(postText);
+                        break;
+                    } catch (Exception e) {
+                        retryCount++;
+                        if (retryCount < maxRetries && e.getMessage() != null && e.getMessage().contains("429")) {
+                            // Rate limit 오류인 경우 대기 후 재시도
+                            Thread.sleep(2000 * retryCount); // 2초, 4초, 6초 대기
+                            continue;
+                        }
+                        throw e;
+                    }
+                }
+
+                if (embedding == null) {
+                    throw new IllegalStateException("임베딩 생성 실패");
+                }
+
+                // 벡터 저장
+                vectorRepository.get().upsertVector(post.getId(), embedding);
+                successCount++;
+                
+                // Rate limit 방지를 위한 지연 (100ms)
+                Thread.sleep(100);
+            } catch (Exception e) {
+                failCount++;
+                failedPostIds.add(post.getId());
+                String errorMsg = e.getMessage();
+                if (errorMsg != null && errorMsg.length() > 200) {
+                    errorMsg = errorMsg.substring(0, 200) + "...";
+                }
+                errors.add(String.format("게시글 ID %d: %s", post.getId(), errorMsg));
+            }
+        }
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("success", true);
+        result.put("total", posts.size());
+        result.put("successCount", successCount);
+        result.put("failCount", failCount);
+        if (!failedPostIds.isEmpty()) {
+            result.put("failedPostIds", failedPostIds);
+        }
+        if (!errors.isEmpty()) {
+            result.put("errors", errors.subList(0, Math.min(10, errors.size()))); // 최대 10개만
+        }
+        return result;
+    }
+
+    @PostMapping("/seed/vectorize-profiles-retry")
+    @Operation(
+            summary = "실패한 프로필 벡터 재저장",
+            description = """
+                이전에 실패한 프로필 ID 목록을 받아서 벡터를 다시 저장합니다.
+                failedProfileIds 배열에 실패한 프로필 ID를 전달하세요.
+                """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "벡터 저장 성공",
+                    content = @Content(schema = @Schema(implementation = Map.class)))
+    })
+    @Transactional
+    public Map<String, Object> vectorizeProfilesRetry(
+            @RequestBody(required = false) Map<String, Object> request
+    ) {
+        if (embeddingService.isEmpty() || vectorRepository.isEmpty()) {
+            return Map.of(
+                    "success", false,
+                    "message", "벡터 DB 미사용 환경입니다. EmbeddingService와 VectorRepository가 필요합니다."
+            );
+        }
+
+        // 요청에서 failedProfileIds 추출, 없으면 모든 프로필 처리
+        List<Long> targetProfileIds = new ArrayList<>();
+        if (request != null && request.containsKey("failedProfileIds")) {
+            @SuppressWarnings("unchecked")
+            List<Number> ids = (List<Number>) request.get("failedProfileIds");
+            targetProfileIds = ids.stream().map(Number::longValue).toList();
+        } else {
+            // 모든 프로필 조회
+            targetProfileIds = profileRepository.findAll().stream()
+                    .map(Profile::getId)
+                    .toList();
+        }
+
+        int successCount = 0;
+        int failCount = 0;
+        List<String> errors = new ArrayList<>();
+
+        for (Long profileId : targetProfileIds) {
+            Profile profile = profileRepository.findById(profileId).orElse(null);
+            if (profile == null) {
+                continue;
+            }
+
+            try {
+                String profileText = TextExtractor.extractFromProfile(profile);
+                if (profileText == null || profileText.trim().isEmpty()) {
+                    continue;
+                }
+
+                // 재시도 로직
+                float[] embedding = null;
+                int retryCount = 0;
+                int maxRetries = 3;
+                while (retryCount < maxRetries) {
+                    try {
+                        embedding = embeddingService.get().embed(profileText);
+                        break;
+                    } catch (Exception e) {
+                        retryCount++;
+                        if (retryCount < maxRetries && e.getMessage() != null && e.getMessage().contains("429")) {
+                            Thread.sleep(2000 * retryCount);
+                            continue;
+                        }
+                        throw e;
+                    }
+                }
+
+                if (embedding == null) {
+                    throw new IllegalStateException("임베딩 생성 실패");
+                }
+
+                vectorRepository.get().upsertProfileVector(profile.getUserId(), embedding);
+                successCount++;
+                Thread.sleep(100);
+            } catch (Exception e) {
+                failCount++;
+                String errorMsg = e.getMessage();
+                if (errorMsg != null && errorMsg.length() > 200) {
+                    errorMsg = errorMsg.substring(0, 200) + "...";
+                }
+                errors.add(String.format("프로필 ID %d: %s", profileId, errorMsg));
+            }
+        }
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("success", true);
+        result.put("total", targetProfileIds.size());
+        result.put("successCount", successCount);
+        result.put("failCount", failCount);
+        if (!errors.isEmpty()) {
+            result.put("errors", errors.subList(0, Math.min(10, errors.size())));
+        }
+        return result;
     }
 }

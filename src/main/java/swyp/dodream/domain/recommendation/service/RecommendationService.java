@@ -22,6 +22,7 @@ import swyp.dodream.domain.user.repository.UserRepository;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -41,8 +42,8 @@ public class RecommendationService {
     private final Optional<EmbeddingService> embeddingService;
     private final Optional<VectorRepository> vectorRepository;
 
-    private static final int DEFAULT_SIZE = 20;
-    private static final int FINAL_LIMIT = 10;
+    private static final int DEFAULT_SIZE = 10;  // Qdrant에서 검색할 개수 (필터링 후 5개 확보를 위해 여유있게)
+    private static final int FINAL_LIMIT = 5;    // 최종 반환할 개수
 
     /**
      * 사용자에게 추천 게시글 목록 반환
@@ -72,13 +73,13 @@ public class RecommendationService {
             float[] userEmbedding = embeddingService.get().embed(profileText);
             log.info("사용자 임베딩 생성 완료: {}차원", userEmbedding.length);
 
-            // 4. Qdrant에서 유사 게시글 검색 (Top-30)
-            List<Long> similarPostIds = vectorRepository.get().searchSimilar(userEmbedding, DEFAULT_SIZE);
-            log.info("유사 게시글 검색 완료: {}개", similarPostIds.size());
+            // 4. Qdrant에서 유사 게시글 검색 (Top-10, 필터링 후 최종 5개 반환)
+            Map<Long, Double> postSimilarities = vectorRepository.get().searchSimilar(userEmbedding, DEFAULT_SIZE);
+            log.info("유사 게시글 검색 완료: {}개, postSimilarities={}", postSimilarities.size(), postSimilarities);
 
             // 5. 필터링 및 상세 정보 조회
             List<RecommendationPostResponse> recommendations = filterAndEnrichPosts(
-                    similarPostIds, userId
+                    postSimilarities, userId
             );
 
             // 6. 커서 기반 페이징
@@ -105,11 +106,14 @@ public class RecommendationService {
      * 검색된 게시글들을 필터링하고 상세 정보 추가
      */
     private List<RecommendationPostResponse> filterAndEnrichPosts(
-            List<Long> postIds, Long userId
+            Map<Long, Double> postSimilarities, Long userId
     ) {
         List<RecommendationPostResponse> result = new ArrayList<>();
 
-        for (Long postId : postIds) {
+        for (Map.Entry<Long, Double> entry : postSimilarities.entrySet()) {
+            Long postId = entry.getKey();
+            Double similarity = entry.getValue();
+
             Post post = postRepository.findById(postId)
                     .orElse(null);
 
@@ -122,9 +126,7 @@ public class RecommendationService {
                 continue;
             }
 
-            // 유사도 점수 계산 (간단한 로직: 추후 개선 가능)
-            double similarity = 0.85; // TODO: 실제 유사도 계산
-
+            // 실제 유사도 점수 사용 (Qdrant에서 반환된 Cosine Similarity 점수)
             RecommendationPostResponse response = RecommendationPostResponse.from(post, similarity);
             result.add(response);
         }
