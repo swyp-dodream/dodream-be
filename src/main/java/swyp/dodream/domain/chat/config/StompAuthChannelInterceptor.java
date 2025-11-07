@@ -55,12 +55,14 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
                                     List.of(new SimpleGrantedAuthority("ROLE_USER"))
                             );
 
-                    // STOMP accessor에도 user를 설정해야 @AuthenticationPrincipal이 동작함
+                    // 수정: Authentication 객체를 직접 setUser에 전달
+                    // UsernamePasswordAuthenticationToken은 Principal을 구현하고 있음
                     accessor.setUser(authentication);
+
                     // SecurityContextHolder에도 설정을 해줘야 Service단에서 접근 가능
                     SecurityContextHolder.getContext().setAuthentication(authentication);
 
-                    log.info("STOMP user authenticated: {}", userPrincipal.getName());
+                    log.info("STOMP user authenticated: userId={}, name={}", userId, name);
 
                 } catch (Exception e) {
                     log.warn("STOMP connection failed: Invalid token details", e);
@@ -76,9 +78,8 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
         // DISCONNECT 시 SecurityContext 클리어
         if (StompCommand.DISCONNECT.equals(accessor.getCommand())) {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            if (authentication != null) {
-                log.info("STOMP user disconnected: {}", authentication.getName());
-                SecurityContextHolder.clearContext();
+            if (authentication != null && accessor.getUser() == null) {
+                accessor.setUser(authentication);
             }
         }
 

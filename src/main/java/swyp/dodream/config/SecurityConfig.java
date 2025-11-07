@@ -2,17 +2,22 @@ package swyp.dodream.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import swyp.dodream.jwt.filter.JwtAuthenticationFilter;
 import swyp.dodream.jwt.util.JwtUtil;
 import swyp.dodream.login.handler.OAuth2SuccessHandler;
 import swyp.dodream.login.service.CustomOAuth2UserService;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Stream;
 
 @Configuration
@@ -49,6 +54,8 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+                // CORS 설정 추가
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 // CSRF 비활성화 (REST API용)
                 .csrf(csrf -> csrf.disable())
                 
@@ -62,6 +69,8 @@ public class SecurityConfig {
                 
                 // 요청 권한 설정
                 .authorizeHttpRequests(auth -> auth
+                        // 모든 OPTIONS 메서드 요청은 인증 없이 허용합니다.
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         // WHITE_LIST에 있는 URL은 인증 없이 접근 가능
                         .requestMatchers(
                                 Stream.of(WHITE_LIST, WHITE_LIST_SWAGGER)
@@ -83,6 +92,30 @@ public class SecurityConfig {
                 );
 
         return http.build();
+    }
+
+    // CORS 설정을 위한 Bean 등록
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+
+        // (중요) Vue 서버 주소인 http://localhost:3000 허용
+        configuration.setAllowedOrigins(List.of("http://localhost:3001"));
+
+        // 허용할 HTTP 메서드 (GET, POST 등)
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+
+        // 모든 헤더 허용
+        configuration.setAllowedHeaders(List.of("*"));
+
+        // (중요) 인증 정보(쿠키, Authorization 헤더 등) 허용
+        configuration.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        // "/api/**" 경로에 대해 위 설정 적용
+        source.registerCorsConfiguration("/api/**", configuration);
+
+        return source;
     }
 }
 
