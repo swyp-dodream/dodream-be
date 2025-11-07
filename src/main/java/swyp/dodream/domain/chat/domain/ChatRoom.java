@@ -1,49 +1,47 @@
 package swyp.dodream.domain.chat.domain;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import swyp.dodream.common.entity.BaseEntity;
+import lombok.*;
+import swyp.dodream.common.snowflake.SnowflakeIdService;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Getter
-@Setter
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "chat_room", uniqueConstraints = {
-        // 한 게시글에 대해 리더-멤버 간 채팅방은 유일해야 함
-        @UniqueConstraint(
-                name = "UK_post_leader_member",
-                columnNames = {"post_id", "leader_user_id", "member_user_id"}
-        )
+        @UniqueConstraint(columnNames = {"post_id", "leader_user_id", "member_user_id"})
 })
-public class ChatRoom extends BaseEntity {
+public class ChatRoom {
 
     @Id
-    private Long id;
+    @Column(name = "id", nullable = false, updatable = false)
+    private String id;
 
-    // FK: swyp.dodream.domain.post.domain.Post
     @Column(name = "post_id", nullable = false)
     private Long postId;
 
-    // FK: swyp.dodream.domain.user.domain.User (게시글 작성자)
     @Column(name = "leader_user_id", nullable = false)
     private Long leaderUserId;
 
-    // FK: swyp.dodream.domain.user.domain.User (채팅 상대)
     @Column(name = "member_user_id", nullable = false)
     private Long memberUserId;
 
     @Column(name = "first_message_at")
     private LocalDateTime firstMessageAt;
 
-    @OneToMany(mappedBy = "chatRoom", cascade = CascadeType.REMOVE)
-    private List<ChatParticipant> chatParticipants = new ArrayList<>();
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
 
-    @OneToMany(mappedBy = "chatRoom", cascade = CascadeType.REMOVE, orphanRemoval = true)
-    private List<ChatMessage> chatMessages = new ArrayList<>();
+    public ChatRoom(Long postId, Long leaderUserId, Long memberUserId, SnowflakeIdService snowflakeIdService) {
+        this.id = snowflakeIdService.nextStringId();  // String ID
+        this.postId = postId;
+        this.leaderUserId = leaderUserId;
+        this.memberUserId = memberUserId;
+        this.createdAt = LocalDateTime.now();
+    }
+
+    public void setFirstMessageAt(LocalDateTime firstMessageAt) {
+        this.firstMessageAt = firstMessageAt;
+    }
 }

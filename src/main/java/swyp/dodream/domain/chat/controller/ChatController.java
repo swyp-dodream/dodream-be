@@ -1,7 +1,6 @@
 package swyp.dodream.domain.chat.controller;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -26,15 +25,11 @@ public class ChatController {
     @PostMapping("/room/create")
     public ResponseEntity<ChatInitiateResponse> initiateChat(
             @RequestBody ChatInitiateRequest request,
-            @AuthenticationPrincipal UserPrincipal userPrincipal // (Spring Security에서 인증된 유저 정보)
+            @AuthenticationPrincipal UserPrincipal userPrincipal
     ) {
-        if (userPrincipal == null) {
-            // (혹은 SecurityConfig에서 처리)
-            throw ExceptionType.UNAUTHORIZED_NO_AUTHENTICATION.of();
-        }
-
-        // userPrincipal.getUserId() 사용
+        validateAuthentication(userPrincipal);
         Long memberId = userPrincipal.getUserId();
+
         ChatInitiateResponse response = chatService.initiateChat(request.getPostId(), memberId);
         return ResponseEntity.ok(response);
     }
@@ -42,56 +37,58 @@ public class ChatController {
     // 채팅방 나가기
     @DeleteMapping("/rooms/{roomId}/leave")
     public ResponseEntity<Void> leaveChatRoom(
-            @PathVariable Long roomId,
+            @PathVariable String roomId,  // String
             @AuthenticationPrincipal UserPrincipal userPrincipal
     ) {
-        if (userPrincipal == null) {
-            throw ExceptionType.UNAUTHORIZED_NO_AUTHENTICATION.of();
-        }
-
+        validateAuthentication(userPrincipal);
         Long userId = userPrincipal.getUserId();
+
         chatService.leaveRoom(roomId, userId);
         return ResponseEntity.ok().build();
     }
 
-    // getMyChatRooms: @AuthenticationPrincipal 추가
+    // 내 채팅방 목록
     @GetMapping("/my/rooms")
-    public ResponseEntity<List<MyChatListResponse>> getMyChatRooms( // 반환 타입 명시
-                                                                    @AuthenticationPrincipal UserPrincipal userPrincipal
-    ) {
-        if (userPrincipal == null) {
-            throw ExceptionType.UNAUTHORIZED_NO_AUTHENTICATION.of();
-        }
-
-        List<MyChatListResponse> myChatListResDtos = chatService.getMyChatRooms(userPrincipal.getUserId());
-        return new ResponseEntity<>(myChatListResDtos, HttpStatus.OK);
-    }
-
-    // messageRead: 메시지 읽음 처리 API (POST 또는 PUT 사용)
-    @PostMapping("/rooms/{roomId}/read")
-    public ResponseEntity<Void> readMessages(
-            @PathVariable Long roomId,
+    public ResponseEntity<List<MyChatListResponse>> getMyChatRooms(
             @AuthenticationPrincipal UserPrincipal userPrincipal
     ) {
-        if (userPrincipal == null) {
-            throw ExceptionType.UNAUTHORIZED_NO_AUTHENTICATION.of();
-        }
+        validateAuthentication(userPrincipal);
+        Long userId = userPrincipal.getUserId();
 
-        chatService.messageRead(roomId, userPrincipal.getUserId());
+        List<MyChatListResponse> response = chatService.getMyChatRooms(userId);
+        return ResponseEntity.ok(response);
+    }
+
+    // 메시지 읽음 처리
+    @PostMapping("/rooms/{roomId}/read")
+    public ResponseEntity<Void> readMessages(
+            @PathVariable String roomId,  // String
+            @AuthenticationPrincipal UserPrincipal userPrincipal
+    ) {
+        validateAuthentication(userPrincipal);
+        Long userId = userPrincipal.getUserId();
+
+        chatService.messageRead(roomId, userId);
         return ResponseEntity.ok().build();
     }
 
-    // getChatHistory: 채팅 내역 조회 API
+    // 채팅 내역 조회
     @GetMapping("/rooms/{roomId}/history")
     public ResponseEntity<List<ChatMessageDto>> getChatHistory(
-            @PathVariable Long roomId,
+            @PathVariable String roomId,  // String
             @AuthenticationPrincipal UserPrincipal userPrincipal
     ) {
+        validateAuthentication(userPrincipal);
+        Long userId = userPrincipal.getUserId();
+
+        List<ChatMessageDto> history = chatService.getChatHistory(roomId, userId);
+        return ResponseEntity.ok(history);
+    }
+
+    // --- 인증 검증 헬퍼 ---
+    private void validateAuthentication(UserPrincipal userPrincipal) {
         if (userPrincipal == null) {
             throw ExceptionType.UNAUTHORIZED_NO_AUTHENTICATION.of();
         }
-
-        List<ChatMessageDto> history = chatService.getChatHistory(roomId, userPrincipal.getUserId());
-        return ResponseEntity.ok(history);
     }
 }

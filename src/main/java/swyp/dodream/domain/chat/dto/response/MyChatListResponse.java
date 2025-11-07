@@ -6,11 +6,15 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
-@AllArgsConstructor
-@NoArgsConstructor
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class MyChatListResponse {
-    private Long roomId;
+    private String roomId;        // Long → String
     private String roomName;
     private Long unReadCount;
+    private String topicId;
+    private String leaderId;
+    private String memberId;
+    private String myRole;
 }

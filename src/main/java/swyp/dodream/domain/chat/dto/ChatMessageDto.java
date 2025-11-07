@@ -6,28 +6,26 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-// WebSocket 메시지 DTO
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class ChatMessageDto {
-
-    public enum MessageType {
-        ENTER, TALK, LEAVE // 입장, 대화, 퇴장
-    }
-
     private Long id; // 메시지 ID (저장 후)
 
     // --- 방 식별자 (둘 중 하나만 필요) ---
-    private Long roomId; // 기존 방의 ID (첫 메시지 이후)
-    private Long postId; // 첫 메시지를 보낼 때 사용 (roomId가 null일 경우)
+    private String roomId;           // 기존 방의 ID (첫 메시지 이후)
+    private String postId;           // 첫 메시지를 보낼 때 사용 (roomId가 null일 경우)
 
     // --- 참여자 식별자 ---
-    private Long senderId; // 보낸 사람 (서버에서 채움)
-    private Long receiverId; // 받는 사람 (첫 메시지를 보낼 때만 사용)
+    private String senderId;         // 보낸 사람
+    private String receiverId;       // 받는 사람
 
     // --- 메시지 내용 ---
     private String body;
     private LocalDateTime createdAt;
     private MessageType messageType;
+
+    public enum MessageType {
+        TALK, LEAVE
+    }
 }
