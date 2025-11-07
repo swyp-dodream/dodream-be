@@ -71,12 +71,13 @@ public class ProfileRecommendationService {
 
             // 4. Qdrant에서 유사 프로필 검색 (Top-10, 필터링 후 최종 5개 반환)
             List<Long> similarProfileIds = vectorRepository.get().searchSimilarProfiles(postEmbedding, DEFAULT_SIZE);
-            log.info("유사 프로필 검색 완료: {}개", similarProfileIds.size());
+            log.info("유사 프로필 검색 완료: {}개, profileIds={}", similarProfileIds.size(), similarProfileIds);
 
             // 5. 필터링 및 상세 정보 조회
             List<RecommendationProfileResponse> recommendations = filterAndEnrichProfiles(
                     similarProfileIds, post, postId
             );
+            log.info("필터링 후 추천 프로필: {}개", recommendations.size());
 
             // 6. 커서 기반 페이징
             int limit = (size != null && size > 0) ? size : FINAL_LIMIT;
@@ -106,11 +107,13 @@ public class ProfileRecommendationService {
     ) {
         List<RecommendationProfileResponse> result = new ArrayList<>();
 
-        for (Long profileId : profileIds) {
-            Profile profile = profileRepository.findById(profileId)
+        for (Long userId : profileIds) {
+            // Qdrant에 저장된 ID는 userId이므로 findByUserId 사용
+            Profile profile = profileRepository.findByUserId(userId)
                     .orElse(null);
 
             if (profile == null) {
+                log.warn("프로필을 찾을 수 없음: userId={}", userId);
                 continue;
             }
 
@@ -138,14 +141,19 @@ public class ProfileRecommendationService {
     private boolean shouldIncludeProfile(Profile profile, Post post) {
         // 1. 공개 프로필인가?
         if (!profile.getIsPublic()) {
+            log.info("프로필 제외: 비공개 프로필 - profileId={}, userId={}", profile.getId(), profile.getUserId());
             return false;
         }
 
         // 2. 게시글 작성자인가?
         if (profile.getUserId().equals(post.getOwner().getId())) {
+            log.info("프로필 제외: 게시글 작성자 - profileId={}, userId={}, postOwnerId={}", 
+                    profile.getId(), profile.getUserId(), post.getOwner().getId());
             return false;
         }
 
+        log.info("프로필 포함: profileId={}, userId={}, isPublic={}", 
+                profile.getId(), profile.getUserId(), profile.getIsPublic());
         return true;
     }
 
