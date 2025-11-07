@@ -1,9 +1,9 @@
 package swyp.dodream.login.handler;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
@@ -16,7 +16,6 @@ import swyp.dodream.domain.user.repository.UserRepository;
 import swyp.dodream.jwt.service.TokenService;
 import swyp.dodream.jwt.util.JwtUtil;
 import swyp.dodream.login.domain.AuthProvider;
-import swyp.dodream.login.dto.LoginResponse;
 
 import java.io.IOException;
 
@@ -24,11 +23,13 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
+    @Value("${frontend.url}")
+    private String frontendUrl;
+
     private final JwtUtil jwtUtil;
     private final TokenService tokenService;
     private final UserRepository userRepository;
     private final OAuthAccountRepository oAuthAccountRepository;
-    private final ObjectMapper objectMapper;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
@@ -67,19 +68,18 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         // Refresh Token을 Redis에 저장 (이름 포함)
         tokenService.saveRefreshToken(user.getId(), user.getName(), refreshToken);
 
-        // 응답 헤더에 토큰 추가
-        response.setHeader("Authorization", "Bearer " + accessToken);
-        response.setHeader("Refresh-Token", refreshToken);
-
-        // JSON 응답
-        response.setContentType("application/json");
-        response.setCharacterEncoding("UTF-8");
-        
-        LoginResponse loginResponse = LoginResponse.of(
-                accessToken, refreshToken, user.getId(), email, user.getName()
+        // 프론트엔드로 리다이렉트 (토큰을 쿼리 파라미터로 전달)
+        String redirectUrl = String.format(
+                "%s/auth/callback?accessToken=%s&refreshToken=%s&userId=%d&email=%s&name=%s",
+                frontendUrl,
+                accessToken,
+                refreshToken,
+                user.getId(),
+                java.net.URLEncoder.encode(email, "UTF-8"),
+                java.net.URLEncoder.encode(user.getName(), "UTF-8")
         );
         
-        response.getWriter().write(objectMapper.writeValueAsString(loginResponse));
+        response.sendRedirect(redirectUrl);
     }
 }
 
