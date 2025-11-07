@@ -19,6 +19,7 @@ import swyp.dodream.domain.recommendation.util.TextExtractor;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -70,12 +71,12 @@ public class ProfileRecommendationService {
             log.info("게시글 임베딩 생성 완료: {}차원", postEmbedding.length);
 
             // 4. Qdrant에서 유사 프로필 검색 (Top-10, 필터링 후 최종 5개 반환)
-            List<Long> similarProfileIds = vectorRepository.get().searchSimilarProfiles(postEmbedding, DEFAULT_SIZE);
-            log.info("유사 프로필 검색 완료: {}개, profileIds={}", similarProfileIds.size(), similarProfileIds);
+            Map<Long, Double> profileSimilarities = vectorRepository.get().searchSimilarProfiles(postEmbedding, DEFAULT_SIZE);
+            log.info("유사 프로필 검색 완료: {}개, profileSimilarities={}", profileSimilarities.size(), profileSimilarities);
 
             // 5. 필터링 및 상세 정보 조회
             List<RecommendationProfileResponse> recommendations = filterAndEnrichProfiles(
-                    similarProfileIds, post, postId
+                    profileSimilarities, post, postId
             );
             log.info("필터링 후 추천 프로필: {}개", recommendations.size());
 
@@ -103,11 +104,14 @@ public class ProfileRecommendationService {
      * 검색된 프로필들을 필터링하고 상세 정보 추가
      */
     private List<RecommendationProfileResponse> filterAndEnrichProfiles(
-            List<Long> profileIds, Post post, Long postId
+            Map<Long, Double> profileSimilarities, Post post, Long postId
     ) {
         List<RecommendationProfileResponse> result = new ArrayList<>();
 
-        for (Long userId : profileIds) {
+        for (Map.Entry<Long, Double> entry : profileSimilarities.entrySet()) {
+            Long userId = entry.getKey();
+            Double similarity = entry.getValue();
+
             // Qdrant에 저장된 ID는 userId이므로 findByUserId 사용
             Profile profile = profileRepository.findByUserId(userId)
                     .orElse(null);
@@ -125,9 +129,7 @@ public class ProfileRecommendationService {
             // 태그 생성
             List<String> tags = generateTags(profile, post);
 
-            // 유사도 점수 계산 (간단한 로직: 추후 개선 가능)
-            double similarity = 0.85; // TODO: 실제 유사도 계산
-
+            // 실제 유사도 점수 사용 (Qdrant에서 반환된 Cosine Similarity 점수)
             RecommendationProfileResponse response = RecommendationProfileResponse.from(profile, similarity, tags);
             result.add(response);
         }

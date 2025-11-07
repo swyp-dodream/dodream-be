@@ -169,9 +169,9 @@ public class VectorRepository {
      * 벡터 검색 (유사도 기반)
      * @param queryEmbedding 검색 쿼리 벡터
      * @param limit 결과 개수
-     * @return 검색된 postId 목록
+     * @return postId와 유사도 점수의 맵 (postId -> similarity score)
      */
-    public List<Long> searchSimilar(float[] queryEmbedding, int limit) {
+    public Map<Long, Double> searchSimilar(float[] queryEmbedding, int limit) {
         try {
             log.debug("벡터 검색 시작: limit={}", limit);
             Map<String, Object> body = Map.of(
@@ -199,22 +199,27 @@ public class VectorRepository {
             String responseBody = response.body().string();
             response.close();
 
-            // 응답 파싱
+            // 응답 파싱 (ID와 유사도 점수 함께 추출)
             JsonNode root = objectMapper.readTree(responseBody);
             JsonNode result = root.get("result");
             
-            List<Long> postIds = new ArrayList<>();
+            Map<Long, Double> postSimilarities = new LinkedHashMap<>();
             if (result != null && result.isArray()) {
                 for (JsonNode point : result) {
                     JsonNode id = point.get("id");
-                    if (id != null && id.isNumber()) {
-                        postIds.add(id.asLong());
+                    JsonNode score = point.get("score");
+                    
+                    if (id != null && id.isNumber() && score != null && score.isNumber()) {
+                        Long postId = id.asLong();
+                        Double similarity = score.asDouble();
+                        postSimilarities.put(postId, similarity);
+                        log.debug("게시글 검색 결과: postId={}, similarity={}", postId, similarity);
                     }
                 }
             }
 
-            log.debug("벡터 검색 완료: {}개 결과", postIds.size());
-            return postIds;
+            log.debug("벡터 검색 완료: {}개 결과", postSimilarities.size());
+            return postSimilarities;
 
         } catch (IOException e) {
             log.error("벡터 검색 중 오류", e);
@@ -361,9 +366,9 @@ public class VectorRepository {
      * 프로필 벡터 검색 (유사도 기반)
      * @param queryEmbedding 검색 쿼리 벡터
      * @param limit 결과 개수
-     * @return 검색된 profileId 목록
+     * @return userId와 유사도 점수의 맵 (userId -> similarity score)
      */
-    public List<Long> searchSimilarProfiles(float[] queryEmbedding, int limit) {
+    public Map<Long, Double> searchSimilarProfiles(float[] queryEmbedding, int limit) {
         try {
             log.debug("프로필 벡터 검색 시작: limit={}", limit);
             Map<String, Object> body = Map.of(
@@ -391,22 +396,27 @@ public class VectorRepository {
             String responseBody = response.body().string();
             response.close();
 
-            // 응답 파싱
+            // 응답 파싱 (ID와 유사도 점수 함께 추출)
             JsonNode root = objectMapper.readTree(responseBody);
             JsonNode result = root.get("result");
             
-            List<Long> profileIds = new ArrayList<>();
+            Map<Long, Double> profileSimilarities = new LinkedHashMap<>();
             if (result != null && result.isArray()) {
                 for (JsonNode point : result) {
                     JsonNode id = point.get("id");
-                    if (id != null && id.isNumber()) {
-                        profileIds.add(id.asLong());
+                    JsonNode score = point.get("score");
+                    
+                    if (id != null && id.isNumber() && score != null && score.isNumber()) {
+                        Long userId = id.asLong();
+                        Double similarity = score.asDouble();
+                        profileSimilarities.put(userId, similarity);
+                        log.debug("프로필 검색 결과: userId={}, similarity={}", userId, similarity);
                     }
                 }
             }
 
-            log.debug("프로필 벡터 검색 완료: {}개 결과", profileIds.size());
-            return profileIds;
+            log.debug("프로필 벡터 검색 완료: {}개 결과", profileSimilarities.size());
+            return profileSimilarities;
 
         } catch (IOException e) {
             log.error("프로필 벡터 검색 중 오류", e);

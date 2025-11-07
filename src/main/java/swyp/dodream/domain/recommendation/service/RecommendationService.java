@@ -22,6 +22,7 @@ import swyp.dodream.domain.user.repository.UserRepository;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -73,12 +74,12 @@ public class RecommendationService {
             log.info("사용자 임베딩 생성 완료: {}차원", userEmbedding.length);
 
             // 4. Qdrant에서 유사 게시글 검색 (Top-10, 필터링 후 최종 5개 반환)
-            List<Long> similarPostIds = vectorRepository.get().searchSimilar(userEmbedding, DEFAULT_SIZE);
-            log.info("유사 게시글 검색 완료: {}개", similarPostIds.size());
+            Map<Long, Double> postSimilarities = vectorRepository.get().searchSimilar(userEmbedding, DEFAULT_SIZE);
+            log.info("유사 게시글 검색 완료: {}개, postSimilarities={}", postSimilarities.size(), postSimilarities);
 
             // 5. 필터링 및 상세 정보 조회
             List<RecommendationPostResponse> recommendations = filterAndEnrichPosts(
-                    similarPostIds, userId
+                    postSimilarities, userId
             );
 
             // 6. 커서 기반 페이징
@@ -105,11 +106,14 @@ public class RecommendationService {
      * 검색된 게시글들을 필터링하고 상세 정보 추가
      */
     private List<RecommendationPostResponse> filterAndEnrichPosts(
-            List<Long> postIds, Long userId
+            Map<Long, Double> postSimilarities, Long userId
     ) {
         List<RecommendationPostResponse> result = new ArrayList<>();
 
-        for (Long postId : postIds) {
+        for (Map.Entry<Long, Double> entry : postSimilarities.entrySet()) {
+            Long postId = entry.getKey();
+            Double similarity = entry.getValue();
+
             Post post = postRepository.findById(postId)
                     .orElse(null);
 
@@ -122,9 +126,7 @@ public class RecommendationService {
                 continue;
             }
 
-            // 유사도 점수 계산 (간단한 로직: 추후 개선 가능)
-            double similarity = 0.85; // TODO: 실제 유사도 계산
-
+            // 실제 유사도 점수 사용 (Qdrant에서 반환된 Cosine Similarity 점수)
             RecommendationPostResponse response = RecommendationPostResponse.from(post, similarity);
             result.add(response);
         }
