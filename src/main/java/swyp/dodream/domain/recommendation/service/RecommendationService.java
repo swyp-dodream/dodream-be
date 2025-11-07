@@ -41,8 +41,8 @@ public class RecommendationService {
     private final Optional<EmbeddingService> embeddingService;
     private final Optional<VectorRepository> vectorRepository;
 
-    private static final int DEFAULT_SIZE = 20;
-    private static final int FINAL_LIMIT = 10;
+    private static final int DEFAULT_SIZE = 10;  // Qdrant에서 검색할 개수 (필터링 후 5개 확보를 위해 여유있게)
+    private static final int FINAL_LIMIT = 5;    // 최종 반환할 개수
 
     /**
      * 사용자에게 추천 게시글 목록 반환
@@ -72,7 +72,7 @@ public class RecommendationService {
             float[] userEmbedding = embeddingService.get().embed(profileText);
             log.info("사용자 임베딩 생성 완료: {}차원", userEmbedding.length);
 
-            // 4. Qdrant에서 유사 게시글 검색 (Top-30)
+            // 4. Qdrant에서 유사 게시글 검색 (Top-10, 필터링 후 최종 5개 반환)
             List<Long> similarPostIds = vectorRepository.get().searchSimilar(userEmbedding, DEFAULT_SIZE);
             log.info("유사 게시글 검색 완료: {}개", similarPostIds.size());
 
