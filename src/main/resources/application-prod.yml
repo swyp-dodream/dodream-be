@@ -81,3 +81,7 @@ clova:
     api-gw-key: ${CLOVA_EMBEDDING_API_GW_KEY:}
     base-url: ${CLOVA_EMBEDDING_BASE_URL:https://clovastudio.stream.ntruss.com/v1/api-tools/embedding/v2}
     model: ${CLOVA_EMBEDDING_MODEL:nlp-embedding-ko-1.0.1}
+
+# 프론트엔드 URL 설정 (OAuth2 리다이렉트용)
+frontend:
+  url: ${FRONTEND_URL:https://dodream.store}
