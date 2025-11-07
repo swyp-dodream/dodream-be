@@ -32,7 +32,8 @@ public class SecurityConfig {
             "/oauth2/authorization/**",
             "/login/oauth2/code/**",
             "/api/auth/reissue",
-            "/api/profiles/intro/ai-draft"
+            "/api/profiles/intro/ai-draft",
+            "/api/recommendations/profiles/**"  // 테스트용: 추천 프로필 조회 API
     };
 
     private static final String[] WHITE_LIST_SWAGGER = {

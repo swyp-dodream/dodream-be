@@ -11,6 +11,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import swyp.dodream.domain.recommendation.dto.RecommendationListResponse;
+import swyp.dodream.domain.recommendation.dto.RecommendationProfileListResponse;
+import swyp.dodream.domain.recommendation.service.ProfileRecommendationService;
 import swyp.dodream.domain.recommendation.service.RecommendationService;
 import swyp.dodream.jwt.dto.UserPrincipal;
 
@@ -24,6 +26,7 @@ import swyp.dodream.jwt.dto.UserPrincipal;
 public class RecommendationController {
 
     private final RecommendationService recommendationService;
+    private final ProfileRecommendationService profileRecommendationService;
 
     @Operation(
             summary = "추천 게시글 조회",
@@ -46,6 +49,31 @@ public class RecommendationController {
         UserPrincipal user = (UserPrincipal) authentication.getPrincipal();
         RecommendationListResponse response = recommendationService.recommendPosts(
                 user.getUserId(), cursor, size
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(
+            summary = "추천 프로필 조회",
+            description = "게시글 기반으로 유사한 프로필을 추천합니다.",
+            security = @SecurityRequirement(name = "JWT")
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자"),
+            @ApiResponse(responseCode = "404", description = "게시글을 찾을 수 없음")
+    })
+    @GetMapping("/profiles/{postId}")
+    public ResponseEntity<RecommendationProfileListResponse> getRecommendedProfiles(
+            @Parameter(description = "게시글 ID")
+            @PathVariable Long postId,
+            @Parameter(description = "다음 페이지 커서")
+            @RequestParam(required = false) Long cursor,
+            @Parameter(description = "페이지 크기 (기본 5개)")
+            @RequestParam(defaultValue = "5") Integer size
+    ) {
+        RecommendationProfileListResponse response = profileRecommendationService.recommendProfiles(
+                postId, cursor, size
         );
         return ResponseEntity.ok(response);
     }

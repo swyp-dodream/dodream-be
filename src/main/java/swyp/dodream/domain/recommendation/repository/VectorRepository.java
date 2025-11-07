@@ -24,10 +24,12 @@ public class VectorRepository {
     private final ObjectMapper objectMapper;
 
     @Value("${qdrant.collection-name}")
-    private String collectionName;
+    private String collectionName;  // 게시글 벡터 컬렉션
 
     @Value("${qdrant.vector-size}")
     private int vectorSize;
+    
+    private static final String PROFILES_COLLECTION_NAME = "profiles_embeddings";  // 프로필 벡터 컬렉션
 
     @Value("${qdrant.host}")
     private String host;
@@ -249,6 +251,198 @@ public class VectorRepository {
         } catch (IOException e) {
             log.error("벡터 삭제 중 오류", e);
             throw new IllegalStateException("벡터 삭제 실패", e);
+        }
+    }
+
+    // ==================== 프로필 벡터 관련 메서드 ====================
+
+    /**
+     * 프로필 벡터 컬렉션이 존재하는지 확인하고 없으면 생성
+     */
+    public void ensureProfilesCollectionExists() {
+        try {
+            Request request = new Request.Builder()
+                    .url(String.format("%s/collections/%s", getBaseUrl(), PROFILES_COLLECTION_NAME))
+                    .get()
+                    .build();
+
+            Response response = httpClient.newCall(request).execute();
+            
+            if (response.code() == 404) {
+                createProfilesCollection();
+            } else if (!response.isSuccessful()) {
+                log.error("프로필 컬렉션 확인 실패: {}", response.body().string());
+                throw new IllegalStateException("프로필 컬렉션 확인 실패");
+            }
+            
+            response.close();
+        } catch (IOException e) {
+            log.error("프로필 컬렉션 확인 중 오류", e);
+            throw new IllegalStateException("프로필 컬렉션 확인 실패", e);
+        }
+    }
+
+    /**
+     * 프로필 벡터 컬렉션 생성
+     */
+    private void createProfilesCollection() {
+        try {
+            Map<String, Object> body = Map.of(
+                    "vectors", Map.of(
+                            "size", vectorSize,
+                            "distance", "Cosine"
+                    )
+            );
+
+            String json = objectMapper.writeValueAsString(body);
+
+            Request request = new Request.Builder()
+                    .url(String.format("%s/collections/%s", getBaseUrl(), PROFILES_COLLECTION_NAME))
+                    .put(RequestBody.create(json, MediaType.get("application/json")))
+                    .build();
+
+            Response response = httpClient.newCall(request).execute();
+            
+            if (!response.isSuccessful()) {
+                String errorBody = response.body() != null ? response.body().string() : "";
+                log.error("프로필 컬렉션 생성 실패: {}", errorBody);
+                throw new IllegalStateException("프로필 컬렉션 생성 실패");
+            }
+            
+            response.close();
+            log.info("Qdrant 프로필 컬렉션 생성 완료: {}", PROFILES_COLLECTION_NAME);
+        } catch (IOException e) {
+            log.error("프로필 컬렉션 생성 중 오류", e);
+            throw new IllegalStateException("프로필 컬렉션 생성 실패", e);
+        }
+    }
+
+    /**
+     * 프로필 벡터 저장
+     * @param profileId 프로필 ID (userId와 동일)
+     * @param embedding 벡터
+     */
+    public void upsertProfileVector(Long profileId, float[] embedding) {
+        ensureProfilesCollectionExists();
+        
+        try {
+            Map<String, Object> point = new HashMap<>();
+            point.put("id", profileId);
+            point.put("vector", embedding);
+
+            Map<String, Object> body = Map.of(
+                    "points", List.of(point)
+            );
+
+            String json = objectMapper.writeValueAsString(body);
+
+            Request request = new Request.Builder()
+                    .url(String.format("%s/collections/%s/points", getBaseUrl(), PROFILES_COLLECTION_NAME))
+                    .put(RequestBody.create(json, MediaType.get("application/json")))
+                    .build();
+
+            Response response = httpClient.newCall(request).execute();
+            
+            if (!response.isSuccessful()) {
+                String errorBody = response.body() != null ? response.body().string() : "";
+                log.error("프로필 벡터 저장 실패: {}", errorBody);
+                throw new IllegalStateException("프로필 벡터 저장 실패");
+            }
+            
+            response.close();
+            log.debug("프로필 벡터 저장 완료: profileId={}", profileId);
+        } catch (IOException e) {
+            log.error("프로필 벡터 저장 중 오류", e);
+            throw new IllegalStateException("프로필 벡터 저장 실패", e);
+        }
+    }
+
+    /**
+     * 프로필 벡터 검색 (유사도 기반)
+     * @param queryEmbedding 검색 쿼리 벡터
+     * @param limit 결과 개수
+     * @return 검색된 profileId 목록
+     */
+    public List<Long> searchSimilarProfiles(float[] queryEmbedding, int limit) {
+        try {
+            log.debug("프로필 벡터 검색 시작: limit={}", limit);
+            Map<String, Object> body = Map.of(
+                    "vector", queryEmbedding,
+                    "limit", limit,
+                    "with_payload", false
+            );
+
+            String json = objectMapper.writeValueAsString(body);
+
+            Request request = new Request.Builder()
+                    .url(String.format("%s/collections/%s/points/search", getBaseUrl(), PROFILES_COLLECTION_NAME))
+                    .post(RequestBody.create(json, MediaType.get("application/json")))
+                    .build();
+
+            Response response = httpClient.newCall(request).execute();
+            
+            log.debug("Qdrant 프로필 검색 응답 상태: {}", response.code());
+            if (!response.isSuccessful()) {
+                String errorBody = response.body() != null ? response.body().string() : "";
+                log.error("프로필 벡터 검색 실패: {}", errorBody);
+                throw new IllegalStateException("프로필 벡터 검색 실패");
+            }
+            
+            String responseBody = response.body().string();
+            response.close();
+
+            // 응답 파싱
+            JsonNode root = objectMapper.readTree(responseBody);
+            JsonNode result = root.get("result");
+            
+            List<Long> profileIds = new ArrayList<>();
+            if (result != null && result.isArray()) {
+                for (JsonNode point : result) {
+                    JsonNode id = point.get("id");
+                    if (id != null && id.isNumber()) {
+                        profileIds.add(id.asLong());
+                    }
+                }
+            }
+
+            log.debug("프로필 벡터 검색 완료: {}개 결과", profileIds.size());
+            return profileIds;
+
+        } catch (IOException e) {
+            log.error("프로필 벡터 검색 중 오류", e);
+            throw new IllegalStateException("프로필 벡터 검색 실패", e);
+        }
+    }
+
+    /**
+     * 프로필 벡터 삭제
+     */
+    public void deleteProfileVector(Long profileId) {
+        try {
+            Map<String, Object> body = Map.of(
+                    "points", List.of(profileId)
+            );
+
+            String json = objectMapper.writeValueAsString(body);
+
+            Request request = new Request.Builder()
+                    .url(String.format("%s/collections/%s/points/delete", getBaseUrl(), PROFILES_COLLECTION_NAME))
+                    .post(RequestBody.create(json, MediaType.get("application/json")))
+                    .build();
+
+            Response response = httpClient.newCall(request).execute();
+            
+            if (!response.isSuccessful()) {
+                String errorBody = response.body() != null ? response.body().string() : "";
+                log.error("프로필 벡터 삭제 실패: {}", errorBody);
+                throw new IllegalStateException("프로필 벡터 삭제 실패");
+            }
+            
+            response.close();
+            log.debug("프로필 벡터 삭제 완료: profileId={}", profileId);
+        } catch (IOException e) {
+            log.error("프로필 벡터 삭제 중 오류", e);
+            throw new IllegalStateException("프로필 벡터 삭제 실패", e);
         }
     }
 }

@@ -30,6 +30,9 @@ import swyp.dodream.domain.url.domain.ProfileUrl;
 import swyp.dodream.domain.url.enums.UrlLabel;
 import swyp.dodream.domain.url.repository.ProfileUrlRepository;
 import swyp.dodream.domain.user.repository.UserRepository;
+import swyp.dodream.domain.ai.service.EmbeddingService;
+import swyp.dodream.domain.recommendation.repository.VectorRepository;
+import swyp.dodream.domain.recommendation.util.TextExtractor;
 
 import java.util.*;
 import java.util.function.Function;
@@ -52,6 +55,8 @@ public class ProfileService {
     private final UserRepository userRepository;
     private final PostRepository postRepository;
     private final ApplicationRepository applicationRepository;
+    private final Optional<EmbeddingService> embeddingService;
+    private final Optional<VectorRepository> vectorRepository;
 
 
     @Transactional
@@ -172,6 +177,9 @@ public class ProfileService {
                 request.studyProposalEnabled()
         );
         proposalNotificationRepository.save(pn);
+
+        // 7) 프로필 벡터 저장 (비동기 처리, 실패해도 프로필 저장은 성공)
+        saveProfileVector(saved);
 
         return ProfileResponse.from(saved, pn);
     }
@@ -336,6 +344,10 @@ public class ProfileService {
         }
 
         Profile saved = profileRepository.save(profile);
+        
+        // 프로필 벡터 저장 (비동기 처리, 실패해도 프로필 저장은 성공)
+        saveProfileVector(saved);
+        
         return ProfileMyPageResponse.from(saved);
     }
 
@@ -416,5 +428,36 @@ public class ProfileService {
 
         // 5. ProfileMyPageResponse로 반환 (개인정보 제외)
         return ProfileMyPageResponse.from(profile);
+    }
+
+    /**
+     * 프로필 벡터 저장 (비동기 처리, 실패해도 프로필 저장은 성공)
+     */
+    private void saveProfileVector(Profile profile) {
+        if (embeddingService.isEmpty() || vectorRepository.isEmpty()) {
+            log.debug("벡터 DB 미사용 환경 - 프로필 벡터 저장 스킵");
+            return;
+        }
+
+        try {
+            // 프로필 텍스트 추출
+            String profileText = TextExtractor.extractFromProfile(profile);
+            if (profileText == null || profileText.trim().isEmpty()) {
+                log.debug("프로필 텍스트가 비어있어 벡터 저장 스킵: profileId={}", profile.getId());
+                return;
+            }
+
+            // 임베딩 생성
+            float[] embedding = embeddingService.get().embed(profileText);
+            log.debug("프로필 임베딩 생성 완료: profileId={}, 차원={}", profile.getId(), embedding.length);
+
+            // 벡터 저장 (userId를 profileId로 사용)
+            vectorRepository.get().upsertProfileVector(profile.getUserId(), embedding);
+            log.debug("프로필 벡터 저장 완료: profileId={}", profile.getId());
+
+        } catch (Exception e) {
+            // 벡터 저장 실패해도 프로필 저장은 성공으로 처리
+            log.warn("프로필 벡터 저장 실패 (무시됨): profileId={}, error={}", profile.getId(), e.getMessage());
+        }
     }
 }
