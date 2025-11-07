@@ -4,9 +4,11 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.CreationTimestamp;
+import swyp.dodream.common.entity.BaseEntity;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Getter
@@ -19,10 +21,9 @@ import java.time.LocalDateTime;
                 columnNames = {"post_id", "leader_user_id", "member_user_id"}
         )
 })
-public class ChatRoom {
+public class ChatRoom extends BaseEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     // FK: swyp.dodream.domain.post.domain.Post
@@ -37,10 +38,12 @@ public class ChatRoom {
     @Column(name = "member_user_id", nullable = false)
     private Long memberUserId;
 
-    @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
-
     @Column(name = "first_message_at")
     private LocalDateTime firstMessageAt;
+
+    @OneToMany(mappedBy = "chatRoom", cascade = CascadeType.REMOVE)
+    private List<ChatParticipant> chatParticipants = new ArrayList<>();
+
+    @OneToMany(mappedBy = "chatRoom", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    private List<ChatMessage> chatMessages = new ArrayList<>();
 }

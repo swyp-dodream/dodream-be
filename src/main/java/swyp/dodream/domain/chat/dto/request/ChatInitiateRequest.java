@@ -1,4 +1,4 @@
-package swyp.dodream.domain.chat.dto;
+package swyp.dodream.domain.chat.dto.request;
 
 import lombok.Data;
 

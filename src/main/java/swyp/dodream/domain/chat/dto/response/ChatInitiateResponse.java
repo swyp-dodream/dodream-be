@@ -1,8 +1,9 @@
-package swyp.dodream.domain.chat.dto;
+package swyp.dodream.domain.chat.dto.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import swyp.dodream.domain.chat.dto.ChatMessageDto;
 
 import java.util.List;
 

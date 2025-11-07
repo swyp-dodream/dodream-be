@@ -12,12 +12,13 @@ import java.time.LocalDateTime;
 @Setter
 @NoArgsConstructor
 @Table(name = "chat_participant")
-@IdClass(ChatParticipantId.class) // 복합키 클래스 지정
+@IdClass(ChatParticipantId.class)
 public class ChatParticipant {
 
     @Id
-    @Column(name = "room_id")
-    private Long roomId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "room_id", nullable = false)
+    private ChatRoom chatRoom;
 
     @Id
     @Column(name = "user_id")
@@ -26,8 +27,8 @@ public class ChatParticipant {
     @Column(name = "left_at")
     private LocalDateTime leftAt;
 
-    public ChatParticipant(Long roomId, Long userId) {
-        this.roomId = roomId;
+    public ChatParticipant(ChatRoom chatRoom, Long userId) {
+        this.chatRoom = chatRoom;
         this.userId = userId;
         this.leftAt = null; // 생성 시점에는 나가지 않은 상태
     }

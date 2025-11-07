@@ -58,7 +58,8 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 // CSRF 비활성화 (REST API용)
                 .csrf(csrf -> csrf.disable())
-                
+                .httpBasic(httpBasic -> httpBasic.disable())
+
                 // 세션 사용하지 않음 (JWT 사용)
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
@@ -78,7 +79,7 @@ public class SecurityConfig {
                                         .toArray(String[]::new)
                         ).permitAll()
                         // WebSocket(SockJS) 핸드셰이크를 위한 경로 허용
-                        .requestMatchers("/ws-stomp/**").permitAll()
+                        .requestMatchers("/connect/**").permitAll()
                         // 나머지 요청은 인증 필요
                         .anyRequest().authenticated()
                 )
@@ -100,7 +101,7 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
 
         // (중요) Vue 서버 주소인 http://localhost:3000 허용
-        configuration.setAllowedOrigins(List.of("http://localhost:3001"));
+        configuration.setAllowedOrigins(List.of("http://localhost:3000"));
 
         // 허용할 HTTP 메서드 (GET, POST 등)
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));

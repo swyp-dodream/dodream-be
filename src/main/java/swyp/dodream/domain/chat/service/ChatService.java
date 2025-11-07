@@ -6,21 +6,23 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.access.AccessDeniedException;
+// import org.springframework.security.core.context.SecurityContextHolder; // [수정] 사용하지 않는 import 제거
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.AntPathMatcher;
 import swyp.dodream.domain.chat.domain.*;
-import swyp.dodream.domain.chat.dto.ChatInitiateResponse;
+import swyp.dodream.domain.chat.dto.response.ChatInitiateResponse;
 import swyp.dodream.domain.chat.dto.ChatMessageDto;
+import swyp.dodream.domain.chat.dto.response.MyChatListResponse;
 import swyp.dodream.domain.chat.repository.*;
 import swyp.dodream.domain.post.domain.Post;
 import swyp.dodream.domain.post.repository.PostRepository;
+import swyp.dodream.domain.user.domain.User;
 import swyp.dodream.domain.user.repository.UserRepository;
+import swyp.dodream.domain.chat.domain.ReadStatus;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -31,52 +33,39 @@ public class ChatService {
     private final ChatRoomRepository chatRoomRepository;
     private final ChatParticipantRepository chatParticipantRepository;
     private final ChatMessageRepository chatMessageRepository;
+    private final ReadStatusRepository readStatusRepository;
 
     private final PostRepository postRepository;
     private final UserRepository userRepository;
 
     private final SimpMessagingTemplate messagingTemplate;
 
-    /**
-     * CHAT-01, BR-02-02: '채팅하기' 버튼 클릭 시 (REST API)
-     *
-     * @param postId   게시글 ID
-     * @param memberId 채팅을 시작하려는 유저(멤버) ID
-     * @return ChatInitiateResponse (roomId, topicId, history 등)
-     */
+    private static final AntPathMatcher pathMatcher = new AntPathMatcher();
+    public static final String CHAT_TOPIC_PATTERN = "/topic/chat/post/{postId}/leader/{leaderId}/member/{memberId}";
+
     @Transactional(readOnly = true)
     public ChatInitiateResponse initiateChat(Long postId, Long memberId) {
-        Post post = postRepository.findById(postId) // soft delete(@Where) 적용됨
+        Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new EntityNotFoundException("모집글을 찾을 수 없습니다. ID: " + postId));
 
-        // post.owner.id가 리더 ID
         Long leaderId = post.getOwner().getId();
 
-        // 정책: 리더는 (이 버튼으로) 채팅방 생성 불가
         if (memberId.equals(leaderId)) {
             throw new AccessDeniedException("리더는 '채팅하기' 버튼을 사용할 수 없습니다.");
         }
-
-        // 정책: 리더 계정이 활성 상태인지 확인
-        // (주의) statusTrue를 확인하는 메서드 사용
         if (!userRepository.existsByIdAndStatusTrue(leaderId)) {
             throw new EntityNotFoundException("리더의 계정이 존재하지 않거나 비활성화되었습니다.");
         }
 
-        // 예측 가능한 토픽 ID 생성
         String topicId = buildTopicId(postId, leaderId, memberId);
 
-        // 1. 기존 1:1 채팅방이 있는지 확인
         Optional<ChatRoom> existingRoom = chatRoomRepository.findByPostIdAndLeaderUserIdAndMemberUserId(postId, leaderId, memberId);
 
         if (existingRoom.isPresent()) {
-            // 2. 채팅방이 있으면
             ChatRoom room = existingRoom.get();
-            // 2-1. 참여자가 나간 상태인지 확인 (재입장 불가 정책)
             checkParticipantStatus(room.getId(), memberId);
 
-            // 2-2. 기존 메시지 내역 로드
-            List<ChatMessageDto> history = chatMessageRepository.findByRoomIdOrderByCreatedAtAsc(room.getId())
+            List<ChatMessageDto> history = chatMessageRepository.findByChatRoomOrderByCreatedAtAsc(room)
                     .stream()
                     .map(ChatMessage::toDto)
                     .collect(Collectors.toList());
@@ -84,20 +73,11 @@ public class ChatService {
             log.info("기존 채팅방 입장. RoomId: {}, TopicId: {}", room.getId(), topicId);
             return new ChatInitiateResponse(room.getId(), topicId, leaderId, memberId, history);
         } else {
-            // 3. 채팅방이 없으면 (DB 생성 X)
-            // 첫 메시지 전송 시 생성되도록 null roomId와 토픽 정보 반환
             log.info("신규 채팅방 초기화. TopicId: {}", topicId);
             return new ChatInitiateResponse(null, topicId, leaderId, memberId, Collections.emptyList());
         }
     }
 
-    /**
-     * WebSocket을 통해 메시지 수신 시 처리 (핵심 로직)
-     *
-     * @param messageDto 수신된 메시지 DTO
-     * @param senderId   보낸 사람 ID (SecurityContext에서 추출)
-     * @return 저장된 ChatMessage 엔티티
-     */
     @Transactional
     public ChatMessage processMessage(ChatMessageDto messageDto, Long senderId) {
         messageDto.setSenderId(senderId);
@@ -105,72 +85,86 @@ public class ChatService {
         ChatRoom room;
 
         if (messageDto.getRoomId() == null) {
-            // 1. 첫 메시지인 경우 (roomId가 null)
             Post post = postRepository.findById(messageDto.getPostId())
                     .orElseThrow(() -> new EntityNotFoundException("모집글을 찾을 수 없습니다. ID: " + messageDto.getPostId()));
 
-            // (주의) 리더 ID
             Long leaderId = post.getOwner().getId();
             Long memberId;
 
-            // 정책: 리더가 아닌 유저만 채팅방 생성 가능 (즉, sender가 member)
-            // (시나리오 [리더]의 경우, initiateChat에서 이미 생성된 방을 반환받으므로 이 로직을 타지 않음)
             if (senderId.equals(leaderId)) {
-                // 리더가 첫 메시지를 보내는 경우 (e.g. 멤버가 initiate만 하고 메시지 안 보냄)
                 if (messageDto.getReceiverId() == null ||
-                        !userRepository.existsByIdAndStatusTrue(messageDto.getReceiverId()) || // (주의)
+                        !userRepository.existsByIdAndStatusTrue(messageDto.getReceiverId()) ||
                         messageDto.getReceiverId().equals(leaderId)) {
                     throw new IllegalArgumentException("잘못된 수신자입니다.");
                 }
                 memberId = messageDto.getReceiverId();
             } else {
-                // 멤버가 첫 메시지를 보내는 경우
                 if (messageDto.getReceiverId() == null || !leaderId.equals(messageDto.getReceiverId())) {
                     throw new IllegalArgumentException("수신자가 모집글의 리더와 일치하지 않습니다.");
                 }
                 memberId = senderId;
             }
 
-            // 1-2. 채팅방 생성 또는 조회 (Race Condition 처리 포함)
             room = findOrCreateRoom(post.getId(), leaderId, memberId);
             topicId = buildTopicId(post.getId(), leaderId, memberId);
             messageDto.setRoomId(room.getId());
 
         } else {
-            // 2. 기존 채팅방의 후속 메시지인 경우
             room = chatRoomRepository.findById(messageDto.getRoomId())
                     .orElseThrow(() -> new EntityNotFoundException("채팅방을 찾을 수 없습니다. ID: " + messageDto.getRoomId()));
 
-            // 2-1. 참여자가 나간 상태인지 확인 (재입장 불가)
             checkParticipantStatus(room.getId(), senderId);
-
             topicId = buildTopicId(room.getPostId(), room.getLeaderUserId(), room.getMemberUserId());
         }
 
         // 3. 메시지 저장
         ChatMessage chatMessage = new ChatMessage();
-        chatMessage.setRoomId(room.getId());
+        chatMessage.setChatRoom(room);
         chatMessage.setSenderUserId(senderId);
         chatMessage.setBody(messageDto.getBody());
+        chatMessage.setDeletedAt(false);
 
         ChatMessage savedMessage = chatMessageRepository.save(chatMessage);
-        log.debug("메시지 저장 완료. RoomId: {}, MsgId: {}", savedMessage.getRoomId(), savedMessage.getId());
+        log.debug("메시지 저장 완료. RoomId: {}, MsgId: {}", savedMessage.getChatRoom().getId(), savedMessage.getId());
 
-        // 4. WebSocket 토픽으로 메시지 브로드캐스트
+        Long recipientId = senderId.equals(room.getLeaderUserId()) ? room.getMemberUserId() : room.getLeaderUserId();
+        userRepository.findById(recipientId).ifPresent(recipient -> {
+            ReadStatus newStatus = ReadStatus.builder()
+                    .chatRoom(room)
+                    .user(recipient)
+                    .chatMessage(savedMessage)
+                    .isRead(false)
+                    .build();
+            readStatusRepository.save(newStatus);
+        });
+
         messagingTemplate.convertAndSend(topicId, savedMessage.toDto());
         log.debug("메시지 브로드캐스트. Topic: {}", topicId);
 
         return savedMessage;
     }
 
-    /**
-     * [findOrCreateRoom]
-     * 첫 메시지 전송 시점에 채팅방과 참여자를 생성합니다.
-     */
-    @Transactional
+    public void validateSubscription(Long userId, String topicDestination) {
+        if (!pathMatcher.match(CHAT_TOPIC_PATTERN, topicDestination)) {
+            log.warn("유효하지 않은 토픽 구독 시도: {}", topicDestination);
+            throw new AccessDeniedException("유효하지 않은 채팅방 토픽입니다.");
+        }
+
+        java.util.Map<String, String> uriVariables =
+                pathMatcher.extractUriTemplateVariables(CHAT_TOPIC_PATTERN, topicDestination);
+
+        Long leaderId = Long.parseLong(uriVariables.get("leaderId"));
+        Long memberId = Long.parseLong(uriVariables.get("memberId"));
+
+        if (!userId.equals(leaderId) && !userId.equals(memberId)) {
+            log.warn("채팅방 구독 권한 없음. UserId: {}, Topic: {}", userId, topicDestination);
+            throw new AccessDeniedException("이 채팅방을 구독할 권한이 없습니다.");
+        }
+        log.debug("STOMP user subscribed: User: {}, Topic: {}", userId, topicDestination);
+    }
+
     private ChatRoom findOrCreateRoom(Long postId, Long leaderId, Long memberId) {
         try {
-            // 1. 기존 채팅방 조회 (동시성 제어를 위해 DB 락을 고려할 수 있으나, Unique 제약조건으로 1차 방어)
             Optional<ChatRoom> existingRoom = chatRoomRepository.findByPostIdAndLeaderUserIdAndMemberUserId(postId, leaderId, memberId);
             if (existingRoom.isPresent()) {
                 ChatRoom room = existingRoom.get();
@@ -181,37 +175,28 @@ public class ChatService {
                 return room;
             }
 
-            // 2. 신규 채팅방 생성
             ChatRoom newRoom = new ChatRoom();
             newRoom.setPostId(postId);
             newRoom.setLeaderUserId(leaderId);
             newRoom.setMemberUserId(memberId);
-            newRoom.setFirstMessageAt(LocalDateTime.now()); // (정책) 첫 메시지 전송 시각 기록
+            newRoom.setFirstMessageAt(LocalDateTime.now());
 
             ChatRoom savedRoom = chatRoomRepository.save(newRoom);
 
-            // 3. 참여자 2명 생성 (리더, 멤버)
-            ChatParticipant leaderPart = new ChatParticipant(savedRoom.getId(), leaderId);
-            ChatParticipant memberPart = new ChatParticipant(savedRoom.getId(), memberId);
+            ChatParticipant leaderPart = new ChatParticipant(savedRoom, leaderId);
+            ChatParticipant memberPart = new ChatParticipant(savedRoom, memberId);
             chatParticipantRepository.saveAll(Arrays.asList(leaderPart, memberPart));
-
-            // 4. (정책) 첫 메시지 전송 시 알림 발송 -> (요청에 따라 제거)
-            // notificationService.send(leaderId, memberId, postId, "새로운 채팅이 시작되었습니다.");
 
             log.info("신규 채팅방 생성 완료. RoomId: {}", savedRoom.getId());
             return savedRoom;
 
         } catch (DataIntegrityViolationException e) {
-            // (동시성 제어) 유니크 키 제약조건 위반 시 (거의 동시에 두 유저가 생성 시도)
             log.warn("채팅방 생성 중 Race Condition 발생. 기존 방 조회. PostId: {}, Leader: {}, Member: {}", postId, leaderId, memberId);
             return chatRoomRepository.findByPostIdAndLeaderUserIdAndMemberUserId(postId, leaderId, memberId)
                     .orElseThrow(() -> new IllegalStateException("채팅방 생성/조회 실패 (Race Condition 후)"));
         }
     }
 
-    /**
-     * CHAT-02: 채팅방 나가기
-     */
     @Transactional
     public void leaveRoom(Long roomId, Long userId) {
         ChatParticipant participant = chatParticipantRepository.findById(new ChatParticipantId(roomId, userId))
@@ -222,32 +207,102 @@ public class ChatService {
             chatParticipantRepository.save(participant);
             log.info("유저가 채팅방을 나갔습니다. RoomId: {}, UserId: {}", roomId, userId);
 
-            // 상대방에게 "상대방이 나갔습니다" 시스템 메시지 전송
             ChatRoom room = chatRoomRepository.findById(roomId).orElseThrow();
             String topicId = buildTopicId(room.getPostId(), room.getLeaderUserId(), room.getMemberUserId());
 
             ChatMessageDto leaveMessage = new ChatMessageDto(
                     null, roomId, room.getPostId(), userId, null,
-                    "상대방이 채팅방을 나갔습니다.", // TODO: (선택) 유저 이름으로 변경
+                    "상대방이 채팅방을 나갔습니다.",
                     LocalDateTime.now(), ChatMessageDto.MessageType.LEAVE
             );
             messagingTemplate.convertAndSend(topicId, leaveMessage);
         }
     }
 
-    // --- Helper Methods ---
+    // 내 채팅방 조회
+    @Transactional(readOnly = true)
+    public List<MyChatListResponse> getMyChatRooms(Long myUserId) {
+        // 1. 현재 유저 객체 조회
+        User me = userRepository.findById(myUserId)
+                .orElseThrow(() -> new EntityNotFoundException("member cannot be found"));
 
-    /**
-     * 구독할 토픽 ID를 생성합니다. (e.g., /topic/chat/post/1/leader/10/member/20)
-     */
+        // 2. 내 참여 정보 조회
+        List<ChatParticipant> myParticipants = chatParticipantRepository.findAllByUserId(myUserId);
+
+        // 3. DTO로 변환
+        return myParticipants.stream()
+                .map(cp -> {
+                    ChatRoom room = cp.getChatRoom();
+
+                    // 3-1. 상대방 ID 및 이름 찾기
+                    Long otherUserId = myUserId.equals(room.getLeaderUserId()) ? room.getMemberUserId() : room.getLeaderUserId();
+                    String roomName = userRepository.findById(otherUserId)
+                            .map(User::getName) // (User 엔티티에 getName()이 있다고 가정)
+                            .orElse("알 수 없는 사용자");
+
+                    // 3-2. 안 읽은 메시지 수 카운트 (새로운 ReadStatus 구조 기반)
+                    Long unReadCount = readStatusRepository.countByChatRoomAndUserAndIsReadFalse(room, me);
+
+                    return MyChatListResponse.builder()
+                            .roomId(room.getId())
+                            .roomName(roomName)
+                            .unReadCount(unReadCount)
+                            .build();
+                })
+                .collect(Collectors.toList());
+    }
+
+    // 메시지 읽음 처리
+    @Transactional
+    public void messageRead(Long roomId, Long myUserId) {
+        ChatRoom chatRoom = chatRoomRepository.findById(roomId)
+                .orElseThrow(() -> new EntityNotFoundException("room cannot be found"));
+        User me = userRepository.findById(myUserId)
+                .orElseThrow(() -> new EntityNotFoundException("member cannot be found"));
+
+        // 1. 참여자인지 확인 (checkParticipantStatus가 이미 AccessDeniedException 처리)
+        checkParticipantStatus(roomId, myUserId);
+
+        // 2. 이 유저가 해당 방에서 안 읽은 ReadStatus 조회 (최적화)
+        List<ReadStatus> unreadStatuses = readStatusRepository.findByChatRoomAndUserAndIsReadFalse(chatRoom, me);
+
+        // 3. 모두 읽음 처리
+        for (ReadStatus r : unreadStatuses) {
+            r.updateIsRead(true);
+        }
+        // @Transactional에 의해 dirty checking으로 자동 save (flush) 됨
+        log.info("메시지 읽음 처리. RoomId: {}, UserId: {}, Count: {}", roomId, myUserId, unreadStatuses.size());
+    }
+
+    // 채팅 내역 조회
+    @Transactional(readOnly = true)
+    public List<ChatMessageDto> getChatHistory(Long roomId, Long myUserId) {
+        // 1. 내가 해당 채팅방의 참여자인지 확인 (나갔는지 여부 포함)
+        ChatParticipant participant = chatParticipantRepository.findById(new ChatParticipantId(roomId, myUserId))
+                .orElseThrow(() -> new IllegalArgumentException("본인이 속하지 않은 채팅방입니다."));
+
+        // 2. CHAT-02 정책: 나간 채팅방 히스토리 조회 불가
+        if (participant.getLeftAt() != null) {
+            throw new AccessDeniedException("이미 나간 채팅방의 대화 내역은 조회할 수 없습니다.");
+        }
+
+        ChatRoom chatRoom = participant.getChatRoom();
+
+        // 3. 특정 room에 대한 message조회
+        // (findByRoomIdOrderByCreatedAtAsc -> findByChatRoomOrderByCreatedAtAsc)
+        List<ChatMessage> chatMessages = chatMessageRepository.findByChatRoomOrderByCreatedAtAsc(chatRoom);
+
+        // 4. DTO로 변환
+        return chatMessages.stream()
+                .map(ChatMessage::toDto) // (지난번에 추가한 toDto() 메서드 재활용)
+                .collect(Collectors.toList());
+    }
+
+    // --- Helper Methods ---
     private String buildTopicId(Long postId, Long leaderId, Long memberId) {
-        // leaderId와 memberId는 고정된 값이므로 정렬할 필요 없음 (ERD 기반)
         return String.format("/topic/chat/post/%d/leader/%d/member/%d", postId, leaderId, memberId);
     }
 
-    /**
-     * 유저가 채팅방을 나갔는지 확인 (재입장 불가 정책)
-     */
     private void checkParticipantStatus(Long roomId, Long userId) {
         chatParticipantRepository.findById(new ChatParticipantId(roomId, userId))
                 .ifPresent(p -> {
