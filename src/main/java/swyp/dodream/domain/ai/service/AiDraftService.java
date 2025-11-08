@@ -30,9 +30,9 @@ public class AiDraftService {
             - 문장이 중간에 끊기지 않도록 접속사를 자연스럽게 사용
             
             [글자 수 제한 - 매우 중요!]
-            - 최소 180자, 최대 195자
-            - 200자를 절대 넘지 말 것
-            - 마지막 문장이 200자 제한에 의해서 잘리게 된다면 해당 문장은 버려줘
+            - 최대 500자
+            - 500자를 절대 넘지 말 것
+            - 마지막 문장이 500자 제한에 의해서 잘리게 된다면 해당 문장은 버려줘
             
             [작성 구조]
             1문장: 닉네임 + 직군 + 핵심 기술 스택을 자연스럽게 소개
@@ -40,7 +40,7 @@ public class AiDraftService {
             3문장: 본인이 기여할 수 있는 부분과 선호하는 협업 방식을 자연스럽게 연결
             
             [필수 포함 요소]
-            - 어떤 프로젝트나 스터디를 하고 싶은지 구체적으로
+            - 관심분야 기반의 구체적인 주제 프로젝트, 스터디 주제 언급
             - 본인이 팀에 기여할 수 있는 부분 (기술적 강점)
             - 선호하는 협업 방식 (온라인/오프라인/혼합)
             - 함께 배우고 성장하려는 의지
@@ -72,14 +72,14 @@ public class AiDraftService {
             - 동료를 찾는 느낌 (상사나 멘토를 찾는 느낌 X)
             
             [작성 예시]
-            좋은 예: "홍길동입니다. 백엔드 개발자로 Spring과 Java를 다루고 있습니다. AI 기반 추천 시스템 프로젝트를 함께 진행하고 싶고, REST API 설계와 데이터베이스 최적화는 제가 기여할 수 있습니다. 오프라인에서 주 1~2회 만나 코드 리뷰하며 함께 성장하는 걸 선호해요."
+            좋은 예: "홍길동입니다. 백엔드 개발자로 Spring과 Java를 다루고 있습니다. AI 기반 추천 시스템 프로젝트를 함께 진행하고 싶고, REST API 설계와 데이터베이스 최적화는 제가 기여할 수 있습니다. 오프라인에서 주 1~2회 만나 코드 리뷰하며 함께 성장하는 걸 선호합니다."
             
             나쁜 예: "백엔드 엔지니어입니다. 혁신적인 솔루션을 구축하고 싶습니다. 효율적인 시스템. 열심히 하겠습니다."
             """;
 
         String userPrompt = buildIntroPrompt(req);
         String raw = aiService.generate(systemPrompt, userPrompt);
-        return trimTo200(clean(raw));
+        return clean(raw);
     }
 
     private String buildIntroPrompt(IntroAiDraftRequest r) {
@@ -121,7 +121,7 @@ public class AiDraftService {
             
             기존 자기소개가 있다면 핵심 내용을 살리되, 팀원 모집 목적에 맞게 재구성하라.
             
-            중요: 200자를 반드시 채워야 하며, 문장이 자연스럽게 연결되어야 한다.
+            중요: 문장이 자연스럽게 연결되어야 한다.
             어미는 "~습니다" 체로 통일하되 마지막 문장만 "~어요"로 부드럽게 마무리하라.
             """,
                 r.getNickname(),
@@ -141,7 +141,7 @@ public class AiDraftService {
         return s.replaceAll("[\"`]+", "").replaceAll("\\s+", " ").trim();
     }
 
-    private String trimTo200(String s) {
-        return (s.length() <= 200) ? s : s.substring(0, 200);
-    }
+//    private String trimTo200(String s) {
+//        return (s.length() <= 200) ? s : s.substring(0, 200);
+//    }
 }

@@ -48,7 +48,7 @@ public class NcpClovaServiceImpl implements AiService {
                 ),
                 "topP", 0.8,
                 "topK", 0,
-                "maxTokens", 256,
+                "maxTokens", 500,
                 "temperature", 0.5,
                 "repeatPenalty", 1.1,
                 "stopBefore", List.of(),
