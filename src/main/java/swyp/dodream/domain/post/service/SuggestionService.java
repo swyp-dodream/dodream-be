@@ -9,7 +9,7 @@ import swyp.dodream.common.snowflake.SnowflakeIdService;
 import swyp.dodream.domain.notification.service.NotificationService;
 import swyp.dodream.domain.post.domain.Post;
 import swyp.dodream.domain.post.domain.Suggestion;
-import swyp.dodream.domain.post.dto.SuggestionRequest;
+import swyp.dodream.domain.post.dto.req.SuggestionRequest;
 import swyp.dodream.domain.post.dto.res.SuggestionResponse;
 import swyp.dodream.domain.post.repository.PostRepository;
 import swyp.dodream.domain.post.repository.SuggestionRepository;

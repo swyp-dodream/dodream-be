@@ -1,4 +1,4 @@
-package swyp.dodream.domain.post.dto;
+package swyp.dodream.domain.post.dto.res;
 
 import lombok.Builder;
 import org.springframework.data.domain.Page;

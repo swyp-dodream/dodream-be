@@ -1,6 +1,5 @@
 package swyp.dodream.domain.post.service;
 
-import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -26,7 +25,13 @@ import swyp.dodream.domain.post.common.PostSortType;
 import swyp.dodream.domain.post.common.PostStatus;
 import swyp.dodream.domain.post.common.ProjectType;
 import swyp.dodream.domain.post.domain.*;
-import swyp.dodream.domain.post.dto.*;
+import swyp.dodream.domain.post.dto.req.PostCreateRequest;
+import swyp.dodream.domain.post.dto.req.PostRequest;
+import swyp.dodream.domain.post.dto.PostRoleDto;
+import swyp.dodream.domain.post.dto.req.PostUpdateRequest;
+import swyp.dodream.domain.post.dto.res.MyPostListResponse;
+import swyp.dodream.domain.post.dto.res.MyPostResponse;
+import swyp.dodream.domain.post.dto.res.PostResponse;
 import swyp.dodream.domain.post.repository.*;
 import swyp.dodream.domain.search.document.PostDocument;
 import swyp.dodream.domain.search.repository.PostDocumentRepository;
@@ -40,7 +45,6 @@ import swyp.dodream.domain.master.repository.TechSkillRepository;
 import swyp.dodream.domain.master.repository.InterestKeywordRepository;
 import java.time.LocalDateTime;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 

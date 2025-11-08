@@ -54,9 +54,11 @@ public class RecruitService {
         // 2. 제안 목록 조회
         Slice<Suggestion> suggestions;
         if (cursor == null) {
+            // 최초 로드
             suggestions = suggestionRepository.findSuggestionsByPost(
                     postId, userId, PageRequest.of(0, size));
         } else {
+            // 다음 페이지
             suggestions = suggestionRepository.findSuggestionsByPostAfterCursor(
                     postId, userId, cursor, PageRequest.of(0, size));
         }
@@ -152,6 +154,10 @@ public class RecruitService {
         // 1. 게시글 검증
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new CustomException(ExceptionType.NOT_FOUND, "게시글을 찾을 수 없습니다."));
+
+        if (!post.getOwner().getId().equals(userId)) {
+            throw new CustomException(ExceptionType.FORBIDDEN, "권한이 없습니다.");
+        }
 
         // 2. 멤버 목록 조회
         Slice<Matched> members;
