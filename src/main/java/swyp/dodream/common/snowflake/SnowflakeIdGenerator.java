@@ -81,23 +81,6 @@ public class SnowflakeIdGenerator {
                (nodeId << NODE_ID_SHIFT) |
                sequence;
     }
-
-    // chat에서 사용하는 메서드: String ID 생성 (기존 nextId() 재사용)
-    public synchronized String nextStringId() {
-        return String.valueOf(nextId());  // Long → String 변환
-    }
-
-    // 기존 파싱 메서드도 Long → String 버전 추가
-    public String parseSnowflakeId(String snowflakeId) {
-        if (snowflakeId == null) return "null";
-        long id = Long.parseLong(snowflakeId);
-        long timestamp = ((id >> TIMESTAMP_SHIFT) & ((1L << 41) - 1)) + EPOCH;
-        long nodeId = (id >> NODE_ID_SHIFT) & MAX_NODE_ID;
-        long sequence = id & MAX_SEQUENCE;
-
-        return String.format("SnowflakeId[%s] -> Timestamp[%d] NodeId[%d] Sequence[%d]",
-                snowflakeId, timestamp, nodeId, sequence);
-    }
     
     /**
      * 현재 타임스탬프 가져오기

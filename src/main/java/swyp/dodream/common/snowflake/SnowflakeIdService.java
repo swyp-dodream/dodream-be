@@ -15,23 +15,12 @@ public class SnowflakeIdService {
     public Long generateId() {
         return snowflakeIdGenerator.nextId();
     }
-
-    // chat에서 사용하는: String ID
-    public String nextStringId() {
-        return snowflakeIdGenerator.nextStringId();
-    }
-
+    
     // Snowflake ID 정보 파싱 (디버깅용)
     public String parseId(Long id) {
         if (id == null) {
             return "null";
         }
-        return snowflakeIdGenerator.parseSnowflakeId(id);
-    }
-
-    // String ID 파싱 (chat에서 쓸 용도)
-    public String parseStringId(String id) {
-        if (id == null) return "null";
         return snowflakeIdGenerator.parseSnowflakeId(id);
     }
     
