@@ -1,5 +1,7 @@
 package swyp.dodream.domain.chat.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -14,11 +16,13 @@ import java.security.Principal;
 @Slf4j
 @Controller
 @RequiredArgsConstructor
+@Tag(name = "StompChat", description = "WebSocket STOMP Message Endpoints")
 public class StompController {
 
     private final ChatService chatService;
 
     @MessageMapping("/chat/message")
+    @Operation(summary = "실시간 채팅 메시지 전송", description = "WebSocket STOMP send: /pub/chat/message")
     public void message(
             ChatMessageDto messageDto,
             Principal principal  // ⭐ @AuthenticationPrincipal 대신 Principal 사용
