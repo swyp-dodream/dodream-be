@@ -95,3 +95,7 @@ clova:
     base-url: https://clovastudio.stream.ntruss.com/v1/api-tools/embedding/v2
     model: nlp-embedding-ko-1.0.1
 
+# 테스트용 프론트엔드 URL 설정
+frontend:
+  url: http://localhost:3000
+

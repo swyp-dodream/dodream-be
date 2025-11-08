@@ -35,14 +35,13 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         String registrationId = userRequest.getClientRegistration().getRegistrationId();
         AuthProvider provider = AuthProvider.valueOf(registrationId.toUpperCase());
         
-        String email, name, picture, providerId;
+        String email, name, picture;
         
         if (provider == AuthProvider.GOOGLE) {
             // Google OAuth2 사용자 정보 추출
             email = oAuth2User.getAttribute("email");
             name = oAuth2User.getAttribute("name");
             picture = oAuth2User.getAttribute("picture");
-            providerId = oAuth2User.getAttribute("sub");
         } else if (provider == AuthProvider.NAVER) {
             // Naver OAuth2 사용자 정보 추출 (네이버는 response 객체 안에 정보가 있음)
             java.util.Map<String, Object> naverResponse = oAuth2User.getAttribute("response");
@@ -50,7 +49,6 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                 email = (String) naverResponse.get("email");
                 name = (String) naverResponse.get("name");
                 picture = (String) naverResponse.get("profile_image");
-                providerId = (String) naverResponse.get("id");
             } else {
                 throw new OAuth2AuthenticationException("네이버 사용자 정보를 가져올 수 없습니다.");
             }
@@ -62,6 +60,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         OAuthAccount oAuthAccount = oAuthAccountRepository.findByEmailAndProvider(email, provider)
                 .orElseGet(() -> {
                     // 새 사용자 생성 (스노우플레이크 ID 사용)
+                    // email은 oauth_accounts 테이블에서 관리하므로 User에는 저장하지 않음
                     Long snowflakeId = snowflakeIdService.generateId();
                     User newUser = new User(snowflakeId, name, picture);
                     User savedUser = userRepository.save(newUser);
@@ -81,7 +80,21 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         oAuthAccount.updateLastLoginAt();
         oAuthAccountRepository.save(oAuthAccount);
         
-        return oAuth2User;
+        // OAuth2User에 사용자 정보 추가 (SuccessHandler에서 사용하기 위해)
+        // email은 oauth_accounts 테이블에서 가져오므로, 이미 추출한 email 변수 사용
+        java.util.Map<String, Object> attributes = new java.util.HashMap<>(oAuth2User.getAttributes());
+        attributes.put("userId", user.getId());
+        attributes.put("userEmail", email);  // oauth_accounts의 email 사용
+        attributes.put("userName", user.getName());
+        
+        // name attribute key 결정 (Google: "sub", Naver: "response")
+        String nameAttributeKey = provider == AuthProvider.GOOGLE ? "sub" : "response";
+        
+        return new org.springframework.security.oauth2.core.user.DefaultOAuth2User(
+                oAuth2User.getAuthorities(),
+                attributes,
+                nameAttributeKey
+        );
     }
 }
 

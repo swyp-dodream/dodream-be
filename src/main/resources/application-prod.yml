@@ -34,7 +34,7 @@ spring:
             scope:
               - email
               - profile
-            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            redirect-uri: "https://api.dodream.store/login/oauth2/code/{registrationId}"
           naver:
             client-id: ${NAVER_CLIENT_ID}
             client-secret: ${NAVER_CLIENT_SECRET}
@@ -43,7 +43,7 @@ spring:
               - name
               - email
               - profile_image
-            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            redirect-uri: "https://api.dodream.store/login/oauth2/code/{registrationId}"
         provider:
           naver:
             authorization-uri: https://nid.naver.com/oauth2.0/authorize
@@ -81,3 +81,7 @@ clova:
     api-gw-key: ${CLOVA_EMBEDDING_API_GW_KEY:}
     base-url: ${CLOVA_EMBEDDING_BASE_URL:https://clovastudio.stream.ntruss.com/v1/api-tools/embedding/v2}
     model: ${CLOVA_EMBEDDING_MODEL:nlp-embedding-ko-1.0.1}
+
+# 프론트엔드 URL 설정 (OAuth2 리다이렉트용)
+frontend:
+  url: ${FRONTEND_URL:https://dodream.store}
