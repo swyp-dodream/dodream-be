@@ -7,6 +7,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import swyp.dodream.domain.post.domain.Suggestion;
 
+import java.util.Optional;
+
 public interface SuggestionRepository extends JpaRepository<Suggestion, Long> {
 
     /**
@@ -85,6 +87,20 @@ public interface SuggestionRepository extends JpaRepository<Suggestion, Long> {
             @Param("userId") Long userId,
             @Param("cursor") Long cursor,
             Pageable pageable
+    );
+
+    @Query("""
+    SELECT s FROM Suggestion s
+    WHERE s.post.id = :postId
+      AND s.fromUser.id = :fromUserId
+      AND s.toUser.id = :toUserId
+      AND s.withdrawnAt IS NULL
+    ORDER BY s.createdAt DESC
+""")
+    Optional<Suggestion> findLatestValidSuggestion(
+            @Param("postId") Long postId,
+            @Param("fromUserId") Long fromUserId,
+            @Param("toUserId") Long toUserId
     );
 
     boolean existsByPostIdAndToUserId(Long postId, Long toUserId);

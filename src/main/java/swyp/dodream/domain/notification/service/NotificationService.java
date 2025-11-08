@@ -67,4 +67,36 @@ public class NotificationService {
 
         notification.markAsRead();
     }
+
+    /**
+     * 제안받은 유저가 실제 지원했을 때 글작성자에게 알림 전송
+     */
+    @Transactional
+    public void sendProposalAppliedNotification(Long leaderId, Long postId, String applicantName, String postTitle) {
+        boolean exists = notificationRepository.existsByReceiverIdAndTypeAndTargetPostId(
+                leaderId,
+                NotificationType.PROPOSAL_APPLIED,
+                postId
+        );
+        if (exists) return;
+
+        Long id = snowflakeIdService.generateId();
+        String msg = "이전에 제안했던 " + applicantName + "님이 '" + postTitle + "'에 지원했습니다.";
+
+        Notification notification = new Notification(
+                id,
+                leaderId,
+                NotificationType.PROPOSAL_APPLIED,
+                msg,
+                postId,
+                postTitle
+        );
+
+        notificationRepository.save(notification);
+
+        // 실시간 알림 전송
+        redisPublisher.publish(
+                new NotificationPayload(leaderId, NotificationType.PROPOSAL_APPLIED, msg, postId)
+        );
+    }
 }
