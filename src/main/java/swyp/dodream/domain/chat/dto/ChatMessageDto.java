@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ChatMessageDto {
-    private Long id; // 메시지 ID (저장 후)
+    private String id;
 
     // --- 방 식별자 (둘 중 하나만 필요) ---
     private String roomId;           // 기존 방의 ID (첫 메시지 이후)

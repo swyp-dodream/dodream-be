@@ -142,6 +142,7 @@ public class ChatService {
         }
 
         ChatMessage chatMessage = new ChatMessage();
+        chatMessage.setId(snowflakeIdService.nextStringId());  // 직접 할당
         chatMessage.setChatRoom(room);
         chatMessage.setSenderUserId(senderId);
         chatMessage.setBody(messageDto.getBody());

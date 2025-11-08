@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import swyp.dodream.common.entity.BaseEntity;
+import swyp.dodream.common.snowflake.SnowflakeIdService;
 import swyp.dodream.domain.chat.dto.ChatMessageDto;
 
 import java.time.LocalDateTime;
@@ -19,11 +20,11 @@ import java.util.List;
 public class ChatMessage extends BaseEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Column(name = "id")
+    private String id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "chat_room_id", nullable = false)
+    @JoinColumn(name = "room_id", nullable = false)
     private ChatRoom chatRoom;
 
     @Column(name = "sender_user_id", nullable = false)
@@ -41,7 +42,7 @@ public class ChatMessage extends BaseEntity {
     public ChatMessageDto toDto() {
         return new ChatMessageDto(
                 this.id,
-                this.chatRoom.getId(),                    // String
+                this.chatRoom.getId(),
                 String.valueOf(this.chatRoom.getPostId()),
                 String.valueOf(this.senderUserId),
                 null,
