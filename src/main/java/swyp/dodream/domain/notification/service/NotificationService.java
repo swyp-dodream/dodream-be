@@ -187,4 +187,33 @@ public class NotificationService {
                 new NotificationPayload(receiverId, NotificationType.FEEDBACK_WRITTEN, msg, postId)
         );
     }
+
+    @Transactional
+    public void sendBookmarkDeadlineNotification(Long receiverId, Long postId, String postTitle) {
+        boolean exists = notificationRepository.existsByReceiverIdAndTypeAndTargetPostId(
+                receiverId,
+                NotificationType.BOOKMARK_DEADLINE,
+                postId
+        );
+        if (exists) return;
+
+        Long id = snowflakeIdService.generateId();
+        String msg = "북마크 해둔 '" + postTitle + "' 모집글이 오늘 마감됩니다. 잊지말고 확인해보세요!";
+
+        Notification notification = new Notification(
+                id,
+                receiverId,
+                NotificationType.BOOKMARK_DEADLINE,
+                msg,
+                postId,
+                postTitle
+        );
+
+        notificationRepository.save(notification);
+
+        redisPublisher.publish(
+                new NotificationPayload(receiverId, NotificationType.BOOKMARK_DEADLINE, msg, postId)
+        );
+    }
+
 }
