@@ -1,11 +1,10 @@
-package swyp.dodream.domain.post.dto.request;
+package swyp.dodream.domain.post.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import swyp.dodream.domain.post.common.*;
-import swyp.dodream.domain.post.dto.PostRoleDto;
 
 import java.time.LocalDateTime;
 import java.util.List;
