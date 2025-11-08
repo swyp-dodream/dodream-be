@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import swyp.dodream.domain.home.service.HomeService;
 import swyp.dodream.domain.post.common.ActivityMode;
 import swyp.dodream.domain.post.common.ProjectType;
-import swyp.dodream.domain.post.dto.PostSummaryResponse;
+import swyp.dodream.domain.post.dto.response.PostSummaryResponse;
 
 /**
  * 홈 화면 전용 컨트롤러
