@@ -8,13 +8,16 @@ import org.springframework.transaction.annotation.Transactional;
 import swyp.dodream.common.exception.CustomException;
 import swyp.dodream.common.exception.ExceptionType;
 import swyp.dodream.domain.application.domain.Application;
+import swyp.dodream.domain.application.repository.ApplicationRepository;
+import swyp.dodream.domain.master.domain.Role;
+import swyp.dodream.domain.master.repository.RoleRepository;
 import swyp.dodream.domain.matched.domain.Matched;
+import swyp.dodream.domain.matched.repository.MatchedRepository;
 import swyp.dodream.domain.post.domain.Post;
 import swyp.dodream.domain.post.domain.Suggestion;
+import swyp.dodream.domain.post.dto.res.RecruitApplicationDetailResponse;
 import swyp.dodream.domain.post.dto.res.RecruitListResponse;
 import swyp.dodream.domain.post.dto.res.RecruitUserResponse;
-import swyp.dodream.domain.application.repository.ApplicationRepository;
-import swyp.dodream.domain.matched.repository.MatchedRepository;
 import swyp.dodream.domain.post.repository.PostRepository;
 import swyp.dodream.domain.post.repository.SuggestionRepository;
 import swyp.dodream.domain.profile.domain.Profile;
@@ -34,6 +37,7 @@ public class RecruitService {
     private final ApplicationRepository applicationRepository;
     private final MatchedRepository matchedRepository;
     private final ProfileRepository profileRepository;
+    private final RoleRepository roleRepository;
 
     /**
      * 제안한 내역 조회
@@ -190,6 +194,59 @@ public class RecruitService {
                 .users(users)
                 .nextCursor(nextCursor)
                 .hasNext(members.hasNext())
+                .build();
+    }
+
+    /**
+     * 지원 상세 조회
+     */
+    public RecruitApplicationDetailResponse getApplicationDetail(Long viewerUserId,
+                                                                 Long postId,
+                                                                 Long applicationId) {
+        // 1. 글 존재 + 권한 체크
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new CustomException(ExceptionType.NOT_FOUND, "게시글을 찾을 수 없습니다."));
+
+        if (!post.getOwner().getId().equals(viewerUserId)) {
+            throw new CustomException(ExceptionType.FORBIDDEN, "권한이 없습니다.");
+        }
+
+        // 2. 이 글에 대한 지원서인지 같이 확인해서 가져오기
+        Application application = applicationRepository.findByIdAndPostId(applicationId, postId)
+                .orElseThrow(() -> new CustomException(ExceptionType.NOT_FOUND, "지원 내역을 찾을 수 없습니다."));
+
+        Long applicantId = application.getApplicant().getId();
+
+        // 3. 프로필 가져오기 (roles까지 필요하니 네가 만든 fetch 있는 거 쓰면 더 좋음)
+        Profile profile = profileRepository.findWithAllByUserId(applicantId).orElse(null);
+
+        // 4. 지원 시 선택한 직군/역할 가져오기
+        Long appliedRoleId = application.getRole().getId();     // ← 엔티티 필드명에 맞춰서 바꿔
+        String appliedRoleName = null;
+        if (appliedRoleId != null) {
+            appliedRoleName = roleRepository.findById(appliedRoleId)
+                    .map(Role::getName)
+                    .orElse(null);
+        }
+
+        // 5. 메시지
+        String message = application.getMessage();
+
+        // 6. 응답 조립
+        return RecruitApplicationDetailResponse.builder()
+                .applicationId(application.getId())
+                .userId(applicantId)
+                .nickname(profile != null ? profile.getNickname() : application.getApplicant().getName())
+                .profileImage(application.getApplicant().getProfileImageUrl())
+                .status(application.getStatus().name())
+                .createdAt(application.getCreatedAt())
+                .experience(profile != null && profile.getExperience() != null ? profile.getExperience().name() : null)
+                .jobGroups(profile != null
+                        ? profile.getRoles().stream().map(r -> r.getName()).toList()
+                        : List.of())
+                .appliedRoleId(appliedRoleId)
+                .appliedRoleName(appliedRoleName)
+                .message(message)
                 .build();
     }
 }

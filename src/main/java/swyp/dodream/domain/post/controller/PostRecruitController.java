@@ -7,7 +7,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import swyp.dodream.domain.post.dto.res.RecruitApplicationDetailResponse;
 import swyp.dodream.domain.post.dto.res.RecruitListResponse;
+import swyp.dodream.domain.post.dto.res.RecruitUserResponse;
 import swyp.dodream.domain.post.service.RecruitService;
 import swyp.dodream.jwt.dto.UserPrincipal;
 
@@ -37,7 +39,7 @@ public class PostRecruitController {
         return ResponseEntity.ok(response);
     }
 
-    @Operation(summary = "지원 내역 조회", description = "모집글에 지원한 유저 목록 조회")
+    @Operation(summary = "지원 목록 조회", description = "모집글에 지원한 유저 목록 조회")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "조회 성공"),
             @ApiResponse(responseCode = "403", description = "권한 없음"),
@@ -55,6 +57,25 @@ public class PostRecruitController {
                 userPrincipal.getUserId(), postId, cursor, size);
         return ResponseEntity.ok(response);
     }
+
+    @Operation(summary = "지원 상세 조회", description = "모집글에 지원한 특정 유저의 상세 정보 조회")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "403", description = "권한 없음"),
+            @ApiResponse(responseCode = "404", description = "지원 없음 / 게시글 없음")
+    })
+    @GetMapping("/{postId}/recruits/applications/{applicationId}")
+    public ResponseEntity<RecruitApplicationDetailResponse> getApplicationDetail(
+            Authentication authentication,
+            @PathVariable Long postId,
+            @PathVariable Long applicationId
+    ) {
+        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+        RecruitApplicationDetailResponse response = recruitService.getApplicationDetail(
+                userPrincipal.getUserId(), postId, applicationId);
+        return ResponseEntity.ok(response);
+    }
+
 
     @Operation(summary = "멤버 내역 조회", description = "수락된 멤버 목록 조회")
     @ApiResponses({
