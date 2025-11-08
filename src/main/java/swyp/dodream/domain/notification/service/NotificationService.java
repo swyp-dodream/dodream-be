@@ -161,4 +161,30 @@ public class NotificationService {
                 new NotificationPayload(leaderId, NotificationType.APPLICATION_ACCEPTED, msg, postId)
         );
     }
+
+    /**
+     * 다른 사람이 자신에게 피드백을 달아주었을 때 알림
+     */
+    @Transactional
+    public void sendFeedbackWrittenNotification(Long receiverId, Long postId, String postTitle) {
+
+        Long id = snowflakeIdService.generateId();
+        String msg = "익명의 팀원이 '" + postTitle + "'에 피드백을 작성했습니다.";
+
+        Notification notification = new Notification(
+                id,
+                receiverId,                       // 글 작성자
+                NotificationType.FEEDBACK_WRITTEN,
+                msg,
+                postId,
+                postTitle
+        );
+
+        notificationRepository.save(notification);
+
+        // SSE 푸시
+        redisPublisher.publish(
+                new NotificationPayload(receiverId, NotificationType.FEEDBACK_WRITTEN, msg, postId)
+        );
+    }
 }

@@ -12,6 +12,7 @@ import swyp.dodream.domain.feedback.dto.request.FeedbackCreateRequest;
 import swyp.dodream.domain.feedback.dto.response.*;
 import swyp.dodream.domain.feedback.repository.FeedbackRepository;
 import swyp.dodream.domain.matched.domain.Matched;
+import swyp.dodream.domain.notification.service.NotificationService;
 import swyp.dodream.domain.post.domain.Post;
 import swyp.dodream.domain.matched.repository.MatchedRepository;
 import swyp.dodream.domain.post.repository.PostRepository;
@@ -32,6 +33,7 @@ public class FeedbackService {
     private final PostRepository postRepository;
     private final MatchedRepository matchedRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     /**
      * 피드백 옵션 전체 목록 조회
@@ -156,6 +158,13 @@ public class FeedbackService {
 
         // 10. 저장
         Feedback saved = feedbackRepository.save(feedback);
+
+        // 11. 알림 - 익명의 팀원이 피드백을 작성하면 피드백을 받는 대상이 알림을 받기
+        notificationService.sendFeedbackWrittenNotification(
+                request.toUserId(),          // 피드백 받은 사람
+                post.getId(),
+                post.getTitle()
+        );
 
         return FeedbackCreateResponse.of(saved.getId());
     }

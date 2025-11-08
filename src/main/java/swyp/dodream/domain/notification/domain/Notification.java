@@ -19,7 +19,7 @@ public class Notification extends BaseEntity {
     private Long receiverId; // 알림 받을 유저
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 50)
+    @Column(nullable = false, length = 100)
     private NotificationType type;
 
     @Column(nullable = false, length = 200)

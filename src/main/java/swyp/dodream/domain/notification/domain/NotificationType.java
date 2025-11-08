@@ -9,7 +9,7 @@ public enum NotificationType {
     APPLICATION_ACCEPTED("지원 수락"),
     BOOKMARK_DEADLINE("북마크한 모집글 마감 임박"),
     REVIEW_ACTIVATED("후기 작성 활성화"),
-    PROFILE_FEEDBACK("프로필 후기가 등록됨");
+    FEEDBACK_WRITTEN("프로필 후기가 등록됨");
 
     private final String description;
 
