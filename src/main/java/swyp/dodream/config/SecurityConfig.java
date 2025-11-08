@@ -100,8 +100,10 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // (중요) Vue 서버 주소인 http://localhost:3000 허용
-        configuration.setAllowedOrigins(List.of("http://localhost:3000"));
+        // Vue 서버 주소 여러 개 허용
+        configuration.setAllowedOrigins(List.of(
+                "http://localhost:3000",
+                "http://localhost:3001"));
 
         // 허용할 HTTP 메서드 (GET, POST 등)
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
