@@ -262,7 +262,7 @@ public class ChatService {
 
     // ==================== 7. 읽음 처리 ====================
     @Transactional
-    public void messageRead(String roomId, Long myUserId) {
+    public int messageRead(String roomId, Long myUserId) {
         ChatRoom chatRoom = chatRoomRepository.findById(roomId)
                 .orElseThrow(() -> new EntityNotFoundException("채팅방을 찾을 수 없습니다."));
         User me = userRepository.findById(myUserId)
@@ -273,8 +273,12 @@ public class ChatService {
         List<ReadStatus> unreadStatuses = readStatusRepository.findByChatRoomAndUserAndIsReadFalse(chatRoom, me);
         unreadStatuses.forEach(r -> r.updateIsRead(true));
 
-        log.info("메시지 읽음 처리. RoomId: {}, UserId: {}, Count: {}", roomId, myUserId, unreadStatuses.size());
+        int count = unreadStatuses.size();
+        log.info("메시지 읽음 처리. RoomId: {}, UserId: {}, Count: {}", roomId, myUserId, count);
+
+        return count;
     }
+
 
     // ==================== 8. 채팅 내역 조회 ====================
     @Transactional(readOnly = true)

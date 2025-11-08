@@ -12,6 +12,7 @@ import swyp.dodream.common.exception.ExceptionType;
 import swyp.dodream.domain.chat.dto.ChatMessageDto;
 import swyp.dodream.domain.chat.dto.request.ChatInitiateRequest;
 import swyp.dodream.domain.chat.dto.response.ChatInitiateResponse;
+import swyp.dodream.domain.chat.dto.response.MessageReadResponse;
 import swyp.dodream.domain.chat.dto.response.MyChatListResponse;
 import swyp.dodream.domain.chat.service.ChatService;
 import swyp.dodream.jwt.dto.UserPrincipal;
@@ -86,16 +87,17 @@ public class ChatController {
             description = "특정 채팅방 내 아직 unread 상태인 메시지를 읽음 처리"
     )
     @PostMapping("/rooms/{roomId}/read")
-    public ResponseEntity<Void> readMessages(
-            @PathVariable String roomId,  // String
+    public ResponseEntity<MessageReadResponse> readMessages(
+            @PathVariable String roomId,
             @AuthenticationPrincipal UserPrincipal userPrincipal
     ) {
         validateAuthentication(userPrincipal);
         Long userId = userPrincipal.getUserId();
 
-        chatService.messageRead(roomId, userId);
-        return ResponseEntity.ok().build();
+        int readCount = chatService.messageRead(roomId, userId);
+        return ResponseEntity.ok(new MessageReadResponse(readCount));
     }
+
 
     // 채팅 내역 조회
     @Operation(

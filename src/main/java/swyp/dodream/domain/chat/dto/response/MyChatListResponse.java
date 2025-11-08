@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class MyChatListResponse {
-    private String roomId;        // Long → String
+    private String roomId;
     private String roomName;
     private Long unReadCount;
     private String topicId;

@@ -15,7 +15,6 @@ public class ChatInitiateResponse {
     private String roomId;  // 기존 방이 있으면 ID, 없으면 null
     private String topicId; // 구독해야 할 WebSocket 토픽 주소
 
-    // ⭐ Long → String 변환!
     private String leaderId;  // 상대방 (리더)
     private String memberId;  // 본인 (멤버)
 
