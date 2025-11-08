@@ -99,4 +99,66 @@ public class NotificationService {
                 new NotificationPayload(leaderId, NotificationType.PROPOSAL_APPLIED, msg, postId)
         );
     }
+
+    /**
+     * 지원자가 수락되었을 때(매칭된 경우) -> 지원자에게 알려주기
+     */
+    @Transactional
+    public void sendApplicationAcceptedToApplicant(Long applicantId,
+                                                   Long postId,
+                                                   String postTitle,
+                                                   String leaderName) {
+
+        boolean exists = notificationRepository
+                .existsByReceiverIdAndTypeAndTargetPostId(applicantId, NotificationType.APPLICATION_ACCEPTED, postId);
+        if (exists) return;
+
+        Long id = snowflakeIdService.generateId();
+        String msg = leaderName + "님이 '" + postTitle + "' 지원을 수락했어요.";
+
+        Notification notification = new Notification(
+                id,
+                applicantId,
+                NotificationType.APPLICATION_ACCEPTED,
+                msg,
+                postId,
+                postTitle
+        );
+        notificationRepository.save(notification);
+
+        redisPublisher.publish(
+                new NotificationPayload(applicantId, NotificationType.APPLICATION_ACCEPTED, msg, postId)
+        );
+    }
+
+    /**
+     * 지원자가 수락되었을 때(매칭된 경우) -> 글 작성자(리더)에게도 알려주기
+     */
+    @Transactional
+    public void sendApplicationAcceptedToLeader(Long leaderId,
+                                                Long postId,
+                                                String applicantName,
+                                                String postTitle) {
+
+        boolean exists = notificationRepository
+                .existsByReceiverIdAndTypeAndTargetPostId(leaderId, NotificationType.APPLICATION_ACCEPTED, postId);
+        if (exists) return;
+
+        Long id = snowflakeIdService.generateId();
+        String msg = applicantName + "님과 매칭이 완료됐어요.";
+
+        Notification notification = new Notification(
+                id,
+                leaderId,
+                NotificationType.APPLICATION_ACCEPTED,
+                msg,
+                postId,
+                postTitle
+        );
+        notificationRepository.save(notification);
+
+        redisPublisher.publish(
+                new NotificationPayload(leaderId, NotificationType.APPLICATION_ACCEPTED, msg, postId)
+        );
+    }
 }

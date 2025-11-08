@@ -8,6 +8,7 @@ import swyp.dodream.common.exception.ExceptionType;
 import swyp.dodream.common.snowflake.SnowflakeIdService;
 import swyp.dodream.domain.application.domain.Application;
 import swyp.dodream.domain.application.repository.ApplicationRepository;
+import swyp.dodream.domain.notification.service.NotificationService;
 import swyp.dodream.domain.post.common.CancelBy;
 import swyp.dodream.domain.post.common.CancelReasonCode;
 import swyp.dodream.domain.matched.domain.Matched;
@@ -32,6 +33,7 @@ public class MatchedService {
     private final ApplicationRepository applicationRepository;
     private final SnowflakeIdService snowflakeIdService;
     private final SuggestionRepository suggestionRepository;
+    private final NotificationService notificationService;
 
     // 정책 상수
     private static final int LEADER_CANCEL_LIMIT_PER_POST = 2; // 모집글 당 2회
@@ -102,12 +104,10 @@ public class MatchedService {
         Application app = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new CustomException(ExceptionType.NOT_FOUND, "지원 내역을 찾을 수 없습니다."));
 
-        // 매칭 중복 방지
         if (matchedRepository.existsByPostIdAndUserId(postId, app.getApplicant().getId())) {
             throw new CustomException(ExceptionType.BAD_REQUEST_INVALID, "이미 매칭된 사용자입니다.");
         }
 
-        // 매칭 생성
         Matched matched = Matched.builder()
                 .id(snowflakeIdService.generateId())
                 .post(post)
@@ -118,6 +118,22 @@ public class MatchedService {
                 .build();
 
         matchedRepository.save(matched);
+
+        // 지원자에게 알림 보내기
+        notificationService.sendApplicationAcceptedToApplicant(
+                app.getApplicant().getId(),
+                post.getId(),
+                post.getTitle(),
+                post.getOwner().getName()
+        );
+
+        // 리더에게 알림 보내기
+        notificationService.sendApplicationAcceptedToLeader(
+                post.getOwner().getId(),
+                post.getId(),
+                app.getApplicant().getName(),
+                post.getTitle()
+        );
     }
 
     @Transactional
