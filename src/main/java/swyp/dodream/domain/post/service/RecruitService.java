@@ -149,13 +149,9 @@ public class RecruitService {
      * 멤버 내역 조회
      */
     public RecruitListResponse getMembers(Long userId, Long postId, Long cursor, Integer size) {
-        // 1. 게시글 검증 & 권한 확인
+        // 1. 게시글 검증
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new CustomException(ExceptionType.NOT_FOUND, "게시글을 찾을 수 없습니다."));
-
-        if (!post.getOwner().getId().equals(userId)) {
-            throw new CustomException(ExceptionType.FORBIDDEN, "권한이 없습니다.");
-        }
 
         // 2. 멤버 목록 조회
         Slice<Matched> members;
