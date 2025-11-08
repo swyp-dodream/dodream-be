@@ -216,4 +216,33 @@ public class NotificationService {
         );
     }
 
+    @Transactional
+    public void sendReviewActivated(Long receiverId, Long postId, String postTitle) {
+        boolean exists = notificationRepository.existsByReceiverIdAndTypeAndTargetPostId(
+                receiverId,
+                NotificationType.REVIEW_ACTIVATED,
+                postId
+        );
+        if (exists) return;
+
+        Long id = snowflakeIdService.generateId();
+        String msg = "'" + postTitle + "' 모집글에 대한 팀원 피드백을 오늘부터 작성할 수 있어요.";
+
+        Notification notification = new Notification(
+                id,
+                receiverId,
+                NotificationType.REVIEW_ACTIVATED,
+                msg,
+                postId,
+                postTitle
+        );
+
+        notificationRepository.save(notification);
+
+        redisPublisher.publish(
+                new NotificationPayload(receiverId, NotificationType.REVIEW_ACTIVATED, msg, postId)
+        );
+    }
+
+
 }

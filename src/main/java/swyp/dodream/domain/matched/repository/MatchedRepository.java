@@ -10,6 +10,7 @@ import swyp.dodream.domain.post.domain.Post;
 import swyp.dodream.domain.user.domain.User;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 public interface MatchedRepository extends JpaRepository<Matched, Long> {
@@ -115,6 +116,14 @@ public interface MatchedRepository extends JpaRepository<Matched, Long> {
     );
 
     Optional<Matched> findById(Long id);
+
+    @Query("""
+        SELECT m FROM Matched m
+        JOIN FETCH m.user
+        WHERE m.post.id = :postId
+          AND m.isCanceled = false
+    """)
+    List<Matched> findAllByPostId(@Param("postId") Long postId);
 
     boolean existsByPostIdAndUserId(Long postId, Long id);
 }
