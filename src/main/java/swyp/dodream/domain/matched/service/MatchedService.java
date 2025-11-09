@@ -119,20 +119,12 @@ public class MatchedService {
 
         matchedRepository.save(matched);
 
-        // 지원자에게 알림 보내기
+        // 지원자에게만 매칭 알림 보내기
         notificationService.sendApplicationAcceptedToApplicant(
                 app.getApplicant().getId(),
                 post.getId(),
                 post.getTitle(),
                 post.getOwner().getName()
-        );
-
-        // 리더에게 알림 보내기
-        notificationService.sendApplicationAcceptedToLeader(
-                post.getOwner().getId(),
-                post.getId(),
-                app.getApplicant().getName(),
-                post.getTitle()
         );
     }
 
