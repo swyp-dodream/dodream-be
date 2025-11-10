@@ -52,7 +52,6 @@ public class DevSeedController {
     private final Optional<EmbeddingService> embeddingService;
     private final Optional<VectorRepository> vectorRepository;
 
-    private static final long OWNER_ID = 110435692680581120L;
     private static final int TOTAL = 100;
     private static final int PROJECT_CNT = 50;
     private static final int STUDY_CNT = 50;
@@ -72,6 +71,7 @@ public class DevSeedController {
             summary = "시드 데이터 생성",
             description = """
                 개발/테스트용 시드 데이터 100개를 한 번에 생성합니다.
+                사용자가 없으면 자동으로 생성합니다.
                 """
     )
     @ApiResponses({
@@ -83,17 +83,22 @@ public class DevSeedController {
         final LocalDateTime now = LocalDateTime.now();
         List<Long> createdPostIds = new ArrayList<>(TOTAL);
 
+        // 사용자가 없으면 생성 (1명만 생성)
+        List<Long> userIds = createUsers(1);
+        long ownerId = userIds.get(0);
+
         for (int i = 0; i < PROJECT_CNT; i++) {
-            long postId = createOnePost(ProjectType.PROJECT, i, now, OWNER_ID);
+            long postId = createOnePost(ProjectType.PROJECT, i, now, ownerId);
             createdPostIds.add(postId);
         }
         for (int i = 0; i < STUDY_CNT; i++) {
-            long postId = createOnePost(ProjectType.STUDY, i, now, OWNER_ID);
+            long postId = createOnePost(ProjectType.STUDY, i, now, ownerId);
             createdPostIds.add(postId);
         }
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("created", createdPostIds.size());
+        result.put("ownerId", ownerId);
         result.put("postIds", createdPostIds);
         return result;
     }
@@ -299,6 +304,64 @@ public class DevSeedController {
 
     // ==================== 프로필 및 게시글 대량 생성 ====================
 
+    @PostMapping("/seed/profile-for-user/{userId}")
+    @Operation(
+            summary = "현재 사용자용 프로필 생성",
+            description = """
+                지정한 사용자 ID로 프로필을 생성합니다.
+                추천 기능 테스트용입니다.
+                """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "프로필 생성 성공",
+                    content = @Content(schema = @Schema(implementation = Map.class)))
+    })
+    @Transactional
+    public Map<String, Object> createProfileForCurrentUser(
+            @PathVariable Long userId
+    ) {
+        final LocalDateTime now = LocalDateTime.now();
+        
+        // 사용자가 이미 존재하는지 확인
+        List<Long> existingUserIds = jdbcTemplate.queryForList(
+                "SELECT id FROM users WHERE id = ?",
+                Long.class,
+                userId
+        );
+        
+        if (existingUserIds == null || existingUserIds.isEmpty()) {
+            throw new IllegalStateException("사용자가 존재하지 않습니다: " + userId);
+        }
+        
+        // 이미 프로필이 있는지 확인
+        List<Long> existingProfileIds = jdbcTemplate.queryForList(
+                "SELECT id FROM profiles WHERE user_id = ?",
+                Long.class,
+                userId
+        );
+        
+        if (existingProfileIds != null && !existingProfileIds.isEmpty()) {
+            return Map.of(
+                    "success", false,
+                    "message", "이미 프로필이 존재합니다",
+                    "profileId", existingProfileIds.get(0)
+            );
+        }
+        
+        // 마스터 데이터 조회
+        loadMasterData();
+        
+        // 프로필 생성
+        long profileId = createOneProfile(userId, 0, now);
+        
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("success", true);
+        result.put("userId", userId);
+        result.put("profileId", profileId);
+        result.put("message", "프로필 생성 완료. 벡터화 API를 호출하세요.");
+        return result;
+    }
+
     @PostMapping("/seed/recommendation")
     @Operation(
             summary = "추천 테스트용 데이터 생성",
@@ -416,7 +479,9 @@ public class DevSeedController {
         ThreadLocalRandom rnd = ThreadLocalRandom.current();
         
         long profileId = snowflake.generateId();
-        String nickname = String.format("테스트프로필%d", seq + 1);
+        // nickname 중복 방지를 위해 Snowflake ID의 마지막 4자리 사용 (varchar(10) 제한)
+        // 형식: "T1_1234" (최대 7자, seq가 100까지 가도 "T100_1234" = 9자)
+        String nickname = String.format("T%d_%04d", seq + 1, Math.abs(profileId % 10000));
         Experience experience = Experience.values()[rnd.nextInt(Experience.values().length)];
         swyp.dodream.domain.profile.enums.ActivityMode activityMode = 
                 swyp.dodream.domain.profile.enums.ActivityMode.values()[rnd.nextInt(swyp.dodream.domain.profile.enums.ActivityMode.values().length)];
