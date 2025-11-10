@@ -53,14 +53,19 @@ public class OAuth2FrontendUrlFilter extends OncePerRequestFilter {
                 return;
             }
 
-            // 프론트엔드 URL 추출 우선순위: Origin > Referer > Host 헤더 기반 추론
+            // 프론트엔드 URL 추출 우선순위: Origin > Referer (dev.dodream.store 우선) > Referer > Host 헤더 기반 추론
             String frontendUrl = extractFrontendUrlFromOrigin(request);
             log.debug("Origin에서 추출한 프론트엔드 URL: {}", frontendUrl);
             
-            // Origin이 없으면 Referer에서 추출 시도
+            // Origin이 없으면 Referer에서 추출 시도 (dev.dodream.store 우선 확인)
             if (frontendUrl == null || frontendUrl.isEmpty()) {
-                frontendUrl = extractFrontendUrlFromReferer(request);
-                log.debug("Referer에서 추출한 프론트엔드 URL: {}", frontendUrl);
+                frontendUrl = extractDevFrontendUrl(request);
+                if (frontendUrl != null) {
+                    log.info("dev.dodream.store 감지: {}", frontendUrl);
+                } else {
+                    frontendUrl = extractFrontendUrlFromReferer(request);
+                    log.debug("Referer에서 추출한 프론트엔드 URL: {}", frontendUrl);
+                }
             }
             
             // Origin과 Referer가 모두 없으면 Host 헤더 기반으로 추론
@@ -163,7 +168,7 @@ public class OAuth2FrontendUrlFilter extends OncePerRequestFilter {
         
         try {
             // api.dodream.store -> dodream.store
-            // api.dev.dodream.store -> dev.dodream.store
+            // api.dev.dodream.store -> dev.dodream.store (이 경우는 없을 수 있음)
             String frontendHost = host;
             if (host.startsWith("api.")) {
                 frontendHost = host.substring(4); // "api." 제거
@@ -189,6 +194,36 @@ public class OAuth2FrontendUrlFilter extends OncePerRequestFilter {
             log.debug("Host 헤더에서 프론트엔드 URL 추론 실패: {}", host, e);
             return null;
         }
+    }
+    
+    /**
+     * Referer에서 dev.dodream.store를 감지하는 특별한 로직
+     * dev.dodream.store에서 api.dodream.store로 요청할 때 Referer에 dev.dodream.store가 포함됨
+     */
+    private String extractDevFrontendUrl(HttpServletRequest request) {
+        String referer = request.getHeader("Referer");
+        if (referer == null || referer.trim().isEmpty()) {
+            return null;
+        }
+        
+        // dev.dodream.store가 포함되어 있으면 그대로 사용
+        if (referer.contains("dev.dodream.store")) {
+            try {
+                java.net.URL url = new java.net.URL(referer);
+                String protocol = url.getProtocol();
+                String host = url.getHost();
+                int port = url.getPort();
+                
+                if (port != -1 && port != 80 && port != 443) {
+                    return String.format("%s://%s:%d", protocol, host, port);
+                }
+                return String.format("%s://%s", protocol, host);
+            } catch (Exception e) {
+                log.debug("dev.dodream.store URL 추출 실패: {}", referer, e);
+            }
+        }
+        
+        return null;
     }
     
     /**
