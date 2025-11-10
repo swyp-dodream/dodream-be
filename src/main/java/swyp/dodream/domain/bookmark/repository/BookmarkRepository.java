@@ -19,4 +19,6 @@ public interface BookmarkRepository extends JpaRepository<Bookmark, Long> {
           AND p.deleted = false
     """)
     List<Bookmark> findAllByUser(@Param("user") User user);
+
+    List<Bookmark> findByPost(Post post);
 }

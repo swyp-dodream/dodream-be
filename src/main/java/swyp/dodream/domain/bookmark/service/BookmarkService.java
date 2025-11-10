@@ -8,7 +8,7 @@ import swyp.dodream.common.exception.ExceptionType;
 import swyp.dodream.common.snowflake.SnowflakeIdService;
 import swyp.dodream.domain.bookmark.domain.Bookmark;
 import swyp.dodream.domain.post.domain.Post;
-import swyp.dodream.domain.post.dto.PostSummaryResponse;
+import swyp.dodream.domain.post.dto.res.PostSummaryResponse;
 import swyp.dodream.domain.bookmark.repository.BookmarkRepository;
 import swyp.dodream.domain.post.repository.PostRepository;
 import swyp.dodream.domain.user.domain.User;

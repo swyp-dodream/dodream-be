@@ -6,9 +6,10 @@ import org.springframework.transaction.annotation.Transactional;
 import swyp.dodream.common.exception.CustomException;
 import swyp.dodream.common.exception.ExceptionType;
 import swyp.dodream.common.snowflake.SnowflakeIdService;
+import swyp.dodream.domain.notification.service.NotificationService;
 import swyp.dodream.domain.post.domain.Post;
 import swyp.dodream.domain.post.domain.Suggestion;
-import swyp.dodream.domain.post.dto.SuggestionRequest;
+import swyp.dodream.domain.post.dto.req.SuggestionRequest;
 import swyp.dodream.domain.post.dto.res.SuggestionResponse;
 import swyp.dodream.domain.post.repository.PostRepository;
 import swyp.dodream.domain.post.repository.SuggestionRepository;
@@ -26,6 +27,7 @@ public class SuggestionService {
     private final PostRepository postRepository;
     private final UserRepository userRepository;
     private final SnowflakeIdService snowflakeIdService;
+    private final NotificationService notificationService;
 
     public SuggestionResponse createSuggestion(Long fromUserId, Long postId, SuggestionRequest request) {
         // 1. 게시글 존재 확인
@@ -57,6 +59,14 @@ public class SuggestionService {
         );
 
         suggestionRepository.save(suggestion);
+
+        // 게시글 작성자가 일반 유저에게 제안하는 경우 알림이 가도록 하는 로직 추가!
+        notificationService.sendProposalNotificationToUser(
+                toUser.getId(),    // 알림 받을 사람
+                post.getId(),     // 관련 게시글
+                post.getOwner().getName(), // 보낸 사람 이름
+                post.getTitle()   // 게시글 제목
+        );
 
         return SuggestionResponse.builder()
                 .id(suggestion.getId())

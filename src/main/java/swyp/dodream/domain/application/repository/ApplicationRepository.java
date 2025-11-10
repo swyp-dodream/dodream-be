@@ -93,4 +93,13 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
             @Param("cursor") Long cursor,
             Pageable pageable
     );
+
+    @Query("""
+    SELECT a FROM Application a
+    JOIN FETCH a.applicant
+    WHERE a.id = :applicationId
+      AND a.post.id = :postId
+""")
+    Optional<Application> findByIdAndPostId(@Param("applicationId") Long applicationId,
+                                            @Param("postId") Long postId);
 }

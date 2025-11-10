@@ -54,8 +54,8 @@ public record ProfileCreateRequest(
         @Size(min = 1, max = 5, message = "기술 스택은 1개 이상 5개 이하여야 합니다")
         List<String> techSkillNames,
 
-        @Schema(description = "자기소개 (최대 200자)", example = "안녕하세요. 백엔드 개발자입니다.")
-        @Size(max = 200, message = "자기소개는 200자 이하여야 합니다")
+        @Schema(description = "자기소개 (최대 600자)", example = "안녕하세요. 백엔드 개발자입니다.")
+        @Size(max = 600, message = "자기소개는 600자 이하여야 합니다")
         String introText,
 
         @Schema(description = "프로젝트 제안 수신 여부", example = "true")

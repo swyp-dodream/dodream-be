@@ -1,158 +1,158 @@
--- =========================================================
--- 마스터 데이터 초기화
--- 배포 시 필수 마스터 데이터 INSERT
--- =========================================================
-
--- =======================
--- Role (직군 마스터)
--- =======================
-INSERT IGNORE INTO role (code, name) VALUES
-('FE', '프론트엔드'),
-('BE', '백엔드'),
-('iOS', 'iOS'),
-('AOS', 'Android'),
-('Designer', '디자이너'),
-('PM', 'PM'),
-('Planner', '기획자'),
-('Marketer', '마케터');
-
--- =======================
--- Interest Category (관심 분야 카테고리)
--- =======================
-INSERT IGNORE INTO interest_category (name) VALUES
-('웹 개발'),
-('모바일 앱'),
-('AI/ML'),
-('데이터 분석'),
-('게임 개발'),
-('디자인'),
-('마케팅'),
-('기타');
-
--- =======================
--- Interest Keyword (관심 분야 키워드)
--- =======================
-INSERT IGNORE INTO interest_keyword (category_id, name) VALUES
--- 웹 개발 (category_id = 1)
-(1, '풀스택'),
-(1, '프론트엔드'),
-(1, '백엔드'),
-(1, '웹서비스'),
--- 모바일 앱 (category_id = 2)
-(2, 'iOS 앱'),
-(2, 'Android 앱'),
-(2, '크로스플랫폼'),
-(2, '모바일 게임'),
--- AI/ML (category_id = 3)
-(3, '머신러닝'),
-(3, '딥러닝'),
-(3, 'NLP'),
-(3, '컴퓨터 비전'),
--- 데이터 분석 (category_id = 4)
-(4, '데이터 시각화'),
-(4, '빅데이터'),
-(4, '통계 분석'),
--- 게임 개발 (category_id = 5)
-(5, '모바일 게임'),
-(5, 'PC 게임'),
-(5, '인디 게임'),
--- 디자인 (category_id = 6)
-(6, 'UI/UX 디자인'),
-(6, '그래픽 디자인'),
-(6, '브랜딩'),
--- 마케팅 (category_id = 7)
-(7, '디지털 마케팅'),
-(7, '콘텐츠 마케팅'),
-(7, 'SNS 마케팅'),
--- 기타 (category_id = 8)
-(8, '스타트업'),
-(8, '부트캠프'),
-(8, '사이드 프로젝트');
-
--- =======================
--- Tech Category (기술 스택 카테고리)
--- =======================
-INSERT IGNORE INTO tech_category (name) VALUES
-('프로그래밍 언어'),
-('프레임워크/라이브러리'),
-('데이터베이스'),
-('도구/플랫폼'),
-('기타');
-
--- =======================
--- Tech Skill (기술 스택)
--- =======================
-INSERT IGNORE INTO tech_skill (category_id, name) VALUES
--- 프로그래밍 언어 (category_id = 1)
-(1, 'Java'),
-(1, 'Python'),
-(1, 'JavaScript'),
-(1, 'TypeScript'),
-(1, 'Kotlin'),
-(1, 'Swift'),
-(1, 'C++'),
-(1, 'Go'),
--- 프레임워크/라이브러리 (category_id = 2)
-(2, 'Spring Boot'),
-(2, 'Django'),
-(2, 'FastAPI'),
-(2, 'React'),
-(2, 'Vue.js'),
-(2, 'Next.js'),
-(2, 'Angular'),
-(2, 'Flutter'),
-(2, 'React Native'),
-(2, 'Spring'),
-(2, 'Express.js'),
-(2, 'NestJS'),
--- 데이터베이스 (category_id = 3)
-(3, 'MySQL'),
-(3, 'PostgreSQL'),
-(3, 'MongoDB'),
-(3, 'Redis'),
-(3, 'Elasticsearch'),
-(3, 'Oracle'),
--- 도구/플랫폼 (category_id = 4)
-(4, 'Docker'),
-(4, 'Kubernetes'),
-(4, 'AWS'),
-(4, 'GCP'),
-(4, 'Azure'),
-(4, 'Git'),
-(4, 'Jenkins'),
-(4, 'GitHub Actions'),
-(4, 'Jira'),
-(4, 'Slack'),
-(4, 'Figma'),
-(4, 'Notion'),
--- 기타 (category_id = 5)
-(5, 'GraphQL'),
-(5, 'REST API'),
-(5, 'gRPC'),
-(5, 'Microservices'),
-(5, 'TDD'),
-(5, 'CI/CD');
-
--- =======================
--- Feedback Detail Dict (후기 상세 코드)
--- =======================
-INSERT IGNORE INTO feedback_detail_dict (code, polarity, label) VALUES
--- 긍정적 후기
-('positive_communication', 'positive', '소통이 원활함'),
-('positive_punctual', 'positive', '일정 준수'),
-('positive_skill', 'positive', '기술력이 뛰어남'),
-('positive_cooperation', 'positive', '협업 능력이 좋음'),
-('positive_responsibility', 'positive', '책임감이 강함'),
-('positive_leadership', 'positive', '리더십이 뛰어남'),
-('positive_problem_solving', 'positive', '문제 해결 능력이 좋음'),
-('positive_attitude', 'positive', '긍정적인 태도'),
-('positive_dedication', 'positive', '열정적이고 헌신적'),
--- 부정적 후기
-('negative_communication', 'negative', '소통이 부족함'),
-('negative_punctual', 'negative', '일정 미준수'),
-('negative_skill', 'negative', '기술력 부족'),
-('negative_cooperation', 'negative', '협업 능력 부족'),
-('negative_responsibility', 'negative', '책임감 부족'),
-('negative_attitude', 'negative', '부정적인 태도'),
-('negative_participation', 'negative', '참여도가 낮음'),
-('negative_feedback', 'negative', '피드백 수용 안 함');
+-- -- =========================================================
+-- -- 마스터 데이터 초기화
+-- -- 배포 시 필수 마스터 데이터 INSERT
+-- -- =========================================================
+--
+-- -- =======================
+-- -- Role (직군 마스터)
+-- -- =======================
+-- INSERT IGNORE INTO role (code, name) VALUES
+-- ('FE', '프론트엔드'),
+-- ('BE', '백엔드'),
+-- ('iOS', 'iOS'),
+-- ('AOS', 'Android'),
+-- ('Designer', '디자이너'),
+-- ('PM', 'PM'),
+-- ('Planner', '기획자'),
+-- ('Marketer', '마케터');
+--
+-- -- =======================
+-- -- Interest Category (관심 분야 카테고리)
+-- -- =======================
+-- INSERT IGNORE INTO interest_category (name) VALUES
+-- ('웹 개발'),
+-- ('모바일 앱'),
+-- ('AI/ML'),
+-- ('데이터 분석'),
+-- ('게임 개발'),
+-- ('디자인'),
+-- ('마케팅'),
+-- ('기타');
+--
+-- -- =======================
+-- -- Interest Keyword (관심 분야 키워드)
+-- -- =======================
+-- INSERT IGNORE INTO interest_keyword (category_id, name) VALUES
+-- -- 웹 개발 (category_id = 1)
+-- (1, '풀스택'),
+-- (1, '프론트엔드'),
+-- (1, '백엔드'),
+-- (1, '웹서비스'),
+-- -- 모바일 앱 (category_id = 2)
+-- (2, 'iOS 앱'),
+-- (2, 'Android 앱'),
+-- (2, '크로스플랫폼'),
+-- (2, '모바일 게임'),
+-- -- AI/ML (category_id = 3)
+-- (3, '머신러닝'),
+-- (3, '딥러닝'),
+-- (3, 'NLP'),
+-- (3, '컴퓨터 비전'),
+-- -- 데이터 분석 (category_id = 4)
+-- (4, '데이터 시각화'),
+-- (4, '빅데이터'),
+-- (4, '통계 분석'),
+-- -- 게임 개발 (category_id = 5)
+-- (5, '모바일 게임'),
+-- (5, 'PC 게임'),
+-- (5, '인디 게임'),
+-- -- 디자인 (category_id = 6)
+-- (6, 'UI/UX 디자인'),
+-- (6, '그래픽 디자인'),
+-- (6, '브랜딩'),
+-- -- 마케팅 (category_id = 7)
+-- (7, '디지털 마케팅'),
+-- (7, '콘텐츠 마케팅'),
+-- (7, 'SNS 마케팅'),
+-- -- 기타 (category_id = 8)
+-- (8, '스타트업'),
+-- (8, '부트캠프'),
+-- (8, '사이드 프로젝트');
+--
+-- -- =======================
+-- -- Tech Category (기술 스택 카테고리)
+-- -- =======================
+-- INSERT IGNORE INTO tech_category (name) VALUES
+-- ('프로그래밍 언어'),
+-- ('프레임워크/라이브러리'),
+-- ('데이터베이스'),
+-- ('도구/플랫폼'),
+-- ('기타');
+--
+-- -- =======================
+-- -- Tech Skill (기술 스택)
+-- -- =======================
+-- INSERT IGNORE INTO tech_skill (category_id, name) VALUES
+-- -- 프로그래밍 언어 (category_id = 1)
+-- (1, 'Java'),
+-- (1, 'Python'),
+-- (1, 'JavaScript'),
+-- (1, 'TypeScript'),
+-- (1, 'Kotlin'),
+-- (1, 'Swift'),
+-- (1, 'C++'),
+-- (1, 'Go'),
+-- -- 프레임워크/라이브러리 (category_id = 2)
+-- (2, 'Spring Boot'),
+-- (2, 'Django'),
+-- (2, 'FastAPI'),
+-- (2, 'React'),
+-- (2, 'Vue.js'),
+-- (2, 'Next.js'),
+-- (2, 'Angular'),
+-- (2, 'Flutter'),
+-- (2, 'React Native'),
+-- (2, 'Spring'),
+-- (2, 'Express.js'),
+-- (2, 'NestJS'),
+-- -- 데이터베이스 (category_id = 3)
+-- (3, 'MySQL'),
+-- (3, 'PostgreSQL'),
+-- (3, 'MongoDB'),
+-- (3, 'Redis'),
+-- (3, 'Elasticsearch'),
+-- (3, 'Oracle'),
+-- -- 도구/플랫폼 (category_id = 4)
+-- (4, 'Docker'),
+-- (4, 'Kubernetes'),
+-- (4, 'AWS'),
+-- (4, 'GCP'),
+-- (4, 'Azure'),
+-- (4, 'Git'),
+-- (4, 'Jenkins'),
+-- (4, 'GitHub Actions'),
+-- (4, 'Jira'),
+-- (4, 'Slack'),
+-- (4, 'Figma'),
+-- (4, 'Notion'),
+-- -- 기타 (category_id = 5)
+-- (5, 'GraphQL'),
+-- (5, 'REST API'),
+-- (5, 'gRPC'),
+-- (5, 'Microservices'),
+-- (5, 'TDD'),
+-- (5, 'CI/CD');
+--
+-- -- =======================
+-- -- Feedback Detail Dict (후기 상세 코드)
+-- -- =======================
+-- INSERT IGNORE INTO feedback_detail_dict (code, polarity, label) VALUES
+-- -- 긍정적 후기
+-- ('positive_communication', 'positive', '소통이 원활함'),
+-- ('positive_punctual', 'positive', '일정 준수'),
+-- ('positive_skill', 'positive', '기술력이 뛰어남'),
+-- ('positive_cooperation', 'positive', '협업 능력이 좋음'),
+-- ('positive_responsibility', 'positive', '책임감이 강함'),
+-- ('positive_leadership', 'positive', '리더십이 뛰어남'),
+-- ('positive_problem_solving', 'positive', '문제 해결 능력이 좋음'),
+-- ('positive_attitude', 'positive', '긍정적인 태도'),
+-- ('positive_dedication', 'positive', '열정적이고 헌신적'),
+-- -- 부정적 후기
+-- ('negative_communication', 'negative', '소통이 부족함'),
+-- ('negative_punctual', 'negative', '일정 미준수'),
+-- ('negative_skill', 'negative', '기술력 부족'),
+-- ('negative_cooperation', 'negative', '협업 능력 부족'),
+-- ('negative_responsibility', 'negative', '책임감 부족'),
+-- ('negative_attitude', 'negative', '부정적인 태도'),
+-- ('negative_participation', 'negative', '참여도가 낮음'),
+-- ('negative_feedback', 'negative', '피드백 수용 안 함');

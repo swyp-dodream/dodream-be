@@ -41,6 +41,7 @@ public enum ExceptionType {
     MASTER_DATA_NOT_FOUND(HttpStatus.NOT_FOUND, "마스터 데이터를 찾을 수 없습니다"),
     CHAT_ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "채팅방을 찾을 수 없습니다"),
     MESSAGE_NOT_FOUND(HttpStatus.NOT_FOUND, "메시지를 찾을 수 없습니다"),
+    BADGE_STATUS_NOT_FOUND(HttpStatus.NOT_FOUND, "배지 상태를 찾을 수 없습니다"),
 
     // Conflict(409)
     CONFLICT_DUPLICATE(HttpStatus.CONFLICT, "이미 존재하는 데이터입니다"),

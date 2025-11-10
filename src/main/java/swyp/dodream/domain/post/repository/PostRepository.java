@@ -9,6 +9,9 @@ import org.springframework.data.repository.query.Param;
 import swyp.dodream.domain.post.common.PostStatus;
 import swyp.dodream.domain.post.common.ProjectType;
 import swyp.dodream.domain.post.domain.Post;
+
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 public interface PostRepository extends JpaRepository<Post, Long>, JpaSpecificationExecutor<Post> {
@@ -65,4 +68,6 @@ public interface PostRepository extends JpaRepository<Post, Long>, JpaSpecificat
     @Query("SELECT p.owner.id FROM Post p WHERE p.id = :postId AND p.deleted = false")
     Optional<Long> findOwnerUserIdByPostId(@Param("postId") Long postId);
 
+    // 마감일 기반 알림 스케줄러에서 사용
+    List<Post> findByDeadlineAtBetween(LocalDateTime start, LocalDateTime end);
 }

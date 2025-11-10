@@ -48,8 +48,9 @@ public class Feedback {
     private LocalDateTime createdAt = LocalDateTime.now();
 
     @Builder
-    public Feedback(Post post, User fromUser, User toUser,
+    public Feedback(Long id, Post post, User fromUser, User toUser,
                     FeedbackType feedbackType, List<FeedbackOption> options) {
+        this.id = id;
         this.post = post;
         this.fromUser = fromUser;
         this.toUser = toUser;

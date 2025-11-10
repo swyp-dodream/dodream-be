@@ -29,7 +29,7 @@ public class IntroAiDraftRequest {
     @NotNull
     private ActivityMode activityMode;
 
-    @Size(max = 200)
+    @Size(max = 500)
     private String introText;
 
     @Size(max = 3)

@@ -1,10 +1,13 @@
 package swyp.dodream.domain.profile.repository;
 
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import swyp.dodream.domain.profile.domain.Profile;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 public interface ProfileRepository extends JpaRepository<Profile, Long> {
@@ -26,4 +29,7 @@ public interface ProfileRepository extends JpaRepository<Profile, Long> {
         where p.userId = :userId
         """)
     Optional<Profile> findWithAllByUserId(@Param("userId") Long userId);
+
+    @EntityGraph(attributePaths = {"roles"})
+    List<Profile> findByUserIdIn(Collection<Long> userIds);
 }

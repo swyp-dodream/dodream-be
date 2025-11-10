@@ -3,6 +3,7 @@ package swyp.dodream;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import swyp.dodream.domain.search.repository.PostDocumentRepository;
 
@@ -20,6 +21,10 @@ class DodreamApplicationTests {
     // Elasticsearch Repository를 Mock으로 처리하여 테스트에서 제외
     @MockBean
     private PostDocumentRepository postDocumentRepository;
+
+    // CI/CD 환경에서 실제 Redis 연결을 시도하지 않도록 Mock 객체로 대체하기
+    @MockBean
+    private RedisTemplate<String, String> redisTemplate;
 
     @Test
     void contextLoads() {

@@ -21,11 +21,18 @@ import swyp.dodream.domain.master.domain.TechSkill;
 import swyp.dodream.domain.matched.domain.Matched;
 import swyp.dodream.domain.application.repository.ApplicationRepository;
 import swyp.dodream.domain.matched.repository.MatchedRepository;
+import swyp.dodream.domain.notification.service.NotificationService;
 import swyp.dodream.domain.post.common.PostSortType;
 import swyp.dodream.domain.post.common.PostStatus;
 import swyp.dodream.domain.post.common.ProjectType;
 import swyp.dodream.domain.post.domain.*;
-import swyp.dodream.domain.post.dto.*;
+import swyp.dodream.domain.post.dto.req.PostCreateRequest;
+import swyp.dodream.domain.post.dto.req.PostRequest;
+import swyp.dodream.domain.post.dto.PostRoleDto;
+import swyp.dodream.domain.post.dto.req.PostUpdateRequest;
+import swyp.dodream.domain.post.dto.res.MyPostListResponse;
+import swyp.dodream.domain.post.dto.res.MyPostResponse;
+import swyp.dodream.domain.post.dto.res.PostResponse;
 import swyp.dodream.domain.post.repository.*;
 import swyp.dodream.domain.search.document.PostDocument;
 import swyp.dodream.domain.search.repository.PostDocumentRepository;
@@ -60,6 +67,8 @@ public class PostService {
     private final InterestKeywordRepository interestKeywordRepository;
     private final EntityManager entityManager;
     private final PostDocumentRepository postDocumentRepository;
+    private final SuggestionRepository suggestionRepository;
+    private final NotificationService notificationService;
     
     
     // 벡터 임베딩 관련 (옵션) - NCP 배포 시에만 활성화
@@ -331,7 +340,7 @@ public class PostService {
         Post post = postRepository.findById(postId)
                 .orElseThrow(ExceptionType.POST_NOT_FOUND::throwException);
 
-        // 리더(작성자)는 지원 불가
+        // 0. 자기 글은 지원 불가
         if (post.getOwner().getId().equals(user.getId())) {
             throw new IllegalStateException("작성자는 자신의 모집글에 지원할 수 없습니다.");
         }
@@ -342,13 +351,34 @@ public class PostService {
         if (applicationRepository.existsByPostAndApplicant(post, user))
             throw new IllegalStateException("이미 지원한 모집글입니다.");
 
+        // 1. 지원 저장
         Role role = new Role();
         role.setId(request.getRoleId());
 
         Long applicationId = snowflakeIdService.generateId();
-        Application application = new Application(applicationId, post, user, role, request.getMessage());
+        Application application = new Application(
+                applicationId,
+                post,
+                user,
+                role,
+                request.getMessage()
+        );
         applicationRepository.save(application);
 
+        // 2. 이 지원자가 이 글의 리더한테 예전에 '제안'을 받은 적 있는지 확인
+        Long leaderId = post.getOwner().getId();   // 제안 보낸 사람 = 글 작성자
+        Long applicantId = user.getId();           // 지금 지원한 사람
+
+        suggestionRepository.findLatestValidSuggestion(postId, leaderId, applicantId)
+                .ifPresent(suggestion -> {
+                    // 있으면 리더(=제안 보낸 사람)에게 알림
+                    notificationService.sendProposalAppliedNotification(
+                            leaderId,                 // 알림 받을 사람
+                            postId,                   // 어떤 글에 대한 건지
+                            user.getName(),           // 실제로 지원한 사람 이름
+                            post.getTitle()           // 글 제목
+                    );
+                });
     }
 
     // 모집글 지원 가능 여부 판단
@@ -360,7 +390,6 @@ public class PostService {
         // 리더는 지원 불가
         return !post.getOwner().getId().equals(userId);
     }
-
 
     private void connectRoles(PostRequest request, Post post) {
         if (request.getRoles() != null) {
