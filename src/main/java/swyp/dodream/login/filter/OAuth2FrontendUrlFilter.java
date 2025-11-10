@@ -39,25 +39,34 @@ public class OAuth2FrontendUrlFilter extends OncePerRequestFilter {
                  requestURI.startsWith("/login/oauth2/code/")));
         
         if (isOAuth2Request) {
+            log.info("OAuth2 요청 감지: URI={}, Origin={}, Referer={}, Host={}", 
+                    requestURI, 
+                    request.getHeader("Origin"),
+                    request.getHeader("Referer"),
+                    request.getHeader("Host"));
+            
             // 쿠키에 이미 저장된 값이 있으면 스킵
             String existingCookie = getFrontendUrlFromCookie(request);
             if (existingCookie != null && !existingCookie.isEmpty()) {
-                log.debug("이미 쿠키에 프론트엔드 URL이 저장되어 있음: {}", existingCookie);
+                log.info("이미 쿠키에 프론트엔드 URL이 저장되어 있음: {}", existingCookie);
                 filterChain.doFilter(request, response);
                 return;
             }
 
             // 프론트엔드 URL 추출 우선순위: Origin > Referer > Host 헤더 기반 추론
             String frontendUrl = extractFrontendUrlFromOrigin(request);
+            log.debug("Origin에서 추출한 프론트엔드 URL: {}", frontendUrl);
             
             // Origin이 없으면 Referer에서 추출 시도
             if (frontendUrl == null || frontendUrl.isEmpty()) {
                 frontendUrl = extractFrontendUrlFromReferer(request);
+                log.debug("Referer에서 추출한 프론트엔드 URL: {}", frontendUrl);
             }
             
             // Origin과 Referer가 모두 없으면 Host 헤더 기반으로 추론
             if (frontendUrl == null || frontendUrl.isEmpty()) {
                 frontendUrl = inferFrontendUrlFromHost(request);
+                log.debug("Host에서 추론한 프론트엔드 URL: {}", frontendUrl);
             }
 
             // 프론트엔드 URL을 찾았으면 쿠키에 저장
@@ -68,14 +77,15 @@ public class OAuth2FrontendUrlFilter extends OncePerRequestFilter {
                     cookie.setMaxAge(COOKIE_MAX_AGE);
                     cookie.setHttpOnly(true);
                     cookie.setSecure(request.isSecure()); // HTTPS인 경우에만 secure
+                    // 도메인 설정하지 않음 (크로스 도메인 쿠키 공유를 위해)
                     response.addCookie(cookie);
 
                     log.info("OAuth2 프론트엔드 URL 자동 감지 및 쿠키 저장: {} (Origin/Referer/Host에서 추출)", frontendUrl);
                 } catch (Exception e) {
-                    log.warn("프론트엔드 URL 쿠키 저장 실패: {}", e.getMessage());
+                    log.warn("프론트엔드 URL 쿠키 저장 실패: {}", e.getMessage(), e);
                 }
             } else {
-                log.debug("프론트엔드 URL을 자동으로 감지할 수 없음 (Origin/Referer/Host 헤더 없음)");
+                log.warn("프론트엔드 URL을 자동으로 감지할 수 없음 (Origin/Referer/Host 헤더 없음) - 기본값 사용됨");
             }
         }
 
