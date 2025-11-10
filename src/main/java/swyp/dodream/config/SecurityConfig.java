@@ -58,6 +58,9 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        // JWT 인증 필터 생성
+        JwtAuthenticationFilter jwtFilter = new JwtAuthenticationFilter(jwtUtil);
+        
         http
                 // CSRF 비활성화 (REST API용)
                 .csrf(csrf -> csrf.disable())
@@ -70,11 +73,11 @@ public class SecurityConfig {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 
-                // OAuth2 프론트엔드 URL 자동 감지 필터 추가 (JWT 필터보다 먼저 실행)
-                .addFilterBefore(oAuth2FrontendUrlFilter, JwtAuthenticationFilter.class)
-                
                 // JWT 인증 필터 추가
-                .addFilterBefore(new JwtAuthenticationFilter(jwtUtil), UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+                
+                // OAuth2 프론트엔드 URL 자동 감지 필터 추가 (JWT 필터보다 먼저 실행)
+                .addFilterBefore(oAuth2FrontendUrlFilter, jwtFilter.getClass())
                 
                 // 요청 권한 설정
                 .authorizeHttpRequests(auth -> auth

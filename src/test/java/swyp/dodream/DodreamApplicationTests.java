@@ -7,6 +7,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.test.context.ActiveProfiles;
 import swyp.dodream.domain.search.repository.PostDocumentRepository;
+import swyp.dodream.login.filter.OAuth2FrontendUrlFilter;
 
 @SpringBootTest(
     // 테스트 환경에서 외부 서비스 자동 설정 제외
@@ -31,6 +32,10 @@ class DodreamApplicationTests {
     // RedisMessageListenerContainer를 Mock으로 처리하여 Redis 연결 시도 방지
     @MockBean
     private RedisMessageListenerContainer redisMessageListenerContainer;
+
+    // OAuth2FrontendUrlFilter를 Mock으로 처리하여 테스트에서 제외
+    @MockBean
+    private OAuth2FrontendUrlFilter oAuth2FrontendUrlFilter;
 
     @Test
     void contextLoads() {
