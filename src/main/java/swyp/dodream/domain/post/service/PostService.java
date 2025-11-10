@@ -1,5 +1,6 @@
 package swyp.dodream.domain.post.service;
 
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -45,6 +46,7 @@ import swyp.dodream.domain.master.repository.TechSkillRepository;
 import swyp.dodream.domain.master.repository.InterestKeywordRepository;
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
