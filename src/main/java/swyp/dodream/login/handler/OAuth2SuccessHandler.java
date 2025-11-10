@@ -33,7 +33,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         try {
             log.info("OAuth2 로그인 성공 처리 시작");
             
-            // 쿠키에서 프론트엔드 URL 확인 (OAuth2 로그인 시작 시 전달된 경우)
+            // OAuth2FrontendUrlFilter에서 쿠키에 저장한 프론트엔드 URL 사용, 없으면 기본값 사용
             String frontendUrlFromCookie = getFrontendUrlFromCookie(request);
             String targetFrontendUrl = (frontendUrlFromCookie != null && !frontendUrlFromCookie.isEmpty()) 
                     ? frontendUrlFromCookie 
@@ -44,7 +44,9 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
                 throw new IllegalStateException("프론트엔드 URL이 설정되지 않았습니다.");
             }
             
-            log.info("프론트엔드 URL: {} (쿠키: {})", targetFrontendUrl, frontendUrlFromCookie != null ? "있음" : "없음");
+            log.info("프론트엔드 URL: {} (쿠키: {})", 
+                    targetFrontendUrl, 
+                    frontendUrlFromCookie != null ? "있음" : "없음(기본값 사용)");
             
             OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
             
