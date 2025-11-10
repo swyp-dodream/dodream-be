@@ -5,7 +5,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
@@ -21,8 +20,8 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
-    @Value("${frontend.url}")
-    private String frontendUrl;
+    // 기본 프론트엔드 URL (쿠키에서 가져오지 못할 경우 사용)
+    private static final String DEFAULT_FRONTEND_URL = "https://dodream.store";
 
     private final JwtUtil jwtUtil;
     private final TokenService tokenService;
@@ -37,12 +36,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
             String frontendUrlFromCookie = getFrontendUrlFromCookie(request);
             String targetFrontendUrl = (frontendUrlFromCookie != null && !frontendUrlFromCookie.isEmpty()) 
                     ? frontendUrlFromCookie 
-                    : frontendUrl;
-            
-            if (targetFrontendUrl == null || targetFrontendUrl.isEmpty()) {
-                log.error("프론트엔드 URL이 설정되지 않았습니다. frontend.url 프로퍼티를 확인하세요.");
-                throw new IllegalStateException("프론트엔드 URL이 설정되지 않았습니다.");
-            }
+                    : DEFAULT_FRONTEND_URL;
             
             log.info("프론트엔드 URL: {} (쿠키: {})", 
                     targetFrontendUrl, 

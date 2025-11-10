@@ -17,7 +17,6 @@ import swyp.dodream.login.handler.OAuth2SuccessHandler;
 import swyp.dodream.login.service.CustomOAuth2UserService;
 
 import java.util.Arrays;
-import java.util.List;
 import java.util.stream.Stream;
 
 @Configuration
@@ -104,16 +103,18 @@ public class SecurityConfig {
 
     /**
      * CORS 설정
-     * 프론트엔드 도메인(https://dodream.store)에서의 요청을 허용
+     * 프론트엔드 도메인에서의 요청을 허용
      */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
         // 허용할 Origin (프론트엔드 도메인)
-        configuration.setAllowedOrigins(List.of(
+        configuration.setAllowedOrigins(Arrays.asList(
+                "http://localhost:3000",
                 "https://dodream.store",
-                "https://www.dodream.store"
+                "https://www.dodream.store",
+                "https://dev.dodream.store"
         ));
         
         // 허용할 HTTP 메서드
