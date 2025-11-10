@@ -47,12 +47,17 @@ public class OAuth2FrontendUrlFilter extends OncePerRequestFilter {
                 return;
             }
 
-            // Origin 헤더에서 프론트엔드 URL 추출 시도
+            // 프론트엔드 URL 추출 우선순위: Origin > Referer > Host 헤더 기반 추론
             String frontendUrl = extractFrontendUrlFromOrigin(request);
             
             // Origin이 없으면 Referer에서 추출 시도
             if (frontendUrl == null || frontendUrl.isEmpty()) {
                 frontendUrl = extractFrontendUrlFromReferer(request);
+            }
+            
+            // Origin과 Referer가 모두 없으면 Host 헤더 기반으로 추론
+            if (frontendUrl == null || frontendUrl.isEmpty()) {
+                frontendUrl = inferFrontendUrlFromHost(request);
             }
 
             // 프론트엔드 URL을 찾았으면 쿠키에 저장
@@ -65,12 +70,12 @@ public class OAuth2FrontendUrlFilter extends OncePerRequestFilter {
                     cookie.setSecure(request.isSecure()); // HTTPS인 경우에만 secure
                     response.addCookie(cookie);
 
-                    log.info("OAuth2 프론트엔드 URL 자동 감지 및 쿠키 저장: {} (Origin/Referer에서 추출)", frontendUrl);
+                    log.info("OAuth2 프론트엔드 URL 자동 감지 및 쿠키 저장: {} (Origin/Referer/Host에서 추출)", frontendUrl);
                 } catch (Exception e) {
                     log.warn("프론트엔드 URL 쿠키 저장 실패: {}", e.getMessage());
                 }
             } else {
-                log.debug("프론트엔드 URL을 자동으로 감지할 수 없음 (Origin/Referer 헤더 없음)");
+                log.debug("프론트엔드 URL을 자동으로 감지할 수 없음 (Origin/Referer/Host 헤더 없음)");
             }
         }
 
@@ -131,6 +136,51 @@ public class OAuth2FrontendUrlFilter extends OncePerRequestFilter {
         }
     }
 
+    /**
+     * Host 헤더 기반으로 프론트엔드 URL 추론
+     * api.dodream.store -> dodream.store
+     * api.dev.dodream.store -> dev.dodream.store (만약 존재한다면)
+     */
+    private String inferFrontendUrlFromHost(HttpServletRequest request) {
+        String host = request.getHeader("Host");
+        if (host == null || host.trim().isEmpty()) {
+            host = request.getServerName();
+        }
+        
+        if (host == null || host.trim().isEmpty()) {
+            return null;
+        }
+        
+        try {
+            // api.dodream.store -> dodream.store
+            // api.dev.dodream.store -> dev.dodream.store
+            String frontendHost = host;
+            if (host.startsWith("api.")) {
+                frontendHost = host.substring(4); // "api." 제거
+            } else if (host.startsWith("api-")) {
+                // api-dev.dodream.store 같은 경우는 그대로 유지
+                frontendHost = host;
+            }
+            
+            // 프로토콜 결정 (요청이 HTTPS인지 확인)
+            String protocol = request.isSecure() || 
+                             request.getHeader("X-Forwarded-Proto") != null && 
+                             request.getHeader("X-Forwarded-Proto").equals("https") 
+                             ? "https" : "http";
+            
+            // 포트 확인
+            int port = request.getServerPort();
+            if (port != -1 && port != 80 && port != 443) {
+                return String.format("%s://%s:%d", protocol, frontendHost, port);
+            }
+            
+            return String.format("%s://%s", protocol, frontendHost);
+        } catch (Exception e) {
+            log.debug("Host 헤더에서 프론트엔드 URL 추론 실패: {}", host, e);
+            return null;
+        }
+    }
+    
     /**
      * 쿠키에서 프론트엔드 URL 가져오기
      */
