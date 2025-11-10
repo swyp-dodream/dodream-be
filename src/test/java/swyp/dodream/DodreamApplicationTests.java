@@ -12,6 +12,7 @@ import swyp.dodream.domain.search.repository.PostDocumentRepository;
     properties = {
         "spring.data.redis.host=localhost",
         "spring.data.redis.port=6379",
+        "spring.data.redis.repositories.enabled=false",  // Redis Repository 비활성화
         "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration,org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchClientAutoConfiguration,org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchDataAutoConfiguration,org.springframework.boot.autoconfigure.data.elasticsearch.ElasticsearchRepositoriesAutoConfiguration"
     }
 )

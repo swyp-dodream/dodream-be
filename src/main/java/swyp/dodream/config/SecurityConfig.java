@@ -32,8 +32,8 @@ public class SecurityConfig {
             "/oauth2/authorization/**",
             "/login/oauth2/code/**",
             "/api/auth/reissue",
+            "/api/auth/oauth2/authorize/**",  // OAuth2 로그인 시작 (쿠키 설정용)
             "/api/profiles/intro/ai-draft",
-            "/api/recommendations/**",  // 테스트용: 추천 API (게시글/프로필 모두)
             "/api/dev/**"  // 테스트용: 개발 시드 데이터 생성 API
     };
 

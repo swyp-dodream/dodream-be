@@ -109,6 +109,7 @@ public class RecommendationService {
             Map<Long, Double> postSimilarities, Long userId
     ) {
         List<RecommendationPostResponse> result = new ArrayList<>();
+        log.info("필터링 시작: postSimilarities 개수={}, userId={}", postSimilarities.size(), userId);
 
         for (Map.Entry<Long, Double> entry : postSimilarities.entrySet()) {
             Long postId = entry.getKey();
@@ -118,19 +119,24 @@ public class RecommendationService {
                     .orElse(null);
 
             if (post == null) {
+                log.debug("게시글을 찾을 수 없음: postId={}", postId);
                 continue;
             }
 
             // 필터링: 모집 중만, 본인 게시글 제외, 이미 지원한 글 제외
             if (!shouldIncludePost(post, userId)) {
+                log.debug("게시글 필터링 제외: postId={}, status={}, ownerId={}", 
+                        postId, post.getStatus(), post.getOwner().getId());
                 continue;
             }
 
             // 실제 유사도 점수 사용 (Qdrant에서 반환된 Cosine Similarity 점수)
             RecommendationPostResponse response = RecommendationPostResponse.from(post, similarity);
             result.add(response);
+            log.debug("게시글 추가: postId={}, similarity={}", postId, similarity);
         }
 
+        log.info("필터링 완료: 최종 추천 게시글 개수={}", result.size());
         return result;
     }
 
@@ -140,22 +146,26 @@ public class RecommendationService {
     private boolean shouldIncludePost(Post post, Long userId) {
         // 1. 모집 중인가?
         if (post.getStatus() != PostStatus.RECRUITING) {
+            log.debug("게시글 제외: 모집 중이 아님 - postId={}, status={}", post.getId(), post.getStatus());
             return false;
         }
 
         // 2. 마감일이 지나지 않았는가?
         if (post.getDeadlineAt() != null && post.getDeadlineAt().isBefore(LocalDateTime.now())) {
+            log.debug("게시글 제외: 마감일 지남 - postId={}, deadlineAt={}", post.getId(), post.getDeadlineAt());
             return false;
         }
 
         // 3. 본인이 작성한 글인가?
         if (post.getOwner().getId().equals(userId)) {
+            log.debug("게시글 제외: 본인 게시글 - postId={}, ownerId={}", post.getId(), post.getOwner().getId());
             return false;
         }
 
         // 4. 이미 지원한 글인가?
         User user = userRepository.findById(userId).orElse(null);
         if (user != null && applicationRepository.existsByPostAndApplicant(post, user)) {
+            log.debug("게시글 제외: 이미 지원함 - postId={}, userId={}", post.getId(), userId);
             return false;
         }
 

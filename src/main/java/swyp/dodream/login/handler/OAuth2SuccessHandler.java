@@ -1,5 +1,6 @@
 package swyp.dodream.login.handler;
 
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -32,12 +33,18 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         try {
             log.info("OAuth2 로그인 성공 처리 시작");
             
-            if (frontendUrl == null || frontendUrl.isEmpty()) {
+            // 쿠키에서 프론트엔드 URL 확인 (OAuth2 로그인 시작 시 전달된 경우)
+            String frontendUrlFromCookie = getFrontendUrlFromCookie(request);
+            String targetFrontendUrl = (frontendUrlFromCookie != null && !frontendUrlFromCookie.isEmpty()) 
+                    ? frontendUrlFromCookie 
+                    : frontendUrl;
+            
+            if (targetFrontendUrl == null || targetFrontendUrl.isEmpty()) {
                 log.error("프론트엔드 URL이 설정되지 않았습니다. frontend.url 프로퍼티를 확인하세요.");
                 throw new IllegalStateException("프론트엔드 URL이 설정되지 않았습니다.");
             }
             
-            log.info("프론트엔드 URL: {}", frontendUrl);
+            log.info("프론트엔드 URL: {} (쿠키: {})", targetFrontendUrl, frontendUrlFromCookie != null ? "있음" : "없음");
             
             OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
             
@@ -65,13 +72,16 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
             // 프론트엔드로 리다이렉트 (토큰을 쿼리 파라미터로 전달)
             String redirectUrl = String.format(
                     "%s/auth/callback?accessToken=%s&refreshToken=%s&userId=%d&email=%s&name=%s",
-                    frontendUrl,
+                    targetFrontendUrl,
                     accessToken,
                     refreshToken,
                     userId,
                     java.net.URLEncoder.encode(email, "UTF-8"),
                     java.net.URLEncoder.encode(name, "UTF-8")
             );
+            
+            // 쿠키 삭제 (사용 후 정리)
+            clearFrontendUrlCookie(response);
             
             log.info("프론트엔드로 리다이렉트: {}", redirectUrl.replaceAll("accessToken=[^&]*", "accessToken=***"));
             response.sendRedirect(redirectUrl);
@@ -85,6 +95,34 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
             response.setCharacterEncoding("UTF-8");
             response.getWriter().write("{\"error\":\"로그인 처리 중 오류가 발생했습니다.\"}");
         }
+    }
+    
+    /**
+     * 쿠키에서 프론트엔드 URL 가져오기
+     */
+    private String getFrontendUrlFromCookie(HttpServletRequest request) {
+        if (request.getCookies() == null) {
+            return null;
+        }
+        
+        for (Cookie cookie : request.getCookies()) {
+            if ("OAUTH2_FRONTEND_URL".equals(cookie.getName())) {
+                return cookie.getValue();
+            }
+        }
+        
+        return null;
+    }
+    
+    /**
+     * 프론트엔드 URL 쿠키 삭제
+     */
+    private void clearFrontendUrlCookie(HttpServletResponse response) {
+        Cookie cookie = new Cookie("OAUTH2_FRONTEND_URL", "");
+        cookie.setPath("/");
+        cookie.setMaxAge(0);
+        cookie.setHttpOnly(true);
+        response.addCookie(cookie);
     }
 }
 
