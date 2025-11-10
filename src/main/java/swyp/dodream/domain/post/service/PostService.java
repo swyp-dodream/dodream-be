@@ -134,7 +134,7 @@ public class PostService {
                 PostDocument.builder()
                         .id(post.getId())
                         .title(post.getTitle())
-                        .content(post.getContent())
+                        .description(post.getContent())
                         .build()
         );
 
@@ -290,7 +290,7 @@ public class PostService {
                 PostDocument.builder()
                         .id(post.getId())
                         .title(post.getTitle())
-                        .content(post.getContent())
+                        .description(post.getContent())
                         .build()
         );
 
@@ -326,7 +326,7 @@ public class PostService {
                 PostDocument.builder()
                         .id(post.getId())
                         .title(post.getTitle())
-                        .content(post.getContent())
+                        .description(post.getContent())
                         .build()
         );
     }
