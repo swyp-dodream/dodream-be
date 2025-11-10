@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.test.context.ActiveProfiles;
 import swyp.dodream.domain.search.repository.PostDocumentRepository;
 
@@ -26,6 +27,10 @@ class DodreamApplicationTests {
     // CI/CD 환경에서 실제 Redis 연결을 시도하지 않도록 Mock 객체로 대체하기
     @MockBean
     private RedisTemplate<String, String> redisTemplate;
+
+    // RedisMessageListenerContainer를 Mock으로 처리하여 Redis 연결 시도 방지
+    @MockBean
+    private RedisMessageListenerContainer redisMessageListenerContainer;
 
     @Test
     void contextLoads() {
