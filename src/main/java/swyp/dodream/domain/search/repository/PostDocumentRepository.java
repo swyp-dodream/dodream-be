@@ -13,18 +13,18 @@ public interface PostDocumentRepository extends ElasticsearchRepository<PostDocu
               "bool": {
                 "should": [
                   { "match": { "title": "?0" } },
-                  { "match": { "content": "?0" } }
+                  { "match": { "description": "?0" } }
                 ]
               }
             }
             """)
-    List<PostDocument> searchByTitleOrContent(String keyword);
+    List<PostDocument> searchByTitleOrDescription(String keyword);
 
     @Query("""
             {
               "multi_match": {
                 "query": "?0",
-                "fields": ["title", "content"],
+                "fields": ["title", "description"],
                 "operator": "or",
                 "fuzziness": "AUTO"
               }
@@ -32,4 +32,3 @@ public interface PostDocumentRepository extends ElasticsearchRepository<PostDocu
             """)
     List<PostDocument> searchWithFuzzy(String keyword);
 }
-

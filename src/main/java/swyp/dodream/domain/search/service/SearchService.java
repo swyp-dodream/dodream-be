@@ -18,7 +18,7 @@ public class SearchService {
 
     public List<PostResponse> searchPosts(String keyword) {
 
-        List<PostDocument> docs = postDocumentRepository.searchWithFuzzy(keyword);
+        List<PostDocument> docs = postDocumentRepository.searchByTitleOrDescription(keyword);
 
         return docs.stream()
                 .map(doc -> postRepository.findById(doc.getId())
