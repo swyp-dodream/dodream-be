@@ -1,6 +1,5 @@
 package swyp.dodream.login.handler;
 
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +19,7 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
-    // 기본 프론트엔드 URL (쿠키에서 가져오지 못할 경우 사용)
+    // 기본 프론트엔드 URL (호스트에서 결정 실패 시)
     private static final String DEFAULT_FRONTEND_URL = "https://dodream.store";
 
     private final JwtUtil jwtUtil;
@@ -32,15 +31,9 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         try {
             log.info("OAuth2 로그인 성공 처리 시작");
             
-            // OAuth2FrontendUrlFilter에서 쿠키에 저장한 프론트엔드 URL 사용, 없으면 기본값 사용
-            String frontendUrlFromCookie = getFrontendUrlFromCookie(request);
-            String targetFrontendUrl = (frontendUrlFromCookie != null && !frontendUrlFromCookie.isEmpty()) 
-                    ? frontendUrlFromCookie 
-                    : DEFAULT_FRONTEND_URL;
-            
-            log.info("프론트엔드 URL: {} (쿠키: {})", 
-                    targetFrontendUrl, 
-                    frontendUrlFromCookie != null ? "있음" : "없음(기본값 사용)");
+            // 프론트엔드 URL을 요청 호스트 기반으로 결정
+            String targetFrontendUrl = resolveFrontendUrl(request);
+            log.info("프론트엔드 URL 결정: {}", targetFrontendUrl);
             
             OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
             
@@ -76,9 +69,6 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
                     java.net.URLEncoder.encode(name, "UTF-8")
             );
             
-            // 쿠키 삭제 (사용 후 정리)
-            clearFrontendUrlCookie(response);
-            
             log.info("프론트엔드로 리다이렉트: {}", redirectUrl.replaceAll("accessToken=[^&]*", "accessToken=***"));
             response.sendRedirect(redirectUrl);
             log.info("OAuth2 로그인 성공 처리 완료");
@@ -93,32 +83,35 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         }
     }
     
-    /**
-     * 쿠키에서 프론트엔드 URL 가져오기
-     */
-    private String getFrontendUrlFromCookie(HttpServletRequest request) {
-        if (request.getCookies() == null) {
-            return null;
-        }
-        
-        for (Cookie cookie : request.getCookies()) {
-            if ("OAUTH2_FRONTEND_URL".equals(cookie.getName())) {
-                return cookie.getValue();
+
+    private String resolveFrontendUrl(HttpServletRequest request) {
+        try {
+            String forwardedHost = request.getHeader("X-Forwarded-Host");
+            String referer = request.getHeader("Referer");
+            // dev 환경: dev.dodream.store에서 시작된 흐름은 항상 dev.dodream.store로 리다이렉트
+            if ((forwardedHost != null && forwardedHost.contains("dev.dodream.store")) ||
+                (referer != null && referer.contains("dev.dodream.store")) ||
+                ("dev.dodream.store".equalsIgnoreCase(request.getServerName()))) {
+                return "https://dev.dodream.store";
             }
+            String host = (forwardedHost != null && !forwardedHost.isBlank())
+                    ? forwardedHost
+                    : request.getServerName() + (request.getServerPort() > 0 ? ":" + request.getServerPort() : "");
+
+            if (host.startsWith("localhost")) {
+                return "http://localhost:3000";
+            }
+            if (host.startsWith("api.")) {
+                String base = host.substring(4);
+                int colon = base.indexOf(':');
+                if (colon > 0) {
+                    base = base.substring(0, colon);
+                }
+                return "https://" + base;
+            }
+        } catch (Exception ignored) {
         }
-        
-        return null;
-    }
-    
-    /**
-     * 프론트엔드 URL 쿠키 삭제
-     */
-    private void clearFrontendUrlCookie(HttpServletResponse response) {
-        Cookie cookie = new Cookie("OAUTH2_FRONTEND_URL", "");
-        cookie.setPath("/");
-        cookie.setMaxAge(0);
-        cookie.setHttpOnly(true);
-        response.addCookie(cookie);
+        return DEFAULT_FRONTEND_URL;
     }
 }
 
