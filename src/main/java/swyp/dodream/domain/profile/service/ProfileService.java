@@ -460,4 +460,12 @@ public class ProfileService {
             log.warn("프로필 벡터 저장 실패 (무시됨): profileId={}, error={}", profile.getId(), e.getMessage());
         }
     }
+
+    @Transactional(readOnly = true)
+    public boolean existsNickname(String nickname) {
+        if (nickname == null || nickname.trim().isEmpty()) {
+            throw new CustomException(ExceptionType.BAD_REQUEST_INVALID);
+        }
+        return profileRepository.existsByNickname(nickname.trim());
+    }
 }

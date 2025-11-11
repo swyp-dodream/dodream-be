@@ -16,6 +16,7 @@ import swyp.dodream.domain.profile.dto.request.AccountSettingsUpdateRequest;
 import swyp.dodream.domain.profile.dto.request.ProfileCreateRequest;
 import swyp.dodream.domain.profile.dto.request.ProfileMyPageUpdateRequest;
 import swyp.dodream.domain.profile.dto.response.AccountSettingsResponse;
+import swyp.dodream.domain.profile.dto.response.NicknameCheckResponse;
 import swyp.dodream.domain.profile.dto.response.ProfileMyPageResponse;
 import swyp.dodream.domain.profile.dto.response.ProfileResponse;
 import swyp.dodream.domain.profile.service.ProfileService;
@@ -215,6 +216,20 @@ public class ProfileController {
 
         ProfileMyPageResponse response = profileService.getApplicantProfile(
                 requesterId, userId, postId);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(
+            summary = "닉네임 중복 체크",
+            description = "입력한 닉네임이 이미 존재하는지 확인"
+    )
+    @GetMapping("/check-nickname")
+    public ResponseEntity<NicknameCheckResponse> checkNickname(
+            @Parameter(description = "중복 여부를 확인할 닉네임", example = "현우")
+            @RequestParam("nickname") String nickname
+    ) {
+        boolean exists = profileService.existsNickname(nickname);
+        NicknameCheckResponse response = new NicknameCheckResponse(!exists, nickname);
         return ResponseEntity.ok(response);
     }
 }
