@@ -101,35 +101,35 @@ public class ApplicationService {
 
 
     /**
-     * 내가 매칭된 글 목록 조회
+     * 내가 매칭된 글 목록 조회 (페이지네이션)
      *
      * @param userId 유저 ID
-     * @param cursor 커서 (다음 페이지용)
-     * @param size 페이지 크기
-     * @return 매칭된 글 목록
+     * @param page   페이지 번호
+     * @param size   페이지 크기
      */
-    public MyApplicationListResponse getMyMatched(Long userId, Long cursor, Integer size) {
-        // 1. 매칭 목록 조회
-        Slice<Matched> matched;
-        if (cursor == null) {
-            matched = matchedRepository.findMatchedByUser(
-                    userId, PageRequest.of(0, size));
-        } else {
-            matched = matchedRepository.findMatchedByUserAfterCursor(
-                    userId, cursor, PageRequest.of(0, size));
-        }
+    public MyApplicationPageResponse getMyMatched(Long userId, int page, int size) {
+
+        PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "matchedAt"));
+
+        // 1. 매칭 목록 조회 (Page)
+        Page<Matched> matchedPage = matchedRepository.findMatchedByUser(userId, pageable);
 
         // 2. DTO 변환
-        List<MyApplicationResponse> responses = matched.getContent().stream()
+        List<MyApplicationResponse> contents = matchedPage.getContent().stream()
                 .map(MyApplicationResponse::fromMatched)
-                .collect(Collectors.toList());
+                .toList();
 
-        // 3. nextCursor 계산
-        Long nextCursor = matched.getContent().isEmpty() ? null :
-                matched.getContent().get(matched.getContent().size() - 1).getId();
-
-        return MyApplicationListResponse.of(responses, nextCursor, matched.hasNext());
+        // 3. 페이지 응답으로 감싸서 반환
+        return MyApplicationPageResponse.of(
+                contents,
+                matchedPage.getNumber(),
+                matchedPage.getSize(),
+                matchedPage.getTotalElements(),
+                matchedPage.getTotalPages(),
+                matchedPage.hasNext()
+        );
     }
+
 
     /**
      * 내 지원 상세 정보 조회

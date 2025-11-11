@@ -5,6 +5,7 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import swyp.dodream.common.entity.BaseEntity;
 import swyp.dodream.domain.application.domain.Application;
 import swyp.dodream.domain.post.common.CancelBy;
 import swyp.dodream.domain.post.common.CancelReasonCode;
