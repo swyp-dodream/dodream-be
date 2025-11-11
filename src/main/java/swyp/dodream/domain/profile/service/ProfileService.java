@@ -51,7 +51,6 @@ public class ProfileService {
     private final TechSkillRepository techSkillRepository;
     private final ProposalNotificationRepository proposalNotificationRepository;
     private final SnowflakeIdService snowflakeIdService;
-    private final ProfileUrlRepository profileUrlRepository;
     private final UserRepository userRepository;
     private final PostRepository postRepository;
     private final ApplicationRepository applicationRepository;
@@ -460,4 +459,19 @@ public class ProfileService {
             log.warn("프로필 벡터 저장 실패 (무시됨): profileId={}, error={}", profile.getId(), e.getMessage());
         }
     }
+
+    @Transactional(readOnly = true)
+    public boolean existsNickname(String nickname) {
+        if (nickname == null || nickname.trim().isEmpty()) {
+            throw new CustomException(ExceptionType.BAD_REQUEST_INVALID);
+        }
+        return profileRepository.existsByNickname(nickname.trim());
+    }
+
+    @Transactional(readOnly = true)
+    public boolean hasProfile(Long userId) {
+        validateActiveUser(userId);
+        return profileRepository.existsByUserId(userId);
+    }
+
 }

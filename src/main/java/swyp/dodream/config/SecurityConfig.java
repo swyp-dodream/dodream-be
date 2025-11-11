@@ -2,6 +2,7 @@ package swyp.dodream.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -44,8 +45,8 @@ public class SecurityConfig {
     };
 
     public SecurityConfig(CustomOAuth2UserService customOAuth2UserService,
-                         OAuth2SuccessHandler oAuth2SuccessHandler,
-                         JwtUtil jwtUtil) {
+                          OAuth2SuccessHandler oAuth2SuccessHandler,
+                          JwtUtil jwtUtil) {
         this.customOAuth2UserService = customOAuth2UserService;
         this.oAuth2SuccessHandler = oAuth2SuccessHandler;
         this.jwtUtil = jwtUtil;
@@ -55,36 +56,45 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         // JWT 인증 필터 생성
         JwtAuthenticationFilter jwtFilter = new JwtAuthenticationFilter(jwtUtil);
-        
+
         http
                 // CSRF 비활성화 (REST API용)
                 .csrf(csrf -> csrf.disable())
-                
+
                 // CORS 설정
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                
+
                 // 세션 사용하지 않음 (JWT 사용)
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
-                
+
                 // JWT 인증 필터 추가
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
-                
+
                 // 프론트엔드 URL 필터 제거 (SuccessHandler에서 처리)
-                
+
                 // 요청 권한 설정
                 .authorizeHttpRequests(auth -> auth
-                        // WHITE_LIST에 있는 URL은 인증 없이 접근 가능
+                        // 비회원 허용 (GET 전용)
+                        .requestMatchers(HttpMethod.GET, "/api/home").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/policies/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/search/posts").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/posts").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/posts/**").permitAll()
+
+                        // 화이트리스트 (로그인/인증/Swagger 등)
                         .requestMatchers(
                                 Stream.of(WHITE_LIST, WHITE_LIST_SWAGGER)
                                         .flatMap(Arrays::stream)
                                         .toArray(String[]::new)
                         ).permitAll()
-                        // 나머지 요청은 인증 필요
+
+                        // 나머지 요청은 로그인 필요
                         .anyRequest().authenticated()
                 )
-                
+
+
                 // OAuth2 로그인 설정
                 .oauth2Login(oauth2 -> oauth2
                         .userInfoEndpoint(userInfo -> userInfo
@@ -103,7 +113,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        
+
         // 허용할 Origin (프론트엔드 도메인)
         configuration.setAllowedOrigins(Arrays.asList(
                 "http://localhost:3000",
@@ -111,12 +121,12 @@ public class SecurityConfig {
                 "https://www.dodream.store",
                 "https://dev.dodream.store"
         ));
-        
+
         // 허용할 HTTP 메서드
         configuration.setAllowedMethods(Arrays.asList(
                 "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"
         ));
-        
+
         // 허용할 헤더
         configuration.setAllowedHeaders(Arrays.asList(
                 "Authorization",
@@ -127,24 +137,22 @@ public class SecurityConfig {
                 "Access-Control-Request-Method",
                 "Access-Control-Request-Headers"
         ));
-        
+
         // 인증 정보(쿠키, Authorization 헤더 등) 허용
         configuration.setAllowCredentials(true);
-        
+
         // Preflight 요청의 결과를 캐시할 시간(초)
         configuration.setMaxAge(3600L);
-        
+
         // 응답 헤더에 노출할 헤더
         configuration.setExposedHeaders(Arrays.asList(
                 "Authorization",
                 "Content-Type"
         ));
-        
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
-        
+
         return source;
     }
 }
-
-

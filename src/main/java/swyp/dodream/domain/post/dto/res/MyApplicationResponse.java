@@ -8,6 +8,7 @@ import swyp.dodream.domain.post.domain.Suggestion;
 import swyp.dodream.domain.user.domain.User;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Builder
 public record MyApplicationResponse(
@@ -20,16 +21,19 @@ public record MyApplicationResponse(
     String leaderName,
     String leaderProfileImage,
     String myStatus,           // PENDING, ACCEPTED, REJECTED
-    LocalDateTime appliedAt
+    LocalDateTime appliedAt,
+    List<String> roles,
+    List<String> stacks,
+    Long viewCount
 ) {
-    
+
     /**
      * Application → MyApplicationResponse
      */
     public static MyApplicationResponse fromApplication(Application application) {
         Post post = application.getPost();
         User leader = post.getOwner();
-        
+
         return MyApplicationResponse.builder()
             .id(application.getId())
             .postId(post.getId())
@@ -41,16 +45,29 @@ public record MyApplicationResponse(
             .leaderProfileImage(leader.getProfileImageUrl())
             .myStatus("PENDING")  // 지원 상태
             .appliedAt(application.getCreatedAt())
+            .roles(
+                    post.getRoleRequirements().stream()
+                            .map(pr -> pr.getRole().getName())       // PostRole → Role → name
+                            .toList()
+            )
+            .stacks(
+                    post.getStacks().stream()
+                            .map(ps -> ps.getTechSkill().getName())  // PostStack → TechSkill → name
+                            .toList()
+            )
+            .viewCount(
+                    post.getPostView() != null ? post.getPostView().getViews() : 0L
+            )
             .build();
     }
-    
+
     /**
      * Suggestion → MyApplicationResponse
      */
     public static MyApplicationResponse fromSuggestion(Suggestion suggestion) {
         Post post = suggestion.getPost();
         User leader = post.getOwner();
-        
+
         return MyApplicationResponse.builder()
             .id(suggestion.getId())
             .postId(post.getId())
@@ -62,16 +79,29 @@ public record MyApplicationResponse(
             .leaderProfileImage(leader.getProfileImageUrl())
             .myStatus("SUGGESTED")  // 제안받음
             .appliedAt(suggestion.getCreatedAt())
+            .roles(
+                    post.getRoleRequirements().stream()
+                            .map(pr -> pr.getRole().getName())
+                            .toList()
+            )
+            .stacks(
+                    post.getStacks().stream()
+                            .map(ps -> ps.getTechSkill().getName())
+                            .toList()
+            )
+            .viewCount(
+                    post.getPostView() != null ? post.getPostView().getViews() : 0L
+            )
             .build();
     }
-    
+
     /**
      * Matched → MyApplicationResponse
      */
     public static MyApplicationResponse fromMatched(Matched matched) {
         Post post = matched.getPost();
         User leader = post.getOwner();
-        
+
         return MyApplicationResponse.builder()
             .id(matched.getId())
             .postId(post.getId())
@@ -83,6 +113,19 @@ public record MyApplicationResponse(
             .leaderProfileImage(leader.getProfileImageUrl())
             .myStatus("ACCEPTED")  // 수락됨
             .appliedAt(matched.getMatchedAt())
+            .roles(
+                    post.getRoleRequirements().stream()
+                            .map(pr -> pr.getRole().getName())
+                            .toList()
+            )
+            .stacks(
+                    post.getStacks().stream()
+                            .map(ps -> ps.getTechSkill().getName())
+                            .toList()
+            )
+            .viewCount(
+                    post.getPostView() != null ? post.getPostView().getViews() : 0L
+            )
             .build();
     }
 }

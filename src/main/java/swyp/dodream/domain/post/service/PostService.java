@@ -69,8 +69,7 @@ public class PostService {
     private final PostDocumentRepository postDocumentRepository;
     private final SuggestionRepository suggestionRepository;
     private final NotificationService notificationService;
-    
-    
+
     // 벡터 임베딩 관련 (옵션) - NCP 배포 시에만 활성화
     private final Optional<EmbeddingService> embeddingService;
     private final Optional<VectorRepository> vectorRepository;
@@ -166,7 +165,7 @@ public class PostService {
 
             // Qdrant에 저장 (payload 포함)
             vectorRepository.get().upsertVector(post.getId(), embedding, payload);
-            
+
         } catch (Exception e) {
             // 임베딩 실패 시 로깅만 (게시글 생성은 정상 완료)
             // TODO: 로깅
@@ -228,7 +227,7 @@ public class PostService {
             post.closeRecruitment();
         }
 
-        boolean isOwner = post.getOwner().getId().equals(userId);
+        boolean isOwner = userId != null && post.getOwner().getId().equals(userId);
         return PostResponse.from(post, isOwner);
     }
 
@@ -401,7 +400,7 @@ public class PostService {
             }
         }
     }
-    
+
     private void connectStacks(PostRequest request, Post post) {
         if (request.getStackIds() != null) {
             for (Long stackId : request.getStackIds()) {
@@ -412,7 +411,7 @@ public class PostService {
             }
         }
     }
-    
+
     private void connectFields(PostRequest request, Post post) {
         if (request.getCategoryIds() != null) {
             for (Long keywordId : request.getCategoryIds()) {
@@ -423,7 +422,6 @@ public class PostService {
             }
         }
     }
-    
 
     @Transactional(readOnly = true)
     public Page<PostResponse> getPosts(PostSortType sortType, Pageable pageable) {

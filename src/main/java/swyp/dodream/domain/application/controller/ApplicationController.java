@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import swyp.dodream.domain.post.dto.res.MyApplicationDetailResponse;
 import swyp.dodream.domain.post.dto.res.MyApplicationListResponse;
 import swyp.dodream.domain.application.service.ApplicationService;
+import swyp.dodream.domain.post.dto.res.MyApplicationPageResponse;
 import swyp.dodream.jwt.dto.UserPrincipal;
 
 @RestController
@@ -49,76 +50,79 @@ public class ApplicationController {
     }
 
     @Operation(
-            summary = "내가 지원한 글 조회",
-            description = "내가 지원한 모집글 목록을 조회합니다 (무한 스크롤)"
+            summary = "내가 지원한 글 목록 조회",
+            description = "내가 지원한 모집글 목록을 조회합니다 (페이지네이션)"
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "조회 성공"),
             @ApiResponse(responseCode = "401", description = "인증 필요")
     })
     @GetMapping("/applications")
-    public ResponseEntity<MyApplicationListResponse> getMyApplications(
+    public ResponseEntity<MyApplicationPageResponse> getMyApplications(
             Authentication authentication,
 
-            @Parameter(name = "cursor", description = "다음 페이지 커서")
-            @RequestParam(required = false) Long cursor,
+            @Parameter(name = "page", description = "페이지 번호 (0부터 시작)", example = "0")
+            @RequestParam(defaultValue = "0") int page,
 
             @Parameter(name = "size", description = "페이지 크기 (기본 10개)")
-            @RequestParam(defaultValue = "10") Integer size
+            @RequestParam(defaultValue = "10") int size
     ) {
         UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
-        MyApplicationListResponse response = applicationService.getMyApplications(
-                userPrincipal.getUserId(), cursor, size);
+        MyApplicationPageResponse response = applicationService.getMyApplications(
+                userPrincipal.getUserId(), page, size);
         return ResponseEntity.ok(response);
     }
 
+
     @Operation(
-            summary = "내가 제안받은 글 조회",
-            description = "리더가 나에게 제안한 모집글 목록을 조회합니다 (무한 스크롤)"
+            summary = "내가 제안 받은 글 목록 조회",
+            description = "리더가 나에게 제안한 모집글 목록을 조회합니다 (페이지네이션)"
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "조회 성공"),
             @ApiResponse(responseCode = "401", description = "인증 필요")
     })
     @GetMapping("/suggestions")
-    public ResponseEntity<MyApplicationListResponse> getMySuggestions(
+    public ResponseEntity<MyApplicationPageResponse> getMySuggestions(
             Authentication authentication,
 
-            @Parameter(name = "cursor", description = "다음 페이지 커서")
-            @RequestParam(required = false) Long cursor,
+            @Parameter(name = "page", description = "페이지 번호 (0부터 시작)", example = "0")
+            @RequestParam(defaultValue = "0") int page,
 
             @Parameter(name = "size", description = "페이지 크기 (기본 10개)")
-            @RequestParam(defaultValue = "10") Integer size
+            @RequestParam(defaultValue = "10") int size
     ) {
         UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
-        MyApplicationListResponse response = applicationService.getMySuggestions(
-                userPrincipal.getUserId(), cursor, size);
+        MyApplicationPageResponse response = applicationService.getMySuggestions(
+                userPrincipal.getUserId(), page, size);
         return ResponseEntity.ok(response);
     }
 
+
     @Operation(
-            summary = "내가 매칭된 글 조회",
-            description = "내가 수락되어 참여 중인 모집글 목록을 조회합니다 (무한 스크롤)"
+            summary = "내가 매칭된 글 목록 조회",
+            description = "내가 수락되어 참여 중인 모집글 목록을 조회합니다 (페이지네이션)"
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "조회 성공"),
             @ApiResponse(responseCode = "401", description = "인증 필요")
     })
     @GetMapping("/matched")
-    public ResponseEntity<MyApplicationListResponse> getMyMatched(
+    public ResponseEntity<MyApplicationPageResponse> getMyMatched(
             Authentication authentication,
 
-            @Parameter(name = "cursor", description = "다음 페이지 커서")
-            @RequestParam(required = false) Long cursor,
+            @Parameter(name = "page", description = "페이지 번호 (0부터 시작)", example = "0")
+            @RequestParam(defaultValue = "0") int page,
 
             @Parameter(name = "size", description = "페이지 크기 (기본 10개)")
-            @RequestParam(defaultValue = "10") Integer size
+            @RequestParam(defaultValue = "10") int size
     ) {
         UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
-        MyApplicationListResponse response = applicationService.getMyMatched(
-                userPrincipal.getUserId(), cursor, size);
+        MyApplicationPageResponse response = applicationService.getMyMatched(
+                userPrincipal.getUserId(), page, size);
         return ResponseEntity.ok(response);
     }
+
 
     @Operation(
             summary = "내 지원 상세 조회",
