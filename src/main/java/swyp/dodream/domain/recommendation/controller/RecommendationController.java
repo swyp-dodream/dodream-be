@@ -122,7 +122,6 @@ public class RecommendationController {
         if (authentication == null) {
             throw ExceptionType.UNAUTHORIZED_NO_AUTHENTICATION.of();
         }
-        
         UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
         Long userId = userPrincipal.getUserId();
         
