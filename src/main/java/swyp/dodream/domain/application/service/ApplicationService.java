@@ -1,8 +1,10 @@
 package swyp.dodream.domain.application.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import swyp.dodream.common.exception.CustomException;
@@ -14,6 +16,7 @@ import swyp.dodream.domain.matched.domain.Matched;
 import swyp.dodream.domain.post.domain.Suggestion;
 import swyp.dodream.domain.post.dto.res.MyApplicationDetailResponse;
 import swyp.dodream.domain.post.dto.res.MyApplicationListResponse;
+import swyp.dodream.domain.post.dto.res.MyApplicationPageResponse;
 import swyp.dodream.domain.post.dto.res.MyApplicationResponse;
 import swyp.dodream.domain.application.repository.ApplicationRepository;
 import swyp.dodream.domain.matched.repository.MatchedRepository;
@@ -33,35 +36,38 @@ public class ApplicationService {
     private final SnowflakeIdService snowflakeIdService;
 
     /**
-     * 내가 지원한 글 목록 조회
+     * 내가 지원한 글 목록 조회 (페이지네이션)
      *
      * @param userId 유저 ID
-     * @param cursor 커서 (다음 페이지용)
-     * @param size 페이지 크기
-     * @return 지원한 글 목록
+     * @param page   페이지 번호 (0부터)
+     * @param size   페이지 크기
      */
-    public MyApplicationListResponse getMyApplications(Long userId, Long cursor, Integer size) {
-        // 1. 지원 목록 조회
-        Slice<Application> applications;
-        if (cursor == null) {
-            applications = applicationRepository.findApplicationsByUser(
-                    userId, PageRequest.of(0, size));
-        } else {
-            applications = applicationRepository.findApplicationsByUserAfterCursor(
-                    userId, cursor, PageRequest.of(0, size));
-        }
+    public MyApplicationPageResponse getMyApplications(Long userId, int page, int size) {
+
+        PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
+
+        // 1. 지원 목록 조회 (Page로)
+        Page<Application> applications = applicationRepository.findApplicationsByUser(
+                userId,
+                pageable
+        );
 
         // 2. DTO 변환
-        List<MyApplicationResponse> responses = applications.getContent().stream()
+        List<MyApplicationResponse> contents = applications.getContent().stream()
                 .map(MyApplicationResponse::fromApplication)
-                .collect(Collectors.toList());
+                .toList();
 
-        // 3. nextCursor 계산
-        Long nextCursor = applications.getContent().isEmpty() ? null :
-                applications.getContent().get(applications.getContent().size() - 1).getId();
-
-        return MyApplicationListResponse.of(responses, nextCursor, applications.hasNext());
+        // 3. 페이지 정보 묶어서 반환
+        return MyApplicationPageResponse.of(
+                contents,
+                applications.getNumber(),        // 현재 페이지
+                applications.getSize(),          // 페이지 크기
+                applications.getTotalElements(), // 전체 개수
+                applications.getTotalPages(),    // 전체 페이지 수
+                applications.hasNext()           // 다음 페이지 있는지
+        );
     }
+
 
     /**
      * 내가 제안받은 글 목록 조회
