@@ -83,15 +83,17 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         }
     }
     
-    /**
-     * 요청 호스트로부터 프론트엔드 URL을 결정
-     * - localhost:8080 -> http://localhost:3000
-     * - api.{domain} -> https://{domain}
-     * - 그 외 -> DEFAULT_FRONTEND_URL
-     */
+
     private String resolveFrontendUrl(HttpServletRequest request) {
         try {
             String forwardedHost = request.getHeader("X-Forwarded-Host");
+            String referer = request.getHeader("Referer");
+            // dev 환경: dev.dodream.store에서 시작된 흐름은 항상 dev.dodream.store로 리다이렉트
+            if ((forwardedHost != null && forwardedHost.contains("dev.dodream.store")) ||
+                (referer != null && referer.contains("dev.dodream.store")) ||
+                ("dev.dodream.store".equalsIgnoreCase(request.getServerName()))) {
+                return "https://dev.dodream.store";
+            }
             String host = (forwardedHost != null && !forwardedHost.isBlank())
                     ? forwardedHost
                     : request.getServerName() + (request.getServerPort() > 0 ? ":" + request.getServerPort() : "");
@@ -101,7 +103,6 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
             }
             if (host.startsWith("api.")) {
                 String base = host.substring(4);
-                // 포트 제거
                 int colon = base.indexOf(':');
                 if (colon > 0) {
                     base = base.substring(0, colon);
