@@ -15,10 +15,7 @@ import swyp.dodream.domain.ai.service.AiDraftService;
 import swyp.dodream.domain.profile.dto.request.AccountSettingsUpdateRequest;
 import swyp.dodream.domain.profile.dto.request.ProfileCreateRequest;
 import swyp.dodream.domain.profile.dto.request.ProfileMyPageUpdateRequest;
-import swyp.dodream.domain.profile.dto.response.AccountSettingsResponse;
-import swyp.dodream.domain.profile.dto.response.NicknameCheckResponse;
-import swyp.dodream.domain.profile.dto.response.ProfileMyPageResponse;
-import swyp.dodream.domain.profile.dto.response.ProfileResponse;
+import swyp.dodream.domain.profile.dto.response.*;
 import swyp.dodream.domain.profile.service.ProfileService;
 import swyp.dodream.jwt.dto.UserPrincipal;
 
@@ -29,6 +26,8 @@ import swyp.dodream.jwt.dto.UserPrincipal;
 public class ProfileController {
 
     private final ProfileService profileService;
+    private final AiDraftService aiDraftService;
+
 
     @Operation(summary = "초기 프로필 생성", description = "온보딩을 통해 프로필을 생성합니다")
     @PostMapping
@@ -183,8 +182,6 @@ public class ProfileController {
         return ResponseEntity.ok(response);
     }
 
-    private final AiDraftService aiDraftService;
-
     @Operation(summary = "AI 자기소개 초안 생성", description = "프로필 데이터 기반으로 200자 이내 자기소개 초안을 생성합니다.")
     @PostMapping("/intro/ai-draft")
     public ResponseEntity<String> generateIntro(@Valid @RequestBody IntroAiDraftRequest request) {
@@ -231,5 +228,24 @@ public class ProfileController {
         boolean exists = profileService.existsNickname(nickname);
         NicknameCheckResponse response = new NicknameCheckResponse(!exists, nickname);
         return ResponseEntity.ok(response);
+    }
+
+    @Operation(
+            summary = "내 프로필 존재 여부 조회",
+            description = "현재 인증된 사용자가 프로필을 이미 생성했는지 여부를 반환합니다."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "401", description = "인증 필요")
+    })
+    @GetMapping("/me/exists")
+    public ResponseEntity<ProfileExistsResponse> existsMyProfile(Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        Long userId = principal.getUserId();
+
+        boolean exists = profileService.hasProfile(userId);
+        ProfileExistsResponse body = new ProfileExistsResponse(exists);
+
+        return ResponseEntity.ok(body);
     }
 }

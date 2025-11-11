@@ -51,7 +51,6 @@ public class ProfileService {
     private final TechSkillRepository techSkillRepository;
     private final ProposalNotificationRepository proposalNotificationRepository;
     private final SnowflakeIdService snowflakeIdService;
-    private final ProfileUrlRepository profileUrlRepository;
     private final UserRepository userRepository;
     private final PostRepository postRepository;
     private final ApplicationRepository applicationRepository;
@@ -468,4 +467,11 @@ public class ProfileService {
         }
         return profileRepository.existsByNickname(nickname.trim());
     }
+
+    @Transactional(readOnly = true)
+    public boolean hasProfile(Long userId) {
+        validateActiveUser(userId);
+        return profileRepository.existsByUserId(userId);
+    }
+
 }
