@@ -73,7 +73,7 @@ public class ApplicationController {
     }
 
     @Operation(
-            summary = "내가 제안받은 글 조회",
+            summary = "내가 제안 받은 글 목록 조회",
             description = "리더가 나에게 제안한 모집글 목록을 조회합니다 (무한 스크롤)"
     )
     @ApiResponses({
@@ -97,7 +97,7 @@ public class ApplicationController {
     }
 
     @Operation(
-            summary = "내가 매칭된 글 조회",
+            summary = "내가 매칭된 글 목록 조회",
             description = "내가 수락되어 참여 중인 모집글 목록을 조회합니다 (무한 스크롤)"
     )
     @ApiResponses({
