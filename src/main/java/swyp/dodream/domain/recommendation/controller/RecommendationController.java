@@ -11,7 +11,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import swyp.dodream.common.exception.ExceptionType;
-import swyp.dodream.domain.recommendation.dto.RecommendApplicantRequest;
 import swyp.dodream.domain.recommendation.dto.RecommendationListResponse;
 import swyp.dodream.domain.recommendation.dto.RecommendationProfileListResponse;
 import swyp.dodream.domain.recommendation.dto.RecommendedApplicantListResponse;

@@ -85,12 +85,12 @@ public class ApplicantRecommendationService {
         }
 
         // 4. 게시글 텍스트 추출
-        String postText = TextExtractor.extractPostText(post);
+        String postText = TextExtractor.extractFromPost(post);
         log.info("게시글 텍스트 추출 완료 (길이: {})", postText.length());
 
         try {
             // 5. 게시글 임베딩 생성
-            float[] postEmbedding = embeddingService.get().generateEmbedding(postText);
+            float[] postEmbedding = embeddingService.get().embed(postText);
             log.info("게시글 임베딩 생성 완료");
 
             // 6. 각 지원자의 유사도 계산
@@ -107,8 +107,8 @@ public class ApplicantRecommendationService {
                     }
 
                     // 프로필 + 지원 메시지 텍스트 생성
-                    String applicantText = TextExtractor.extractProfileText(profile) + "\n지원 메시지: " + application.getMessage();
-                    float[] applicantEmbedding = embeddingService.get().generateEmbedding(applicantText);
+                    String applicantText = TextExtractor.extractFromProfile(profile) + "\n지원 메시지: " + application.getMessage();
+                    float[] applicantEmbedding = embeddingService.get().embed(applicantText);
 
                     // 코사인 유사도 계산
                     double similarity = cosineSimilarity(postEmbedding, applicantEmbedding);
@@ -139,7 +139,7 @@ public class ApplicantRecommendationService {
                                 .nickname(applicantSim.profile().getNickname())
                                 .profileImageUrl(getProfileImageUrl(applicantSim.profile()))
                                 .role(applicantSim.application().getRole().getName())
-                                .career(applicantSim.profile().getExperience().getDescription())
+                                .career(applicantSim.profile().getExperience().getValue())
                                 .applicationMessage(applicantSim.application().getMessage())
                                 .similarity(applicantSim.similarity())
                                 .tags(tags)
@@ -176,7 +176,7 @@ public class ApplicantRecommendationService {
                             .nickname(profile.getNickname())
                             .profileImageUrl(getProfileImageUrl(profile))
                             .role(app.getRole().getName())
-                            .career(profile.getExperience().getDescription())
+                            .career(profile.getExperience().getValue())
                             .applicationMessage(app.getMessage())
                             .similarity(0.0)
                             .tags(List.of())
