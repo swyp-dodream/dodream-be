@@ -11,8 +11,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import swyp.dodream.common.exception.ExceptionType;
+import swyp.dodream.domain.recommendation.dto.RecommendApplicantRequest;
 import swyp.dodream.domain.recommendation.dto.RecommendationListResponse;
 import swyp.dodream.domain.recommendation.dto.RecommendationProfileListResponse;
+import swyp.dodream.domain.recommendation.dto.RecommendedApplicantListResponse;
+import swyp.dodream.domain.recommendation.service.ApplicantRecommendationService;
 import swyp.dodream.domain.recommendation.service.ProfileRecommendationService;
 import swyp.dodream.domain.recommendation.service.RecommendationService;
 import swyp.dodream.jwt.dto.UserPrincipal;
@@ -28,6 +31,7 @@ public class RecommendationController {
 
     private final RecommendationService recommendationService;
     private final ProfileRecommendationService profileRecommendationService;
+    private final ApplicantRecommendationService applicantRecommendationService;
 
     @Operation(
             summary = "추천 게시글 조회",
@@ -86,6 +90,45 @@ public class RecommendationController {
         
         RecommendationProfileListResponse response = profileRecommendationService.recommendProfiles(
                 postId, cursor, size
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(
+            summary = "지원 유저 AI 추천",
+            description = """
+                    모집글에 지원한 유저 중 적합한 유저를 AI로 선별하여 추천합니다.
+                    - 리더만 호출 가능
+                    - 지원자 프로필 + 지원 메시지를 모집글과 비교하여 유사도 계산
+                    - 최대 3명 추천
+                    - 추천 이유 태그 제공 (최대 2개)
+                    """,
+            security = @SecurityRequirement(name = "JWT")
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "추천 성공"),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청"),
+            @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자"),
+            @ApiResponse(responseCode = "403", description = "권한 없음 (리더만 가능)"),
+            @ApiResponse(responseCode = "404", description = "게시글을 찾을 수 없음")
+    })
+    @PostMapping("/applicants/{postId}")
+    public ResponseEntity<RecommendedApplicantListResponse> recommendApplicants(
+            Authentication authentication,
+            @Parameter(description = "게시글 ID")
+            @PathVariable Long postId,
+            @Parameter(description = "추천받을 직군 ID (선택사항)")
+            @RequestParam(required = false) Long roleId
+    ) {
+        if (authentication == null) {
+            throw ExceptionType.UNAUTHORIZED_NO_AUTHENTICATION.of();
+        }
+        
+        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+        Long userId = userPrincipal.getUserId();
+        
+        RecommendedApplicantListResponse response = applicantRecommendationService.recommendApplicants(
+                userId, postId, roleId
         );
         return ResponseEntity.ok(response);
     }
