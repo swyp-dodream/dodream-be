@@ -49,7 +49,7 @@ public class ApplicationController {
     }
 
     @Operation(
-            summary = "내가 지원한 글 조회",
+            summary = "내가 지원한 글 목록 조회",
             description = "내가 지원한 모집글 목록을 조회합니다 (무한 스크롤)"
     )
     @ApiResponses({
