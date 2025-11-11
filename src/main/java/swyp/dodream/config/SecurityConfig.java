@@ -12,7 +12,6 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import swyp.dodream.jwt.filter.JwtAuthenticationFilter;
 import swyp.dodream.jwt.util.JwtUtil;
-import swyp.dodream.login.filter.OAuth2FrontendUrlFilter;
 import swyp.dodream.login.handler.OAuth2SuccessHandler;
 import swyp.dodream.login.service.CustomOAuth2UserService;
 
@@ -26,7 +25,6 @@ public class SecurityConfig {
     private final CustomOAuth2UserService customOAuth2UserService;
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
     private final JwtUtil jwtUtil;
-    private final OAuth2FrontendUrlFilter oAuth2FrontendUrlFilter;
 
     // 인증 없이 접근 가능한 URL 목록
     private static final String[] WHITE_LIST = {
@@ -47,12 +45,10 @@ public class SecurityConfig {
 
     public SecurityConfig(CustomOAuth2UserService customOAuth2UserService,
                          OAuth2SuccessHandler oAuth2SuccessHandler,
-                         JwtUtil jwtUtil,
-                         OAuth2FrontendUrlFilter oAuth2FrontendUrlFilter) {
+                         JwtUtil jwtUtil) {
         this.customOAuth2UserService = customOAuth2UserService;
         this.oAuth2SuccessHandler = oAuth2SuccessHandler;
         this.jwtUtil = jwtUtil;
-        this.oAuth2FrontendUrlFilter = oAuth2FrontendUrlFilter;
     }
 
     @Bean
@@ -75,8 +71,7 @@ public class SecurityConfig {
                 // JWT 인증 필터 추가
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 
-                // OAuth2 프론트엔드 URL 자동 감지 필터 추가 (JWT 필터보다 먼저 실행)
-                .addFilterBefore(oAuth2FrontendUrlFilter, jwtFilter.getClass())
+                // 프론트엔드 URL 필터 제거 (SuccessHandler에서 처리)
                 
                 // 요청 권한 설정
                 .authorizeHttpRequests(auth -> auth

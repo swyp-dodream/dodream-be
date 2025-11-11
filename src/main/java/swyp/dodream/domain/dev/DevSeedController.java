@@ -24,6 +24,8 @@ import swyp.dodream.domain.post.repository.PostRepository;
 import swyp.dodream.domain.ai.service.EmbeddingService;
 import swyp.dodream.domain.recommendation.repository.VectorRepository;
 import swyp.dodream.domain.recommendation.util.TextExtractor;
+import swyp.dodream.jwt.util.JwtUtil;
+import swyp.dodream.jwt.service.TokenService;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
@@ -51,6 +53,8 @@ public class DevSeedController {
     private final PostRepository postRepository;
     private final Optional<EmbeddingService> embeddingService;
     private final Optional<VectorRepository> vectorRepository;
+    private final JwtUtil jwtUtil;
+    private final Optional<TokenService> tokenService;
 
     private static final int TOTAL = 100;
     private static final int PROJECT_CNT = 50;
@@ -152,6 +156,40 @@ public class DevSeedController {
         res.put("deleted_post_view_rows", viewDeleted);
         res.put("deleted_post_rows", postDeleted);
         return res;
+    }
+
+    @PostMapping("/auth/token/{userId}")
+    @Operation(
+            summary = "개발용 JWT 발급",
+            description = """
+                지정한 사용자 ID로 Access/Refresh 토큰을 발급합니다.
+                - 운영에서는 사용하지 마세요.
+                - Authorization: Bearer <accessToken> 로 API 호출 테스트에 사용하세요.
+                """
+    )
+    public Map<String, Object> issueDevToken(@PathVariable Long userId) {
+        // 유저 존재 여부 확인
+        List<Long> existingUserIds = jdbcTemplate.queryForList(
+                "SELECT id FROM users WHERE id = ?",
+                Long.class,
+                userId
+        );
+        if (existingUserIds == null || existingUserIds.isEmpty()) {
+            throw new IllegalStateException("사용자가 존재하지 않습니다: " + userId);
+        }
+
+        String email = "dev@local";
+        String name = "DEV_USER";
+
+        String accessToken = jwtUtil.generateAccessToken(userId, email, name);
+        String refreshToken = jwtUtil.generateRefreshToken(userId);
+        tokenService.ifPresent(ts -> ts.saveRefreshToken(userId, name, refreshToken));
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("userId", userId);
+        result.put("accessToken", accessToken);
+        result.put("refreshToken", refreshToken);
+        return result;
     }
 
     // === 내부 구현 ===
@@ -837,5 +875,94 @@ public class DevSeedController {
             result.put("errors", errors.subList(0, Math.min(10, errors.size())));
         }
         return result;
+    }
+    
+    /**
+     * 지원자 데이터 생성 (테스트용)
+     */
+    @PostMapping("/seed/applications/{postId}")
+    @Operation(
+            summary = "지원자 데이터 생성",
+            description = "특정 게시글에 대한 지원자 데이터 30개를 생성합니다. 프로필이 없으면 자동 생성합니다."
+    )
+    @Transactional
+    public Map<String, Object> seedApplications(@PathVariable Long postId) {
+        // 1. 게시글 존재 확인
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다: " + postId));
+        
+        // 2. master 데이터 로드
+        loadMasterData();
+        
+        // 3. 사용자 30명 생성 (프로필과 함께)
+        List<Long> userIds = createUsers(30);
+        List<Long> profileIds = new ArrayList<>();
+        LocalDateTime now = LocalDateTime.now();
+        
+        for (int i = 0; i < userIds.size(); i++) {
+            long profileId = createOneProfile(userIds.get(i), i, now);
+            profileIds.add(profileId);
+        }
+        
+        // 4. 각 사용자가 게시글에 지원
+        List<Long> applicationIds = new ArrayList<>();
+        
+        for (int i = 0; i < userIds.size(); i++) {
+            Long userId = userIds.get(i);
+            Long applicationId = snowflake.generateId();
+            
+            // 랜덤 직군 선택
+            Long roleId = roleIds.get(ThreadLocalRandom.current().nextInt(roleIds.size()));
+            
+            // 지원 메시지 생성
+            String message = generateApplicationMessage(i);
+            
+            String sql = """
+                INSERT INTO application (id, post_id, applicant_id, role_id, application_message, status, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, 'APPLIED', ?, ?)
+            """;
+            
+            jdbcTemplate.update(sql, 
+                applicationId, 
+                postId, 
+                userId, 
+                roleId, 
+                message,
+                Timestamp.valueOf(now),
+                Timestamp.valueOf(now)
+            );
+            
+            applicationIds.add(applicationId);
+        }
+        
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("success", true);
+        result.put("postId", postId);
+        result.put("usersCreated", userIds.size());
+        result.put("profilesCreated", profileIds.size());
+        result.put("applicationsCreated", applicationIds.size());
+        result.put("applicationIds", applicationIds);
+        
+        return result;
+    }
+    
+    /**
+     * 지원 메시지 생성
+     */
+    private String generateApplicationMessage(int index) {
+        String[] messages = {
+            "안녕하세요! 해당 프로젝트에 큰 관심이 있어 지원하게 되었습니다. Spring Boot와 React 경험이 있습니다.",
+            "프로젝트 내용을 보고 꼭 참여하고 싶어서 지원합니다. 백엔드 개발 경험 2년 이상입니다.",
+            "관련 경험이 있어 프로젝트에 기여할 수 있을 것 같습니다. 팀 프로젝트 다수 경험했습니다.",
+            "기술 스택이 잘 맞아서 지원하게 되었습니다. Java, Spring 전문가입니다.",
+            "프로젝트 주제가 흥미로워 지원합니다. 웹 개발 포트폴리오가 있습니다!",
+            "이런 프로젝트를 찾고 있었습니다. 적극적으로 참여하겠습니다.",
+            "팀원들과 협업하며 함께 성장하고 싶어 지원합니다. Git, Jira 사용 가능합니다.",
+            "프로젝트 목표에 공감하며, 함께 만들어가고 싶습니다. 프론트엔드도 가능합니다.",
+            "새로운 기술을 배우고 싶어 지원하게 되었습니다. 열정이 있습니다!",
+            "열정과 책임감을 가지고 임하겠습니다. 마감일 준수 잘 합니다!"
+        };
+        
+        return messages[index % messages.length];
     }
 }
