@@ -1,5 +1,6 @@
 package swyp.dodream.domain.post.repository;
 
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -53,42 +54,6 @@ public interface SuggestionRepository extends JpaRepository<Suggestion, Long> {
             Pageable pageable
     );
 
-    /**
-     * 내가 제안받은 모집글 목록 조회 (최초 로드)
-     */
-    @Query("""
-        SELECT s FROM Suggestion s
-        JOIN FETCH s.post p
-        JOIN FETCH p.owner
-        WHERE s.toUser.id = :userId
-          AND s.withdrawnAt IS NULL
-          AND p.deleted = false
-        ORDER BY s.id DESC
-    """)
-    Slice<Suggestion> findSuggestionsByToUser(
-            @Param("userId") Long userId,
-            Pageable pageable
-    );
-
-    /**
-     * 내가 제안받은 모집글 목록 조회 (커서 기반)
-     */
-    @Query("""
-        SELECT s FROM Suggestion s
-        JOIN FETCH s.post p
-        JOIN FETCH p.owner
-        WHERE s.toUser.id = :userId
-          AND s.id < :cursor
-          AND s.withdrawnAt IS NULL
-          AND p.deleted = false
-        ORDER BY s.id DESC
-    """)
-    Slice<Suggestion> findSuggestionsByToUserAfterCursor(
-            @Param("userId") Long userId,
-            @Param("cursor") Long cursor,
-            Pageable pageable
-    );
-
     @Query("""
     SELECT s FROM Suggestion s
     WHERE s.post.id = :postId
@@ -104,4 +69,20 @@ public interface SuggestionRepository extends JpaRepository<Suggestion, Long> {
     );
 
     boolean existsByPostIdAndToUserId(Long postId, Long toUserId);
+
+    @Query(value = """
+        SELECT s
+        FROM Suggestion s
+        JOIN FETCH s.post p
+        JOIN FETCH p.owner
+        WHERE s.toUser.id = :userId
+        ORDER BY s.createdAt DESC
+        """,
+            countQuery = """
+        SELECT count(s)
+        FROM Suggestion s
+        WHERE s.toUser.id = :userId
+        """
+    )
+    Page<Suggestion> findSuggestionsByToUser(@Param("userId") Long userId, Pageable pageable);
 }

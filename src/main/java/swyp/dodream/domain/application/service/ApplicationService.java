@@ -70,35 +70,35 @@ public class ApplicationService {
 
 
     /**
-     * 내가 제안받은 글 목록 조회
+     * 내가 제안받은 글 목록 조회 (페이지네이션)
      *
      * @param userId 유저 ID
-     * @param cursor 커서 (다음 페이지용)
-     * @param size 페이지 크기
-     * @return 제안받은 글 목록
+     * @param page   페이지 번호
+     * @param size   페이지 크기
      */
-    public MyApplicationListResponse getMySuggestions(Long userId, Long cursor, Integer size) {
-        // 1. 제안 목록 조회
-        Slice<Suggestion> suggestions;
-        if (cursor == null) {
-            suggestions = suggestionRepository.findSuggestionsByToUser(
-                    userId, PageRequest.of(0, size));
-        } else {
-            suggestions = suggestionRepository.findSuggestionsByToUserAfterCursor(
-                    userId, cursor, PageRequest.of(0, size));
-        }
+    public MyApplicationPageResponse getMySuggestions(Long userId, int page, int size) {
+
+        PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+
+        // 1. 제안 목록 조회 (Page로)
+        Page<Suggestion> suggestions = suggestionRepository.findSuggestionsByToUser(userId, pageable);
 
         // 2. DTO 변환
-        List<MyApplicationResponse> responses = suggestions.getContent().stream()
+        List<MyApplicationResponse> contents = suggestions.getContent().stream()
                 .map(MyApplicationResponse::fromSuggestion)
-                .collect(Collectors.toList());
+                .toList();
 
-        // 3. nextCursor 계산
-        Long nextCursor = suggestions.getContent().isEmpty() ? null :
-                suggestions.getContent().get(suggestions.getContent().size() - 1).getId();
-
-        return MyApplicationListResponse.of(responses, nextCursor, suggestions.hasNext());
+        // 3. 페이지 응답으로 감싸서 반환
+        return MyApplicationPageResponse.of(
+                contents,
+                suggestions.getNumber(),
+                suggestions.getSize(),
+                suggestions.getTotalElements(),
+                suggestions.getTotalPages(),
+                suggestions.hasNext()
+        );
     }
+
 
     /**
      * 내가 매칭된 글 목록 조회
