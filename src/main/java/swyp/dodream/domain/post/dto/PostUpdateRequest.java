@@ -18,7 +18,7 @@ public class PostUpdateRequest implements PostRequest {
     private ActivityMode activityMode;
     private DurationPeriod duration;
     private LocalDateTime deadlineAt;
-    private List<Long> categoryIds;
+    private List<Long> interestIds;
     private List<Long> stackIds;
     private String title;
     private String content;

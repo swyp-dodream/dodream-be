@@ -34,9 +34,8 @@ public class PostCreateRequest implements PostRequest {
     @Schema(description = "모집 마감일", example = "2025-12-31T23:59:59")
     private LocalDateTime deadlineAt;
 
-    // 분야(관심사)는 STUDY일 경우 선택, PROJECT일 경우 필수
     @Schema(description = "관심 분야 ID 목록 (STUDY는 선택, PROJECT는 필수)")
-    private List<Long> categoryIds;
+    private List<Long> interestIds;
 
     @NotEmpty(message = "기술 스택은 최소 1개 이상 선택해야 합니다.")
     @Schema(description = "기술 스택 ID 목록", example = "[1, 2, 3]")

@@ -20,7 +20,7 @@ public interface PostRequest {
 
     LocalDateTime getDeadlineAt();
 
-    List<Long> getCategoryIds();
+    List<Long> getInterestIds();
 
     List<Long> getStackIds();
 

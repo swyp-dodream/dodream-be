@@ -1,6 +1,5 @@
 package swyp.dodream.domain.post.service;
 
-import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -46,7 +45,6 @@ import swyp.dodream.domain.master.repository.TechSkillRepository;
 import swyp.dodream.domain.master.repository.InterestKeywordRepository;
 import java.time.LocalDateTime;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -196,7 +194,7 @@ public class PostService {
 
         // projectType에 따른 관심 분야 필수 여부
         if (request.getProjectType() == ProjectType.PROJECT) {
-            if (request.getCategoryIds() == null || request.getCategoryIds().isEmpty()) {
+            if (request.getInterestIds() == null || request.getInterestIds().isEmpty()) {
                 throw new IllegalArgumentException("프로젝트는 관심 분야를 최소 1개 이상 선택해야 합니다.");
             }
         }
@@ -276,7 +274,7 @@ public class PostService {
 
         // STUDY가 아닐 때만 관심 분야 적용
         if (request.getProjectType() == null || request.getProjectType() == ProjectType.PROJECT) {
-            if (request.getCategoryIds() != null) {
+            if (request.getInterestIds() != null) {
                 postFieldRepository.deleteAllByPost(post);
                 connectFields(request, post);
             }
@@ -413,8 +411,8 @@ public class PostService {
     }
 
     private void connectFields(PostRequest request, Post post) {
-        if (request.getCategoryIds() != null) {
-            for (Long keywordId : request.getCategoryIds()) {
+        if (request.getInterestIds() != null) {
+            for (Long keywordId : request.getInterestIds()) {
                 InterestKeyword keyword = interestKeywordRepository.findById(keywordId)
                         .orElseThrow(ExceptionType.INTEREST_NOT_FOUND::throwException);
                 PostField pf = new PostField(post, keyword);
