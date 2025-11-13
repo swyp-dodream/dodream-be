@@ -2,11 +2,14 @@ package swyp.dodream.domain.recommendation.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -38,9 +41,12 @@ public class RecommendationController {
             security = @SecurityRequirement(name = "JWT")
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "조회 성공"),
-            @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자"),
-            @ApiResponse(responseCode = "404", description = "프로필을 찾을 수 없음")
+            @ApiResponse(responseCode = "200", description = "조회 성공",
+                    content = @Content(schema = @Schema(implementation = RecommendationListResponse.class))),
+            @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "404", description = "프로필을 찾을 수 없음",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     @GetMapping
     public ResponseEntity<RecommendationListResponse> getRecommendations(
@@ -69,9 +75,12 @@ public class RecommendationController {
             security = @SecurityRequirement(name = "JWT")
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "조회 성공"),
-            @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자"),
-            @ApiResponse(responseCode = "404", description = "게시글을 찾을 수 없음")
+            @ApiResponse(responseCode = "200", description = "조회 성공",
+                    content = @Content(schema = @Schema(implementation = RecommendationProfileListResponse.class))),
+            @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "404", description = "게시글을 찾을 수 없음",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     @GetMapping("/profiles/{postId}")
     public ResponseEntity<RecommendationProfileListResponse> getRecommendedProfiles(
@@ -105,11 +114,16 @@ public class RecommendationController {
             security = @SecurityRequirement(name = "JWT")
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "추천 성공"),
-            @ApiResponse(responseCode = "400", description = "잘못된 요청"),
-            @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자"),
-            @ApiResponse(responseCode = "403", description = "권한 없음 (리더만 가능)"),
-            @ApiResponse(responseCode = "404", description = "게시글을 찾을 수 없음")
+            @ApiResponse(responseCode = "200", description = "추천 성공",
+                    content = @Content(schema = @Schema(implementation = RecommendedApplicantListResponse.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "403", description = "권한 없음 (리더만 가능)",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE)),
+            @ApiResponse(responseCode = "404", description = "게시글을 찾을 수 없음",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     })
     @PostMapping("/applicants/{postId}")
     public ResponseEntity<RecommendedApplicantListResponse> recommendApplicants(
