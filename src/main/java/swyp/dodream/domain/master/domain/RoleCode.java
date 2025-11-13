@@ -5,7 +5,6 @@ public enum RoleCode {
     FRONTEND("프론트엔드"),
     MOBILE_IOS("iOS"),
     MOBILE_ANDROID("안드로이드"),
-    DEVOPS("데브옵스"),
     DESIGNER("디자이너"),
     PM("PM"),
     PLANNER("Planner"),
