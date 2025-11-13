@@ -6,7 +6,7 @@ public enum RoleCode {
     MOBILE_IOS("iOS"),
     MOBILE_ANDROID("안드로이드"),
     DESIGNER("디자이너"),
-    PM("PM"),
+    PLANNER("기획자"),
     MARKETER("마케터");
 
     private final String displayName;
