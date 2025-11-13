@@ -29,6 +29,15 @@ public class SuggestionService {
     private final SnowflakeIdService snowflakeIdService;
     private final NotificationService notificationService;
 
+    @Transactional(readOnly = true)
+    public boolean hasActiveSuggestion(Long fromUserId, Long postId, Long toUserId) {
+        return suggestionRepository.existsActiveByPostIdAndToUserId(postId, toUserId);
+    }
+
+    @Transactional(readOnly = true)
+    public java.util.Optional<Long> getActiveSuggestionId(Long postId, Long toUserId) {
+        return suggestionRepository.findActiveByPostIdAndToUserId(postId, toUserId).map(Suggestion::getId);
+    }
     public SuggestionResponse createSuggestion(Long fromUserId, Long postId, SuggestionRequest request) {
         // 1. 게시글 존재 확인
         Post post = postRepository.findById(postId)
@@ -39,8 +48,7 @@ public class SuggestionService {
             throw new CustomException(ExceptionType.FORBIDDEN, "게시글 작성자만 제안을 보낼 수 있습니다.");
         }
 
-        // 3. 중복 제안 방지
-        if (suggestionRepository.existsByPostIdAndToUserId(postId, request.toUserId())) {
+        if (suggestionRepository.existsActiveByPostIdAndToUserId(postId, request.toUserId())) {
             throw new CustomException(ExceptionType.BAD_REQUEST_INVALID, "이미 해당 회원에게 제안이 전송되었습니다.");
         }
 

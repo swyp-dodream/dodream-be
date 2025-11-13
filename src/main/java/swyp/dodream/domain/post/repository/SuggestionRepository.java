@@ -85,4 +85,26 @@ public interface SuggestionRepository extends JpaRepository<Suggestion, Long> {
         """
     )
     Page<Suggestion> findSuggestionsByToUser(@Param("userId") Long userId, Pageable pageable);
+
+    @Query("""
+        SELECT CASE WHEN COUNT(s) > 0 THEN true ELSE false END
+        FROM Suggestion s
+        WHERE s.post.id = :postId
+          AND s.toUser.id = :toUserId
+          AND s.withdrawnAt IS NULL
+          AND s.status = swyp.dodream.domain.master.domain.SuggestionStatus.SENT
+    """)
+    boolean existsActiveByPostIdAndToUserId(@Param("postId") Long postId,
+                                            @Param("toUserId") Long toUserId);
+
+    @Query("""
+        SELECT s
+        FROM Suggestion s
+        WHERE s.post.id = :postId
+          AND s.toUser.id = :toUserId
+          AND s.withdrawnAt IS NULL
+          AND s.status = swyp.dodream.domain.master.domain.SuggestionStatus.SENT
+    """)
+    Optional<Suggestion> findActiveByPostIdAndToUserId(@Param("postId") Long postId,
+                                                       @Param("toUserId") Long toUserId);
 }
