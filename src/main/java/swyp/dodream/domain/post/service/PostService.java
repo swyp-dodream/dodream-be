@@ -422,7 +422,7 @@ public class PostService {
     }
 
     @Transactional(readOnly = true)
-    public Page<PostResponse> getPosts(PostSortType sortType, Pageable pageable) {
+    public Page<PostResponse> getPosts(PostSortType sortType, ProjectType projectType, Pageable pageable) {
         Sort sort;
 
         switch (sortType) {
@@ -444,7 +444,8 @@ public class PostService {
                 sort
         );
 
-        Specification<Post> spec = Specification.where(PostSpecification.notDeleted());
+        Specification<Post> spec = Specification.where(PostSpecification.notDeleted())
+                                    .and(PostSpecification.hasType(projectType));
 
         return postRepository.findAll(sortedPageable)
                 .map(post -> buildPostResponse(post, null)); // 목록: isOwner=false, 프로필 정보는 포함

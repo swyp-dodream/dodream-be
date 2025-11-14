@@ -21,6 +21,7 @@ import swyp.dodream.domain.application.dto.ApplicationRequest;
 import swyp.dodream.domain.application.dto.CanApplyResponse;
 import swyp.dodream.domain.matched.service.MatchedService;
 import swyp.dodream.domain.post.common.PostSortType;
+import swyp.dodream.domain.post.common.ProjectType;
 import swyp.dodream.domain.post.dto.req.PostCreateRequest;
 import swyp.dodream.domain.post.dto.req.PostUpdateRequest;
 import swyp.dodream.domain.post.dto.req.SuggestionRequest;
@@ -108,9 +109,12 @@ public class PostController {
             @Parameter(description = "정렬 기준 (LATEST, DEADLINE, POPULAR)", example = "LATEST")
             @RequestParam(defaultValue = "LATEST") PostSortType sortType,
 
+            @Parameter(description = "프로젝트 타입 (PROJECT, STUDY, ALL)", example = "PROJECT")
+            @RequestParam(required = false) ProjectType projectType,
+
             Pageable pageable
     ) {
-        Page<PostResponse> posts = postService.getPosts(sortType, pageable);
+        Page<PostResponse> posts = postService.getPosts(sortType, projectType, pageable);
         return ResponseEntity.ok(posts);
     }
 
