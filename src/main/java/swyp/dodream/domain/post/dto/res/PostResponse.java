@@ -6,6 +6,7 @@ import swyp.dodream.domain.post.common.PostStatus;
 import swyp.dodream.domain.post.domain.Post;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -19,8 +20,9 @@ public class PostResponse {
     private String content;
     private PostStatus status;
     private boolean isOwner;
-
-    // 모집 요약 영역
+    private LocalDateTime createdAt;
+    private String ownerNickname;
+    private String ownerProfileImageUrl;
     private String projectType;
     private String activityMode;
     private String duration;
@@ -30,15 +32,20 @@ public class PostResponse {
     private List<String> stacks;
 
     private List<RoleRequirementRes> roles;
+
     @Getter
     @Builder
     public static class RoleRequirementRes {
-
         private String role;      // ex) "백엔드"
         private int headcount;    // ex) 2
     }
 
-    public static PostResponse from(Post post, boolean isOwner) {
+    public static PostResponse from(
+            Post post,
+            boolean isOwner,
+            String ownerNickname,
+            String ownerProfileImageUrl
+    ) {
 
         List<String> interestNames = post.getFields().stream()
                 .map(pf -> pf.getInterestKeyword().getName())
@@ -48,14 +55,10 @@ public class PostResponse {
                 .map(ps -> ps.getTechSkill().getName())
                 .collect(Collectors.toList());
 
-        List<String> roleNames = post.getRoleRequirements().stream()
-                .map(pr -> pr.getRole().getName())
-                .collect(Collectors.toList());
-
         List<RoleRequirementRes> roles = post.getRoleRequirements().stream()
                 .map(pr -> RoleRequirementRes.builder()
-                        .role(pr.getRole().getName())        // "백엔드" 등
-                        .headcount(pr.getHeadcount())        // 인원수
+                        .role(pr.getRole().getName())
+                        .headcount(pr.getHeadcount())
                         .build()
                 )
                 .collect(Collectors.toList());
@@ -70,7 +73,11 @@ public class PostResponse {
                 .content(post.getContent())
                 .status(post.getStatus())
                 .isOwner(isOwner)
+                .createdAt(post.getCreatedAt())
+                .ownerNickname(ownerNickname)
+                .ownerProfileImageUrl(ownerProfileImageUrl)
 
+                // 모집 요약 영역
                 .projectType(post.getProjectType().name())
                 .activityMode(post.getActivityMode().name())
                 .duration(post.getDuration().name())

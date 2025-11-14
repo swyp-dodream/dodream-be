@@ -33,6 +33,8 @@ import swyp.dodream.domain.post.dto.res.MyPostListResponse;
 import swyp.dodream.domain.post.dto.res.MyPostResponse;
 import swyp.dodream.domain.post.dto.res.PostResponse;
 import swyp.dodream.domain.post.repository.*;
+import swyp.dodream.domain.profile.domain.Profile;
+import swyp.dodream.domain.profile.repository.ProfileRepository;
 import swyp.dodream.domain.search.document.PostDocument;
 import swyp.dodream.domain.search.repository.PostDocumentRepository;
 import swyp.dodream.domain.user.domain.User;
@@ -67,6 +69,7 @@ public class PostService {
     private final PostDocumentRepository postDocumentRepository;
     private final SuggestionRepository suggestionRepository;
     private final NotificationService notificationService;
+    private final ProfileRepository profileRepository;
 
     // 벡터 임베딩 관련 (옵션) - NCP 배포 시에만 활성화
     private final Optional<EmbeddingService> embeddingService;
@@ -135,8 +138,7 @@ public class PostService {
                         .build()
         );
 
-        boolean isOwner = post.getOwner().getId().equals(userId);
-        return PostResponse.from(post, isOwner);
+        return buildPostResponse(post, userId);
     }
 
     /**
@@ -225,8 +227,7 @@ public class PostService {
             post.closeRecruitment();
         }
 
-        boolean isOwner = userId != null && post.getOwner().getId().equals(userId);
-        return PostResponse.from(post, isOwner);
+        return buildPostResponse(post, userId);
     }
 
     // 모집글 수정
@@ -291,8 +292,7 @@ public class PostService {
                         .build()
         );
 
-        boolean isOwner = post.getOwner().getId().equals(userId);
-        return PostResponse.from(post, isOwner);
+        return buildPostResponse(post, userId);
     }
 
     // 모집글 삭제
@@ -447,7 +447,7 @@ public class PostService {
         Specification<Post> spec = Specification.where(PostSpecification.notDeleted());
 
         return postRepository.findAll(sortedPageable)
-                .map(post -> PostResponse.from(post, false)); // 목록에서는 작성자 여부 false
+                .map(post -> buildPostResponse(post, null)); // 목록: isOwner=false, 프로필 정보는 포함
     }
 
     @Transactional(readOnly = true)
@@ -507,4 +507,22 @@ public class PostService {
         // 7. 최종 응답 생성
         return MyPostListResponse.of(responsePage);
     }
+
+    private PostResponse buildPostResponse(Post post, Long currentUserId) {
+        boolean isOwner = currentUserId != null && post.getOwner().getId().equals(currentUserId);
+
+        Profile profile = profileRepository.findByUserId(post.getOwner().getId())
+                .orElse(null);
+
+        String ownerNickname = profile != null ? profile.getNickname() : null;
+
+        Integer profileImageCode = profile != null ? profile.getProfileImageCode() : null;
+        String ownerProfileImageUrl = profileImageCode != null
+                ? profileImageCode.toString()
+                : null;
+
+        return PostResponse.from(post, isOwner, ownerNickname, ownerProfileImageUrl);
+    }
+
+
 }
