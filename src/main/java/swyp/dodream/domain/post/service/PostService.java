@@ -447,7 +447,7 @@ public class PostService {
         Specification<Post> spec = Specification.where(PostSpecification.notDeleted())
                                     .and(PostSpecification.hasType(projectType));
 
-        return postRepository.findAll(sortedPageable)
+        return postRepository.findAll(spec, sortedPageable)
                 .map(post -> buildPostResponse(post, null)); // 목록: isOwner=false, 프로필 정보는 포함
     }
 
