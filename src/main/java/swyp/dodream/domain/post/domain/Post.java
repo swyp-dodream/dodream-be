@@ -54,6 +54,7 @@ public class Post extends BaseEntity {
     private String title;
 
     @Lob
+    @Column(columnDefinition = "TEXT")
     private String content;
 
     private Boolean deleted = false;
