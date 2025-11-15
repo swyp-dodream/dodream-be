@@ -25,13 +25,13 @@ import swyp.dodream.domain.post.common.PostSortType;
 import swyp.dodream.domain.post.common.PostStatus;
 import swyp.dodream.domain.post.common.ProjectType;
 import swyp.dodream.domain.post.domain.*;
-import swyp.dodream.domain.post.dto.req.PostCreateRequest;
-import swyp.dodream.domain.post.dto.req.PostRequest;
+import swyp.dodream.domain.post.dto.request.PostCreateRequest;
+import swyp.dodream.domain.post.dto.request.PostRequest;
 import swyp.dodream.domain.post.dto.PostRoleDto;
-import swyp.dodream.domain.post.dto.req.PostUpdateRequest;
-import swyp.dodream.domain.post.dto.res.MyPostListResponse;
-import swyp.dodream.domain.post.dto.res.MyPostResponse;
-import swyp.dodream.domain.post.dto.res.PostResponse;
+import swyp.dodream.domain.post.dto.request.PostUpdateRequest;
+import swyp.dodream.domain.post.dto.response.MyPostListResponse;
+import swyp.dodream.domain.post.dto.response.MyPostResponse;
+import swyp.dodream.domain.post.dto.response.PostResponse;
 import swyp.dodream.domain.post.repository.*;
 import swyp.dodream.domain.profile.domain.Profile;
 import swyp.dodream.domain.profile.repository.ProfileRepository;
@@ -384,8 +384,15 @@ public class PostService {
         Post post = postRepository.findById(postId)
                 .orElseThrow(ExceptionType.POST_NOT_FOUND::throwException);
 
-        // 리더는 지원 불가
-        return !post.getOwner().getId().equals(userId);
+        // 작성자는 지원 불가
+        if (post.getOwner().getId().equals(userId))
+            return false;
+
+        // 이미 지원했으면 지원 불가
+        boolean alreadyApplied = applicationRepository
+                .existsByPostIdAndApplicantId(postId, userId);
+
+        return !alreadyApplied;
     }
 
     private void connectRoles(PostRequest request, Post post) {
