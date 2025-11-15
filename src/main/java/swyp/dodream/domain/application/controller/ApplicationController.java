@@ -9,10 +9,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-import swyp.dodream.domain.post.dto.res.MyApplicationDetailResponse;
-import swyp.dodream.domain.post.dto.res.MyApplicationListResponse;
+import swyp.dodream.domain.post.dto.response.MyApplicationDetailResponse;
 import swyp.dodream.domain.application.service.ApplicationService;
-import swyp.dodream.domain.post.dto.res.MyApplicationPageResponse;
+import swyp.dodream.domain.post.dto.response.MyApplicationPageResponse;
 import swyp.dodream.jwt.dto.UserPrincipal;
 
 @RestController

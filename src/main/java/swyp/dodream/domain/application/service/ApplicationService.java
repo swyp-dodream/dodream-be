@@ -3,7 +3,6 @@ package swyp.dodream.domain.application.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,16 +13,14 @@ import swyp.dodream.domain.master.domain.ApplicationStatus;
 import swyp.dodream.domain.application.domain.Application;
 import swyp.dodream.domain.matched.domain.Matched;
 import swyp.dodream.domain.post.domain.Suggestion;
-import swyp.dodream.domain.post.dto.res.MyApplicationDetailResponse;
-import swyp.dodream.domain.post.dto.res.MyApplicationListResponse;
-import swyp.dodream.domain.post.dto.res.MyApplicationPageResponse;
-import swyp.dodream.domain.post.dto.res.MyApplicationResponse;
+import swyp.dodream.domain.post.dto.response.MyApplicationDetailResponse;
+import swyp.dodream.domain.post.dto.response.MyApplicationPageResponse;
+import swyp.dodream.domain.post.dto.response.MyApplicationResponse;
 import swyp.dodream.domain.application.repository.ApplicationRepository;
 import swyp.dodream.domain.matched.repository.MatchedRepository;
 import swyp.dodream.domain.post.repository.SuggestionRepository;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor

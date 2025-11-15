@@ -7,8 +7,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-import swyp.dodream.domain.post.dto.res.RecruitApplicationDetailResponse;
-import swyp.dodream.domain.post.dto.res.RecruitListResponse;
+import swyp.dodream.domain.post.dto.response.RecruitApplicationDetailResponse;
+import swyp.dodream.domain.post.dto.response.RecruitListResponse;
 import swyp.dodream.domain.post.service.RecruitService;
 import swyp.dodream.jwt.dto.UserPrincipal;
 
