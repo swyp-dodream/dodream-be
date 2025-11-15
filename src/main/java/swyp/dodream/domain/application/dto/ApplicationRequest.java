@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 public class ApplicationRequest {
 
     @NotNull
-    private Long roleId; // 지원한 직군 ID
+    private String roleId; // 지원한 직군 ID
 
     @Size(max = 500)
     private String message; // 지원 메시지

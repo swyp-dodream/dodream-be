@@ -350,7 +350,7 @@ public class PostService {
 
         // 1. 지원 저장
         Role role = new Role();
-        role.setId(request.getRoleId());
+        role.setId(Long.parseLong(request.getRoleId())); // String → Long 변환
 
         Long applicationId = snowflakeIdService.generateId();
         Application application = new Application(
