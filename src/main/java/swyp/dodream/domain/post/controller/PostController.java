@@ -213,7 +213,7 @@ public class PostController {
     @Operation(
             summary = "모집글 지원 가능 여부 조회",
             description = "현재 로그인한 사용자가 특정 모집글에 지원할 수 있는지 여부를 반환합니다. "
-                    + "모집글 작성자(리더)는 false를 반환합니다."
+                    + "모집글 작성자(리더)이거나 이미 지원한 경우 false를 반환합니다."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "조회 성공",
