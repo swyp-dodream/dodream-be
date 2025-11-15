@@ -185,7 +185,7 @@ public class PostController {
             security = @SecurityRequirement(name = "JWT")
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "지원 성공"),
+            @ApiResponse(responseCode = "204", description = "지원 성공"),
             @ApiResponse(responseCode = "400", description = "이미 지원했거나 조건 불일치"),
             @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자")
     })
@@ -203,8 +203,9 @@ public class PostController {
             @RequestBody(required = false) ApplicationRequest request
     ) {
         postService.applyToPost(postId, user.getUserId(), request);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
+
 
     // ==============================
     // 모집글 지원 가능 여부 조회
