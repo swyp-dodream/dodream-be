@@ -148,16 +148,16 @@ public class RecruitService {
     }
 
     /**
-     * 멤버 내역 조회
+     * 멤버 내역 조회(누구나 조회 가능)
      */
-    public RecruitListResponse getMembers(Long userId, Long postId, Long cursor, Integer size) {
-        // 1. 게시글 검증
+    public RecruitListResponse getMembers(Long postId, Long cursor, Integer size) {
+        // 1. 게시글 검증 (존재 여부만)
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new CustomException(ExceptionType.NOT_FOUND, "게시글을 찾을 수 없습니다."));
 
-        if (!post.getOwner().getId().equals(userId)) {
-            throw new CustomException(ExceptionType.FORBIDDEN, "권한이 없습니다.");
-        }
+        // if (!post.getOwner().getId().equals(userId)) {
+        //     throw new CustomException(ExceptionType.FORBIDDEN, "권한이 없습니다.");
+        // }
 
         // 2. 멤버 목록 조회
         Slice<Matched> members;
@@ -198,6 +198,7 @@ public class RecruitService {
                 .hasNext(members.hasNext())
                 .build();
     }
+
 
     /**
      * 지원 상세 조회
