@@ -21,4 +21,6 @@ public interface BookmarkRepository extends JpaRepository<Bookmark, Long> {
     List<Bookmark> findAllByUser(@Param("user") User user);
 
     List<Bookmark> findByPost(Post post);
+
+    boolean existsByUserIdAndPostId(Long userId, Long postId);
 }

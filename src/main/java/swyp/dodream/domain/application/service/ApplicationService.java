@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import swyp.dodream.common.exception.CustomException;
 import swyp.dodream.common.exception.ExceptionType;
 import swyp.dodream.common.snowflake.SnowflakeIdService;
+import swyp.dodream.domain.bookmark.repository.BookmarkRepository;
 import swyp.dodream.domain.master.domain.ApplicationStatus;
 import swyp.dodream.domain.application.domain.Application;
 import swyp.dodream.domain.matched.domain.Matched;
@@ -31,6 +32,7 @@ public class ApplicationService {
     private final SuggestionRepository suggestionRepository;
     private final MatchedRepository matchedRepository;
     private final SnowflakeIdService snowflakeIdService;
+    private final BookmarkRepository bookmarkRepository;
 
     /**
      * 내가 지원한 글 목록 조회 (페이지네이션)
@@ -43,25 +45,26 @@ public class ApplicationService {
 
         PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
 
-        // 1. 지원 목록 조회 (Page로)
         Page<Application> applications = applicationRepository.findApplicationsByUser(
                 userId,
                 pageable
         );
 
-        // 2. DTO 변환
         List<MyApplicationResponse> contents = applications.getContent().stream()
-                .map(MyApplicationResponse::fromApplication)
+                .map(app -> {
+                    Long postId = app.getPost().getId();
+                    boolean bookmarked = bookmarkRepository.existsByUserIdAndPostId(userId, postId);
+                    return MyApplicationResponse.fromApplication(app, bookmarked);
+                })
                 .toList();
 
-        // 3. 페이지 정보 묶어서 반환
         return MyApplicationPageResponse.of(
                 contents,
-                applications.getNumber(),        // 현재 페이지
-                applications.getSize(),          // 페이지 크기
-                applications.getTotalElements(), // 전체 개수
-                applications.getTotalPages(),    // 전체 페이지 수
-                applications.hasNext()           // 다음 페이지 있는지
+                applications.getNumber(),
+                applications.getSize(),
+                applications.getTotalElements(),
+                applications.getTotalPages(),
+                applications.hasNext()
         );
     }
 
@@ -82,7 +85,11 @@ public class ApplicationService {
 
         // 2. DTO 변환
         List<MyApplicationResponse> contents = suggestions.getContent().stream()
-                .map(MyApplicationResponse::fromSuggestion)
+                .map(suggestion -> {
+                    Long postId = suggestion.getPost().getId();
+                    boolean bookmarked = bookmarkRepository.existsByUserIdAndPostId(userId, postId);
+                    return MyApplicationResponse.fromSuggestion(suggestion, bookmarked);
+                })
                 .toList();
 
         // 3. 페이지 응답으로 감싸서 반환
@@ -113,7 +120,11 @@ public class ApplicationService {
 
         // 2. DTO 변환
         List<MyApplicationResponse> contents = matchedPage.getContent().stream()
-                .map(MyApplicationResponse::fromMatched)
+                .map(matched -> {
+                    Long postId = matched.getPost().getId();
+                    boolean bookmarked = bookmarkRepository.existsByUserIdAndPostId(userId, postId);
+                    return MyApplicationResponse.fromMatched(matched, bookmarked);
+                })
                 .toList();
 
         // 3. 페이지 응답으로 감싸서 반환
@@ -126,7 +137,6 @@ public class ApplicationService {
                 matchedPage.hasNext()
         );
     }
-
 
     /**
      * 내 지원 상세 정보 조회

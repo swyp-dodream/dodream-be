@@ -24,13 +24,14 @@ public record MyApplicationResponse(
     LocalDateTime appliedAt,
     List<String> roles,
     List<String> stacks,
-    Long viewCount
+    Long viewCount,
+    boolean bookmarked // 북마크 여부
 ) {
 
     /**
      * Application → MyApplicationResponse
      */
-    public static MyApplicationResponse fromApplication(Application application) {
+    public static MyApplicationResponse fromApplication(Application application, boolean bookmarked) {
         Post post = application.getPost();
         User leader = post.getOwner();
 
@@ -58,13 +59,14 @@ public record MyApplicationResponse(
             .viewCount(
                     post.getPostView() != null ? post.getPostView().getViews() : 0L
             )
+            .bookmarked(bookmarked)
             .build();
     }
 
     /**
      * Suggestion → MyApplicationResponse
      */
-    public static MyApplicationResponse fromSuggestion(Suggestion suggestion) {
+    public static MyApplicationResponse fromSuggestion(Suggestion suggestion, boolean bookmarked) {
         Post post = suggestion.getPost();
         User leader = post.getOwner();
 
@@ -98,7 +100,7 @@ public record MyApplicationResponse(
     /**
      * Matched → MyApplicationResponse
      */
-    public static MyApplicationResponse fromMatched(Matched matched) {
+    public static MyApplicationResponse fromMatched(Matched matched, boolean bookmarked) {
         Post post = matched.getPost();
         User leader = post.getOwner();
 
