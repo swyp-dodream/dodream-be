@@ -20,8 +20,9 @@ public record MyApplicationResponse(
     String status,             // recruiting / completed
     String leaderName,
     String leaderProfileImage,
-    String myStatus,           // PENDING, ACCEPTED, REJECTED
-    LocalDateTime appliedAt,
+    String type,               // APPLICATION(지원), SUGGESTION(제안), MATCHED(매칭)
+    String myStatus,           // PENDING, ACCEPTED, REJECTED, SUGGESTED
+    LocalDateTime createdAt,   // 지원/제안/매칭 시간
     List<String> roles,
     List<String> stacks,
     Long viewCount,
@@ -45,8 +46,9 @@ public record MyApplicationResponse(
             .status(post.getStatus().name().toLowerCase())
             .leaderName(leader.getName())
             .leaderProfileImage(leader.getProfileImageUrl())
+            .type("APPLICATION")  // 지원한 글
             .myStatus("PENDING")  // 지원 상태
-            .appliedAt(application.getCreatedAt())
+            .createdAt(application.getCreatedAt())
             .roles(
                     post.getRoleRequirements().stream()
                             .map(pr -> pr.getRole().getName())       // PostRole → Role → name
@@ -81,8 +83,9 @@ public record MyApplicationResponse(
             .status(post.getStatus().name().toLowerCase())
             .leaderName(leader.getName())
             .leaderProfileImage(leader.getProfileImageUrl())
+            .type("SUGGESTION")  // 제안받은 글
             .myStatus("SUGGESTED")  // 제안받음
-            .appliedAt(suggestion.getCreatedAt())
+            .createdAt(suggestion.getCreatedAt())
             .roles(
                     post.getRoleRequirements().stream()
                             .map(pr -> pr.getRole().getName())
@@ -96,6 +99,7 @@ public record MyApplicationResponse(
             .viewCount(
                     post.getPostView() != null ? post.getPostView().getViews() : 0L
             )
+            .bookmarked(bookmarked)
             .postCreatedAt(post.getCreatedAt())
             .build();
     }
@@ -116,8 +120,9 @@ public record MyApplicationResponse(
             .status(post.getStatus().name().toLowerCase())
             .leaderName(leader.getName())
             .leaderProfileImage(leader.getProfileImageUrl())
+            .type("MATCHED")  // 매칭된 글
             .myStatus("ACCEPTED")  // 수락됨
-            .appliedAt(matched.getMatchedAt())
+            .createdAt(matched.getMatchedAt())
             .roles(
                     post.getRoleRequirements().stream()
                             .map(pr -> pr.getRole().getName())
@@ -131,6 +136,7 @@ public record MyApplicationResponse(
             .viewCount(
                     post.getPostView() != null ? post.getPostView().getViews() : 0L
             )
+            .bookmarked(bookmarked)
             .postCreatedAt(post.getCreatedAt())
             .build();
     }
