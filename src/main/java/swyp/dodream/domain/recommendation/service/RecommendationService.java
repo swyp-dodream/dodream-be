@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import swyp.dodream.domain.application.repository.ApplicationRepository;
 import swyp.dodream.domain.ai.service.EmbeddingService;
+import swyp.dodream.domain.post.common.ProjectType;
 import swyp.dodream.domain.post.domain.Post;
 import swyp.dodream.domain.post.repository.PostRepository;
 import swyp.dodream.domain.post.common.PostStatus;
@@ -50,10 +51,11 @@ public class RecommendationService {
      * @param userId 사용자 ID
      * @param cursor 커서 (무한 스크롤용)
      * @param size 페이지 크기
+     * @param projectType 프로젝트 타입 (PROJECT, STUDY, ALL 또는 null)
      * @return 추천 게시글 목록
      */
-    public RecommendationListResponse recommendPosts(Long userId, Long cursor, Integer size) {
-        log.info("게시글 추천 요청: userId={}, cursor={}, size={}", userId, cursor, size);
+    public RecommendationListResponse recommendPosts(Long userId, Long cursor, Integer size, ProjectType projectType) {
+        log.info("게시글 추천 요청: userId={}, cursor={}, size={}, projectType={}", userId, cursor, size, projectType);
 
         // 1. 사용자 프로필 조회
         Profile profile = profileRepository.findByUserId(userId)
@@ -79,7 +81,7 @@ public class RecommendationService {
 
             // 5. 필터링 및 상세 정보 조회
             List<RecommendationPostResponse> recommendations = filterAndEnrichPosts(
-                    postSimilarities, userId
+                    postSimilarities, userId, projectType
             );
 
             // 6. 커서 기반 페이징
@@ -106,10 +108,10 @@ public class RecommendationService {
      * 검색된 게시글들을 필터링하고 상세 정보 추가
      */
     private List<RecommendationPostResponse> filterAndEnrichPosts(
-            Map<Long, Double> postSimilarities, Long userId
+            Map<Long, Double> postSimilarities, Long userId, ProjectType projectType
     ) {
         List<RecommendationPostResponse> result = new ArrayList<>();
-        log.info("필터링 시작: postSimilarities 개수={}, userId={}", postSimilarities.size(), userId);
+        log.info("필터링 시작: postSimilarities 개수={}, userId={}, projectType={}", postSimilarities.size(), userId, projectType);
 
         for (Map.Entry<Long, Double> entry : postSimilarities.entrySet()) {
             Long postId = entry.getKey();
@@ -123,10 +125,10 @@ public class RecommendationService {
                 continue;
             }
 
-            // 필터링: 모집 중만, 본인 게시글 제외, 이미 지원한 글 제외
-            if (!shouldIncludePost(post, userId)) {
-                log.debug("게시글 필터링 제외: postId={}, status={}, ownerId={}", 
-                        postId, post.getStatus(), post.getOwner().getId());
+            // 필터링: 모집 중만, 본인 게시글 제외, 이미 지원한 글 제외, projectType 필터
+            if (!shouldIncludePost(post, userId, projectType)) {
+                log.debug("게시글 필터링 제외: postId={}, status={}, ownerId={}, postProjectType={}", 
+                        postId, post.getStatus(), post.getOwner().getId(), post.getProjectType());
                 continue;
             }
 
@@ -143,7 +145,7 @@ public class RecommendationService {
     /**
      * 게시글을 추천 목록에 포함할지 판단
      */
-    private boolean shouldIncludePost(Post post, Long userId) {
+    private boolean shouldIncludePost(Post post, Long userId, ProjectType projectType) {
         // 1. 모집 중인가?
         if (post.getStatus() != PostStatus.RECRUITING) {
             log.debug("게시글 제외: 모집 중이 아님 - postId={}, status={}", post.getId(), post.getStatus());
@@ -167,6 +169,15 @@ public class RecommendationService {
         if (user != null && applicationRepository.existsByPostAndApplicant(post, user)) {
             log.debug("게시글 제외: 이미 지원함 - postId={}, userId={}", post.getId(), userId);
             return false;
+        }
+
+        // 5. projectType 필터링 (null이거나 ALL이면 모든 타입 포함)
+        if (projectType != null && projectType != ProjectType.ALL) {
+            if (post.getProjectType() != projectType) {
+                log.debug("게시글 제외: projectType 불일치 - postId={}, postProjectType={}, filterProjectType={}", 
+                        post.getId(), post.getProjectType(), projectType);
+                return false;
+            }
         }
 
         return true;

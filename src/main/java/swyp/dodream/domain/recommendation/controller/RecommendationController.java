@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import swyp.dodream.common.exception.ExceptionType;
+import swyp.dodream.domain.post.common.ProjectType;
 import swyp.dodream.domain.recommendation.dto.RecommendationListResponse;
 import swyp.dodream.domain.recommendation.dto.RecommendationProfileListResponse;
 import swyp.dodream.domain.recommendation.dto.RecommendedApplicantListResponse;
@@ -54,7 +55,9 @@ public class RecommendationController {
             @Parameter(description = "다음 페이지 커서")
             @RequestParam(required = false) Long cursor,
             @Parameter(description = "페이지 크기 (기본 10개)")
-            @RequestParam(defaultValue = "10") Integer size
+            @RequestParam(defaultValue = "10") Integer size,
+            @Parameter(description = "프로젝트 타입 (PROJECT, STUDY, ALL)", example = "PROJECT")
+            @RequestParam(required = false) ProjectType projectType
     ) {
         if (authentication == null) {
             throw ExceptionType.UNAUTHORIZED_NO_AUTHENTICATION.of();
@@ -64,7 +67,7 @@ public class RecommendationController {
         Long userId = userPrincipal.getUserId();
         
         RecommendationListResponse response = recommendationService.recommendPosts(
-                userId, cursor, size
+                userId, cursor, size, projectType
         );
         return ResponseEntity.ok(response);
     }
