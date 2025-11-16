@@ -119,7 +119,8 @@ public class SecurityConfig {
                 "http://localhost:3000",
                 "https://dodream.store",
                 "https://www.dodream.store",
-                "https://dev.dodream.store"
+                "https://dev.dodream.store",
+                "https://api.dodream.store"
         ));
 
         // 허용할 HTTP 메서드
