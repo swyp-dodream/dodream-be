@@ -25,7 +25,8 @@ public record MyApplicationResponse(
     List<String> roles,
     List<String> stacks,
     Long viewCount,
-    boolean bookmarked // 북마크 여부
+    boolean bookmarked, // 북마크 여부
+    LocalDateTime postCreatedAt
 ) {
 
     /**
@@ -60,6 +61,7 @@ public record MyApplicationResponse(
                     post.getPostView() != null ? post.getPostView().getViews() : 0L
             )
             .bookmarked(bookmarked)
+            .postCreatedAt(post.getCreatedAt())
             .build();
     }
 
@@ -94,6 +96,7 @@ public record MyApplicationResponse(
             .viewCount(
                     post.getPostView() != null ? post.getPostView().getViews() : 0L
             )
+            .postCreatedAt(post.getCreatedAt())
             .build();
     }
 
@@ -128,6 +131,7 @@ public record MyApplicationResponse(
             .viewCount(
                     post.getPostView() != null ? post.getPostView().getViews() : 0L
             )
+            .postCreatedAt(post.getCreatedAt())
             .build();
     }
 }
