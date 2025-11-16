@@ -329,7 +329,6 @@ public class PostService {
         );
     }
 
-    // 모집글 지원
     @Transactional
     public void applyToPost(Long postId, Long userId, ApplicationRequest request) {
         User user = userRepository.findById(userId)
@@ -343,27 +342,43 @@ public class PostService {
             throw new IllegalStateException("작성자는 자신의 모집글에 지원할 수 없습니다.");
         }
 
+        // 1. 모집 마감 여부
         if (post.getStatus() == PostStatus.COMPLETED) {
             throw new IllegalStateException("모집이 마감되었습니다.");
         }
 
+        // 2. roleId(String) -> Long 변환 + 직군 엔티티 조회 (신규/재지원 공통에 사용)
+        Long roleId;
+        try {
+            roleId = Long.valueOf(request.getRoleId());
+        } catch (NumberFormatException e) {
+            throw new CustomException(
+                    ExceptionType.BAD_REQUEST_INVALID,
+                    "roleId는 숫자 형식이어야 합니다. 입력값: " + request.getRoleId()
+            );
+        }
+
+        Role role = roleRepository.findById(roleId)
+                .orElseThrow(ExceptionType.ROLE_NOT_FOUND::throwException);
+
+        // 3. 기존 지원 이력 조회
         Optional<Application> existingAppOpt =
                 applicationRepository.findByPostIdAndApplicantId(postId, userId);
 
         if (existingAppOpt.isPresent()) {
             Application existingApp = existingAppOpt.get();
 
+            // 이미 활성(APPLIED) 상태면 재지원 불가
             if (existingApp.getStatus().isActive()) {
                 throw new IllegalStateException("이미 지원한 모집글입니다.");
             }
 
-            existingApp.updateReapply(request.getRoleId(), request.getMessage());
+            // WITHDRAWN / REJECTED 등 → 재지원 처리
+            existingApp.updateReapply(role, request.getMessage());
             return;
         }
 
-        Role role = new Role();
-        role.setId(request.getRoleId());
-
+        // 4. 기존 이력이 없으면 신규 지원
         Long applicationId = snowflakeIdService.generateId();
         Application application = new Application(
                 applicationId,
@@ -374,18 +389,17 @@ public class PostService {
         );
         applicationRepository.save(application);
 
-        // 2. 이 지원자가 이 글의 리더한테 예전에 '제안'을 받은 적 있는지 확인
-        Long leaderId = post.getOwner().getId();   // 제안 보낸 사람 = 글 작성자
-        Long applicantId = user.getId();           // 지금 지원한 사람
+        // 5. 제안 알림 로직 기존 그대로
+        Long leaderId = post.getOwner().getId();
+        Long applicantId = user.getId();
 
         suggestionRepository.findLatestValidSuggestion(postId, leaderId, applicantId)
                 .ifPresent(suggestion -> {
-                    // 있으면 리더(=제안 보낸 사람)에게 알림
                     notificationService.sendProposalAppliedNotification(
-                            leaderId,                 // 알림 받을 사람
-                            postId,                   // 어떤 글에 대한 건지
-                            user.getName(),           // 실제로 지원한 사람 이름
-                            post.getTitle()           // 글 제목
+                            leaderId,
+                            postId,
+                            user.getName(),
+                            post.getTitle()
                     );
                 });
     }
@@ -414,7 +428,7 @@ public class PostService {
         // 4. 이미 활성 지원(APPLIED)이 존재하면 지원 불가
         boolean hasActiveApplication = applicationRepository
                 .findByPostIdAndApplicantId(postId, userId)
-                .filter(app -> app.getStatus().isActive()) // APPLIED 만 true
+                .filter(app -> app.getStatus().isActive())
                 .isPresent();
 
         return !hasActiveApplication;

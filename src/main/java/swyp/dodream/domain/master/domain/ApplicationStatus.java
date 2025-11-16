@@ -8,6 +8,6 @@ public enum ApplicationStatus implements MatchingStatusType {
 
     @Override
     public boolean isActive() {
-        return this == APPLIED;
+        return this == APPLIED || this == ACCEPTED || this == REJECTED;
     }
 }
