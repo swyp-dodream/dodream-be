@@ -86,4 +86,8 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
             @Param("userId") Long userId,
             Pageable pageable
     );
+
+    Optional<Application> findByPostIdAndApplicantIdAndStatus(Long postId, Long applicantId, ApplicationStatus status);
+
+    Optional<Application> findByPostIdAndApplicantId(Long postId, Long applicantId);
 }

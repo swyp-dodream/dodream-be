@@ -66,4 +66,19 @@ public class Application extends BaseEntity {
         this.status = ApplicationStatus.WITHDRAWN;
         this.withdrawnAt = LocalDateTime.now();
     }
+
+    public void updateReapply(Long roleId, String message) {
+        this.status = ApplicationStatus.APPLIED;
+        this.withdrawnAt = null;
+
+        if (roleId != null) {
+            Role newRole = new Role();
+            newRole.setId(roleId);
+            this.role = newRole;
+        }
+
+        if (message != null && !message.isBlank()) {
+            this.message = message;
+        }
+    }
 }
