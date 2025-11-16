@@ -75,12 +75,14 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
         JOIN FETCH a.post p
         JOIN FETCH p.owner
         WHERE a.applicant.id = :userId
+        AND a.status = 'APPLIED'
         ORDER BY a.createdAt DESC
         """,
             countQuery = """
         SELECT count(a)
         FROM Application a
         WHERE a.applicant.id = :userId
+        AND a.status = 'APPLIED'
         """
     )
     Page<Application> findApplicationsByUser(
