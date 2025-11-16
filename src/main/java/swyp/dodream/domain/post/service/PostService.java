@@ -420,6 +420,7 @@ public class PostService {
         return !hasActiveApplication;
     }
 
+
     private void connectRoles(PostRequest request, Post post) {
         if (request.getRoles() != null) {
             for (PostRoleDto roleDto : request.getRoles()) {
