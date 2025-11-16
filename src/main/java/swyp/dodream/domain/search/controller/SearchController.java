@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import swyp.dodream.domain.post.dto.res.PostResponse;
+import swyp.dodream.domain.post.dto.response.PostResponse;
 import swyp.dodream.domain.search.service.SearchService;
 
 import java.util.List;

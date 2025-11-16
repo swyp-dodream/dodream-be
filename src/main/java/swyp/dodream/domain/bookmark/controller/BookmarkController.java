@@ -11,7 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import swyp.dodream.domain.post.dto.res.PostSummaryResponse;
+import swyp.dodream.domain.post.dto.response.PostSummaryResponse;
 import swyp.dodream.domain.bookmark.service.BookmarkService;
 import swyp.dodream.jwt.dto.UserPrincipal;
 

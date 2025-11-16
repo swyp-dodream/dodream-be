@@ -3,7 +3,7 @@ package swyp.dodream.domain.search.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import swyp.dodream.domain.post.domain.Post;
-import swyp.dodream.domain.post.dto.res.PostResponse;
+import swyp.dodream.domain.post.dto.response.PostResponse;
 import swyp.dodream.domain.post.repository.PostRepository;
 import swyp.dodream.domain.profile.domain.Profile;
 import swyp.dodream.domain.profile.repository.ProfileRepository;

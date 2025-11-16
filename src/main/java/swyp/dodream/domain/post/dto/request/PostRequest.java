@@ -1,4 +1,4 @@
-package swyp.dodream.domain.post.dto.req;
+package swyp.dodream.domain.post.dto.request;
 
 import swyp.dodream.domain.post.common.ActivityMode;
 import swyp.dodream.domain.post.common.ProjectType;

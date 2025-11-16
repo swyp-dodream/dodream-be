@@ -22,12 +22,12 @@ import swyp.dodream.domain.application.dto.CanApplyResponse;
 import swyp.dodream.domain.matched.service.MatchedService;
 import swyp.dodream.domain.post.common.PostSortType;
 import swyp.dodream.domain.post.common.ProjectType;
-import swyp.dodream.domain.post.dto.req.PostCreateRequest;
-import swyp.dodream.domain.post.dto.req.PostUpdateRequest;
-import swyp.dodream.domain.post.dto.req.SuggestionRequest;
-import swyp.dodream.domain.post.dto.res.MyPostListResponse;
-import swyp.dodream.domain.post.dto.res.PostResponse;
-import swyp.dodream.domain.post.dto.res.SuggestionResponse;
+import swyp.dodream.domain.post.dto.request.PostCreateRequest;
+import swyp.dodream.domain.post.dto.request.PostUpdateRequest;
+import swyp.dodream.domain.post.dto.request.SuggestionRequest;
+import swyp.dodream.domain.post.dto.response.MyPostListResponse;
+import swyp.dodream.domain.post.dto.response.PostResponse;
+import swyp.dodream.domain.post.dto.response.SuggestionResponse;
 import swyp.dodream.domain.post.service.PostService;
 import swyp.dodream.domain.post.service.SuggestionService;
 import swyp.dodream.jwt.dto.UserPrincipal;
@@ -213,7 +213,7 @@ public class PostController {
     @Operation(
             summary = "모집글 지원 가능 여부 조회",
             description = "현재 로그인한 사용자가 특정 모집글에 지원할 수 있는지 여부를 반환합니다. "
-                    + "모집글 작성자 또는 이미 지원한 경우 false입니다."
+                    + "모집글 작성자(리더)는 false를 반환합니다."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "조회 성공",

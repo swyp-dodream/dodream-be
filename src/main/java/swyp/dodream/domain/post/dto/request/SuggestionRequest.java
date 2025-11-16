@@ -1,4 +1,4 @@
-package swyp.dodream.domain.post.dto;
+package swyp.dodream.domain.post.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
