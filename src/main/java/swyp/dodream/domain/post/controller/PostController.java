@@ -184,7 +184,7 @@ public class PostController {
             security = @SecurityRequirement(name = "JWT")
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "지원 성공"),
+            @ApiResponse(responseCode = "204", description = "지원 성공"),
             @ApiResponse(responseCode = "400", description = "이미 지원했거나 조건 불일치"),
             @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자"),
             @ApiResponse(responseCode = "404", description = "모집글을 찾을 수 없음")
@@ -192,18 +192,12 @@ public class PostController {
     @PreAuthorize("isAuthenticated()")
     @PostMapping("/{postId}/apply")
     public ResponseEntity<Void> applyToPost(
-            @Parameter(description = "모집글 ID", example = "123")
             @PathVariable Long postId,
             @AuthenticationPrincipal UserPrincipal user,
-            @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                    description = "지원 요청 데이터",
-                    required = true,
-                    content = @Content(schema = @Schema(implementation = ApplicationRequest.class))
-            )
             @RequestBody @Valid ApplicationRequest request
     ) {
         postService.applyToPost(postId, user.getUserId(), request);
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+        return ResponseEntity.noContent().build();
     }
 
     // ==============================
