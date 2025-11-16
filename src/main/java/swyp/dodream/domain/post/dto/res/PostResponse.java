@@ -32,6 +32,7 @@ public class PostResponse {
     private List<String> stacks;
 
     private List<RoleRequirementRes> roles;
+    private Long applicationId;
 
     @Getter
     @Builder
@@ -44,7 +45,8 @@ public class PostResponse {
             Post post,
             boolean isOwner,
             String ownerNickname,
-            String ownerProfileImageUrl
+            String ownerProfileImageUrl,
+            Long applicationId
     ) {
 
         List<String> interestNames = post.getFields().stream()
@@ -77,7 +79,6 @@ public class PostResponse {
                 .ownerNickname(ownerNickname)
                 .ownerProfileImageUrl(ownerProfileImageUrl)
 
-                // 모집 요약 영역
                 .projectType(post.getProjectType().name())
                 .activityMode(post.getActivityMode().name())
                 .duration(post.getDuration().name())
@@ -89,6 +90,8 @@ public class PostResponse {
                 .stacks(stackNames)
                 .roles(roles)
                 .viewCount(viewCount)
+                .applicationId(applicationId)
+
                 .build();
     }
 }

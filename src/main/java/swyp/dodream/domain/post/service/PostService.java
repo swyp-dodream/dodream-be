@@ -14,6 +14,7 @@ import swyp.dodream.common.exception.CustomException;
 import swyp.dodream.common.exception.ExceptionType;
 import swyp.dodream.common.snowflake.SnowflakeIdService;
 import swyp.dodream.domain.application.dto.ApplicationRequest;
+import swyp.dodream.domain.master.domain.ApplicationStatus;
 import swyp.dodream.domain.master.domain.InterestKeyword;
 import swyp.dodream.domain.master.domain.Role;
 import swyp.dodream.domain.master.domain.TechSkill;
@@ -342,13 +343,24 @@ public class PostService {
             throw new IllegalStateException("작성자는 자신의 모집글에 지원할 수 없습니다.");
         }
 
-        if (post.getStatus() == PostStatus.COMPLETED)
+        if (post.getStatus() == PostStatus.COMPLETED) {
             throw new IllegalStateException("모집이 마감되었습니다.");
+        }
 
-        if (applicationRepository.existsByPostAndApplicant(post, user))
-            throw new IllegalStateException("이미 지원한 모집글입니다.");
+        Optional<Application> existingAppOpt =
+                applicationRepository.findByPostIdAndApplicantId(postId, userId);
 
-        // 1. 지원 저장
+        if (existingAppOpt.isPresent()) {
+            Application existingApp = existingAppOpt.get();
+
+            if (existingApp.getStatus().isActive()) {
+                throw new IllegalStateException("이미 지원한 모집글입니다.");
+            }
+
+            existingApp.updateReapply(request.getRoleId(), request.getMessage());
+            return;
+        }
+
         Role role = new Role();
         role.setId(request.getRoleId());
 
@@ -381,11 +393,31 @@ public class PostService {
     // 모집글 지원 가능 여부 판단
     @Transactional(readOnly = true)
     public boolean canApply(Long postId, Long userId) {
+        // 1. 로그인 여부
+        if (userId == null) {
+            return false;
+        }
+
         Post post = postRepository.findById(postId)
                 .orElseThrow(ExceptionType.POST_NOT_FOUND::throwException);
 
-        // 리더는 지원 불가
-        return !post.getOwner().getId().equals(userId);
+        // 2. 리더(작성자) 본인 지원 불가
+        if (post.getOwner().getId().equals(userId)) {
+            return false;
+        }
+
+        // 3. 모집이 이미 완료된 경우 지원 불가
+        if (post.getStatus() == PostStatus.COMPLETED) {
+            return false;
+        }
+
+        // 4. 이미 활성 지원(APPLIED)이 존재하면 지원 불가
+        boolean hasActiveApplication = applicationRepository
+                .findByPostIdAndApplicantId(postId, userId)
+                .filter(app -> app.getStatus().isActive()) // APPLIED 만 true
+                .isPresent();
+
+        return !hasActiveApplication;
     }
 
     private void connectRoles(PostRequest request, Post post) {
@@ -522,8 +554,24 @@ public class PostService {
                 ? profileImageCode.toString()
                 : null;
 
-        return PostResponse.from(post, isOwner, ownerNickname, ownerProfileImageUrl);
+        Long applicationId = null;
+
+        if (currentUserId != null && !isOwner) {
+            applicationId = applicationRepository
+                    .findByPostIdAndApplicantIdAndStatus(
+                            post.getId(),
+                            currentUserId,
+                            ApplicationStatus.APPLIED)
+                    .map(Application::getId)
+                    .orElse(null);
+        }
+
+        return PostResponse.from(
+                post,
+                isOwner,
+                ownerNickname,
+                ownerProfileImageUrl,
+                applicationId
+        );
     }
-
-
 }
