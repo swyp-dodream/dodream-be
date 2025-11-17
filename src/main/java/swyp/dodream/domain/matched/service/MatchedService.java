@@ -146,6 +146,8 @@ public class MatchedService {
             throw new CustomException(ExceptionType.BAD_REQUEST_INVALID, "이미 매칭된 사용자입니다.");
         }
 
+        app.accept();
+
         Matched matched = Matched.builder()
                 .id(snowflakeIdService.generateId())
                 .post(post)
