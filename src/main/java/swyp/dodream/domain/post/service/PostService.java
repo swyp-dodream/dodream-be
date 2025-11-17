@@ -482,7 +482,7 @@ public class PostService {
                 break;
             case LATEST:
             default:
-                sort = Sort.by(Sort.Direction.DESC, "suggestedAt"); // 최신순
+                sort = Sort.by(Sort.Direction.DESC, "createdAt"); // 최신순
                 break;
         }
 
