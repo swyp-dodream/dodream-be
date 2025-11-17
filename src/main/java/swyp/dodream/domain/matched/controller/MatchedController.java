@@ -80,7 +80,7 @@ public class MatchedController {
     @Operation(summary = "지원 수락", description = "리더가 특정 지원자를 수락하여 매칭을 생성합니다.",
             security = @SecurityRequirement(name = "JWT"))
     @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "매칭 생성 성공"),
+            @ApiResponse(responseCode = "204", description = "매칭 생성 성공"),
             @ApiResponse(responseCode = "403", description = "권한 없음"),
             @ApiResponse(responseCode = "404", description = "게시글 또는 지원자 없음")
     })
@@ -93,13 +93,13 @@ public class MatchedController {
     ) {
         UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
         matchedService.acceptApplication(userPrincipal.getUserId(), postId, applicationId);
-        return ResponseEntity.status(201).build();
+        return ResponseEntity.noContent().build();
     }
 
     @Operation(summary = "제안 수락", description = "유저가 리더의 제안을 수락하여 매칭을 생성합니다.",
             security = @SecurityRequirement(name = "JWT"))
     @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "매칭 생성 성공"),
+            @ApiResponse(responseCode = "204", description = "매칭 생성 성공"),
             @ApiResponse(responseCode = "403", description = "권한 없음"),
             @ApiResponse(responseCode = "404", description = "제안 내역 없음")
     })
@@ -111,6 +111,6 @@ public class MatchedController {
     ) {
         UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
         matchedService.acceptSuggestion(userPrincipal.getUserId(), suggestionId);
-        return ResponseEntity.status(201).build();
+        return ResponseEntity.noContent().build();
     }
 }
