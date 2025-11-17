@@ -66,4 +66,25 @@ public class Application extends BaseEntity {
         this.status = ApplicationStatus.WITHDRAWN;
         this.withdrawnAt = LocalDateTime.now();
     }
+
+    public void updateReapply(Role role, String message) {
+        this.status = ApplicationStatus.APPLIED;
+        this.withdrawnAt = null;
+
+        if (role != null) {
+            this.role = role;
+        }
+
+        if (message != null && !message.isBlank()) {
+            this.message = message;
+        }
+    }
+
+    // 지원 수락해서 매칭되면 지원 상태 변경 시키기!
+    public void accept() {
+        if (this.status != ApplicationStatus.APPLIED) {
+            throw new IllegalStateException("APPLIED 상태에서만 수락할 수 있습니다.");
+        }
+        this.status = ApplicationStatus.ACCEPTED;
+    }
 }

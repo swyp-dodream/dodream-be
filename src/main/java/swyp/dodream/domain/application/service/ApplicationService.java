@@ -1,26 +1,22 @@
 package swyp.dodream.domain.application.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import swyp.dodream.common.exception.CustomException;
 import swyp.dodream.common.exception.ExceptionType;
-import swyp.dodream.common.snowflake.SnowflakeIdService;
+import swyp.dodream.domain.application.dto.response.MyApplicationDetailResponse;
+import swyp.dodream.domain.bookmark.repository.BookmarkRepository;
 import swyp.dodream.domain.master.domain.ApplicationStatus;
 import swyp.dodream.domain.application.domain.Application;
-import swyp.dodream.domain.matched.domain.Matched;
-import swyp.dodream.domain.post.domain.Suggestion;
-import swyp.dodream.domain.post.dto.res.MyApplicationDetailResponse;
-import swyp.dodream.domain.post.dto.res.MyApplicationListResponse;
-import swyp.dodream.domain.post.dto.res.MyApplicationResponse;
+import swyp.dodream.domain.application.dto.response.MyApplicationPageResponse;
+import swyp.dodream.domain.application.dto.response.MyApplicationResponse;
 import swyp.dodream.domain.application.repository.ApplicationRepository;
-import swyp.dodream.domain.matched.repository.MatchedRepository;
-import swyp.dodream.domain.post.repository.SuggestionRepository;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -28,101 +24,40 @@ import java.util.stream.Collectors;
 public class ApplicationService {
 
     private final ApplicationRepository applicationRepository;
-    private final SuggestionRepository suggestionRepository;
-    private final MatchedRepository matchedRepository;
-    private final SnowflakeIdService snowflakeIdService;
+    private final BookmarkRepository bookmarkRepository;
 
     /**
-     * 내가 지원한 글 목록 조회
+     * 내가 지원한 글 목록 조회 (페이지네이션)
      *
      * @param userId 유저 ID
-     * @param cursor 커서 (다음 페이지용)
-     * @param size 페이지 크기
-     * @return 지원한 글 목록
+     * @param page   페이지 번호 (0부터)
+     * @param size   페이지 크기
      */
-    public MyApplicationListResponse getMyApplications(Long userId, Long cursor, Integer size) {
-        // 1. 지원 목록 조회
-        Slice<Application> applications;
-        if (cursor == null) {
-            applications = applicationRepository.findApplicationsByUser(
-                    userId, PageRequest.of(0, size));
-        } else {
-            applications = applicationRepository.findApplicationsByUserAfterCursor(
-                    userId, cursor, PageRequest.of(0, size));
-        }
+    public MyApplicationPageResponse getMyApplications(Long userId, int page, int size) {
 
-        // 2. DTO 변환
-        List<MyApplicationResponse> responses = applications.getContent().stream()
-                .map(MyApplicationResponse::fromApplication)
-                .collect(Collectors.toList());
+        PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id"));
 
-        // 3. nextCursor 계산
-        Long nextCursor = applications.getContent().isEmpty() ? null :
-                applications.getContent().get(applications.getContent().size() - 1).getId();
+        Page<Application> applications = applicationRepository.findApplicationsByUser(
+                userId,
+                pageable
+        );
 
-        return MyApplicationListResponse.of(responses, nextCursor, applications.hasNext());
-    }
+        List<MyApplicationResponse> contents = applications.getContent().stream()
+                .map(app -> {
+                    Long postId = app.getPost().getId();
+                    boolean bookmarked = bookmarkRepository.existsByUserIdAndPostId(userId, postId);
+                    return MyApplicationResponse.fromApplication(app, bookmarked);
+                })
+                .toList();
 
-    /**
-     * 내가 제안받은 글 목록 조회
-     *
-     * @param userId 유저 ID
-     * @param cursor 커서 (다음 페이지용)
-     * @param size 페이지 크기
-     * @return 제안받은 글 목록
-     */
-    public MyApplicationListResponse getMySuggestions(Long userId, Long cursor, Integer size) {
-        // 1. 제안 목록 조회
-        Slice<Suggestion> suggestions;
-        if (cursor == null) {
-            suggestions = suggestionRepository.findSuggestionsByToUser(
-                    userId, PageRequest.of(0, size));
-        } else {
-            suggestions = suggestionRepository.findSuggestionsByToUserAfterCursor(
-                    userId, cursor, PageRequest.of(0, size));
-        }
-
-        // 2. DTO 변환
-        List<MyApplicationResponse> responses = suggestions.getContent().stream()
-                .map(MyApplicationResponse::fromSuggestion)
-                .collect(Collectors.toList());
-
-        // 3. nextCursor 계산
-        Long nextCursor = suggestions.getContent().isEmpty() ? null :
-                suggestions.getContent().get(suggestions.getContent().size() - 1).getId();
-
-        return MyApplicationListResponse.of(responses, nextCursor, suggestions.hasNext());
-    }
-
-    /**
-     * 내가 매칭된 글 목록 조회
-     *
-     * @param userId 유저 ID
-     * @param cursor 커서 (다음 페이지용)
-     * @param size 페이지 크기
-     * @return 매칭된 글 목록
-     */
-    public MyApplicationListResponse getMyMatched(Long userId, Long cursor, Integer size) {
-        // 1. 매칭 목록 조회
-        Slice<Matched> matched;
-        if (cursor == null) {
-            matched = matchedRepository.findMatchedByUser(
-                    userId, PageRequest.of(0, size));
-        } else {
-            matched = matchedRepository.findMatchedByUserAfterCursor(
-                    userId, cursor, PageRequest.of(0, size));
-        }
-
-        // 2. DTO 변환
-        List<MyApplicationResponse> responses = matched.getContent().stream()
-                .map(MyApplicationResponse::fromMatched)
-                .collect(Collectors.toList());
-
-        // 3. nextCursor 계산
-        Long nextCursor = matched.getContent().isEmpty() ? null :
-                matched.getContent().get(matched.getContent().size() - 1).getId();
-
-        return MyApplicationListResponse.of(responses, nextCursor, matched.hasNext());
+        return MyApplicationPageResponse.of(
+                contents,
+                applications.getNumber(),
+                applications.getSize(),
+                applications.getTotalElements(),
+                applications.getTotalPages(),
+                applications.hasNext()
+        );
     }
 
     /**
@@ -142,7 +77,12 @@ public class ApplicationService {
             throw new CustomException(ExceptionType.FORBIDDEN, "본인의 지원 정보만 조회할 수 있습니다.");
         }
 
-        // 3. DTO 변환
+        // 3. 상태 확인: APPLIED 상태가 아니면 조회 불가
+        if (application.getStatus() != ApplicationStatus.APPLIED) {
+            throw new CustomException(ExceptionType.NOT_FOUND, "조회 가능한 상태가 아닙니다.");
+        }
+
+        // 4. DTO 변환
         return MyApplicationDetailResponse.fromApplication(application);
     }
 

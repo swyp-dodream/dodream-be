@@ -9,7 +9,7 @@ import swyp.dodream.domain.post.common.ActivityMode;
 import swyp.dodream.domain.post.common.PostStatus;
 import swyp.dodream.domain.post.common.ProjectType;
 import swyp.dodream.domain.post.domain.Post;
-import swyp.dodream.domain.post.dto.res.PostSummaryResponse;
+import swyp.dodream.domain.post.dto.response.PostSummaryResponse;
 import swyp.dodream.domain.post.repository.PostRepository;
 import swyp.dodream.domain.post.repository.PostSpecification;
 
@@ -83,7 +83,7 @@ public class HomeService {
         Sort sorting = switch (sort.toLowerCase()) {
             case "popular" -> Sort.by(Sort.Direction.DESC, "postView.views");
             case "deadline" -> Sort.by(Sort.Direction.ASC, "deadlineAt");
-            default -> Sort.by(Sort.Direction.DESC, "createdAt");
+            default -> Sort.by(Sort.Direction.DESC, "suggestedAt");
         };
 
         Pageable sortedPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sorting);

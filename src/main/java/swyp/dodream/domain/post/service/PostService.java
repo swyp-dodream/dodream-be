@@ -1,6 +1,5 @@
 package swyp.dodream.domain.post.service;
 
-import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -14,7 +13,8 @@ import swyp.dodream.domain.application.domain.Application;
 import swyp.dodream.common.exception.CustomException;
 import swyp.dodream.common.exception.ExceptionType;
 import swyp.dodream.common.snowflake.SnowflakeIdService;
-import swyp.dodream.domain.application.dto.ApplicationRequest;
+import swyp.dodream.domain.application.dto.request.ApplicationRequest;
+import swyp.dodream.domain.master.domain.ApplicationStatus;
 import swyp.dodream.domain.master.domain.InterestKeyword;
 import swyp.dodream.domain.master.domain.Role;
 import swyp.dodream.domain.master.domain.TechSkill;
@@ -26,16 +26,19 @@ import swyp.dodream.domain.post.common.PostSortType;
 import swyp.dodream.domain.post.common.PostStatus;
 import swyp.dodream.domain.post.common.ProjectType;
 import swyp.dodream.domain.post.domain.*;
-import swyp.dodream.domain.post.dto.req.PostCreateRequest;
-import swyp.dodream.domain.post.dto.req.PostRequest;
+import swyp.dodream.domain.post.dto.request.PostCreateRequest;
+import swyp.dodream.domain.post.dto.request.PostRequest;
 import swyp.dodream.domain.post.dto.PostRoleDto;
-import swyp.dodream.domain.post.dto.req.PostUpdateRequest;
-import swyp.dodream.domain.post.dto.res.MyPostListResponse;
-import swyp.dodream.domain.post.dto.res.MyPostResponse;
-import swyp.dodream.domain.post.dto.res.PostResponse;
+import swyp.dodream.domain.post.dto.request.PostUpdateRequest;
+import swyp.dodream.domain.post.dto.response.MyPostListResponse;
+import swyp.dodream.domain.post.dto.response.MyPostResponse;
+import swyp.dodream.domain.post.dto.response.PostResponse;
 import swyp.dodream.domain.post.repository.*;
+import swyp.dodream.domain.profile.domain.Profile;
+import swyp.dodream.domain.profile.repository.ProfileRepository;
 import swyp.dodream.domain.search.document.PostDocument;
 import swyp.dodream.domain.search.repository.PostDocumentRepository;
+import swyp.dodream.domain.suggestion.repository.SuggestionRepository;
 import swyp.dodream.domain.user.domain.User;
 import swyp.dodream.domain.user.repository.UserRepository;
 import swyp.dodream.domain.ai.service.EmbeddingService;
@@ -46,7 +49,6 @@ import swyp.dodream.domain.master.repository.TechSkillRepository;
 import swyp.dodream.domain.master.repository.InterestKeywordRepository;
 import java.time.LocalDateTime;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -69,8 +71,8 @@ public class PostService {
     private final PostDocumentRepository postDocumentRepository;
     private final SuggestionRepository suggestionRepository;
     private final NotificationService notificationService;
-    
-    
+    private final ProfileRepository profileRepository;
+
     // 벡터 임베딩 관련 (옵션) - NCP 배포 시에만 활성화
     private final Optional<EmbeddingService> embeddingService;
     private final Optional<VectorRepository> vectorRepository;
@@ -134,12 +136,11 @@ public class PostService {
                 PostDocument.builder()
                         .id(post.getId())
                         .title(post.getTitle())
-                        .content(post.getContent())
+                        .description(post.getContent())
                         .build()
         );
 
-        boolean isOwner = post.getOwner().getId().equals(userId);
-        return PostResponse.from(post, isOwner);
+        return buildPostResponse(post, userId);
     }
 
     /**
@@ -166,7 +167,7 @@ public class PostService {
 
             // Qdrant에 저장 (payload 포함)
             vectorRepository.get().upsertVector(post.getId(), embedding, payload);
-            
+
         } catch (Exception e) {
             // 임베딩 실패 시 로깅만 (게시글 생성은 정상 완료)
             // TODO: 로깅
@@ -197,7 +198,7 @@ public class PostService {
 
         // projectType에 따른 관심 분야 필수 여부
         if (request.getProjectType() == ProjectType.PROJECT) {
-            if (request.getCategoryIds() == null || request.getCategoryIds().isEmpty()) {
+            if (request.getInterestIds() == null || request.getInterestIds().isEmpty()) {
                 throw new IllegalArgumentException("프로젝트는 관심 분야를 최소 1개 이상 선택해야 합니다.");
             }
         }
@@ -228,8 +229,7 @@ public class PostService {
             post.closeRecruitment();
         }
 
-        boolean isOwner = post.getOwner().getId().equals(userId);
-        return PostResponse.from(post, isOwner);
+        return buildPostResponse(post, userId);
     }
 
     // 모집글 수정
@@ -277,7 +277,7 @@ public class PostService {
 
         // STUDY가 아닐 때만 관심 분야 적용
         if (request.getProjectType() == null || request.getProjectType() == ProjectType.PROJECT) {
-            if (request.getCategoryIds() != null) {
+            if (request.getInterestIds() != null) {
                 postFieldRepository.deleteAllByPost(post);
                 connectFields(request, post);
             }
@@ -290,12 +290,11 @@ public class PostService {
                 PostDocument.builder()
                         .id(post.getId())
                         .title(post.getTitle())
-                        .content(post.getContent())
+                        .description(post.getContent())
                         .build()
         );
 
-        boolean isOwner = post.getOwner().getId().equals(userId);
-        return PostResponse.from(post, isOwner);
+        return buildPostResponse(post, userId);
     }
 
     // 모집글 삭제
@@ -326,12 +325,11 @@ public class PostService {
                 PostDocument.builder()
                         .id(post.getId())
                         .title(post.getTitle())
-                        .content(post.getContent())
+                        .description(post.getContent())
                         .build()
         );
     }
 
-    // 모집글 지원
     @Transactional
     public void applyToPost(Long postId, Long userId, ApplicationRequest request) {
         User user = userRepository.findById(userId)
@@ -345,16 +343,43 @@ public class PostService {
             throw new IllegalStateException("작성자는 자신의 모집글에 지원할 수 없습니다.");
         }
 
-        if (post.getStatus() == PostStatus.COMPLETED)
+        // 1. 모집 마감 여부
+        if (post.getStatus() == PostStatus.COMPLETED) {
             throw new IllegalStateException("모집이 마감되었습니다.");
+        }
 
-        if (applicationRepository.existsByPostAndApplicant(post, user))
-            throw new IllegalStateException("이미 지원한 모집글입니다.");
+        // 2. roleId(String) -> Long 변환 + 직군 엔티티 조회 (신규/재지원 공통에 사용)
+        Long roleId;
+        try {
+            roleId = Long.valueOf(request.getRoleId());
+        } catch (NumberFormatException e) {
+            throw new CustomException(
+                    ExceptionType.BAD_REQUEST_INVALID,
+                    "roleId는 숫자 형식이어야 합니다. 입력값: " + request.getRoleId()
+            );
+        }
 
-        // 1. 지원 저장
-        Role role = new Role();
-        role.setId(request.getRoleId());
+        Role role = roleRepository.findById(roleId)
+                .orElseThrow(ExceptionType.ROLE_NOT_FOUND::throwException);
 
+        // 3. 기존 지원 이력 조회
+        Optional<Application> existingAppOpt =
+                applicationRepository.findByPostIdAndApplicantId(postId, userId);
+
+        if (existingAppOpt.isPresent()) {
+            Application existingApp = existingAppOpt.get();
+
+            // 이미 활성(APPLIED) 상태면 재지원 불가
+            if (existingApp.getStatus().isActive()) {
+                throw new IllegalStateException("이미 지원한 모집글입니다.");
+            }
+
+            // WITHDRAWN / REJECTED 등 → 재지원 처리
+            existingApp.updateReapply(role, request.getMessage());
+            return;
+        }
+
+        // 4. 기존 이력이 없으면 신규 지원
         Long applicationId = snowflakeIdService.generateId();
         Application application = new Application(
                 applicationId,
@@ -365,18 +390,17 @@ public class PostService {
         );
         applicationRepository.save(application);
 
-        // 2. 이 지원자가 이 글의 리더한테 예전에 '제안'을 받은 적 있는지 확인
-        Long leaderId = post.getOwner().getId();   // 제안 보낸 사람 = 글 작성자
-        Long applicantId = user.getId();           // 지금 지원한 사람
+        // 5. 제안 알림 로직 기존 그대로
+        Long leaderId = post.getOwner().getId();
+        Long applicantId = user.getId();
 
         suggestionRepository.findLatestValidSuggestion(postId, leaderId, applicantId)
                 .ifPresent(suggestion -> {
-                    // 있으면 리더(=제안 보낸 사람)에게 알림
                     notificationService.sendProposalAppliedNotification(
-                            leaderId,                 // 알림 받을 사람
-                            postId,                   // 어떤 글에 대한 건지
-                            user.getName(),           // 실제로 지원한 사람 이름
-                            post.getTitle()           // 글 제목
+                            leaderId,
+                            postId,
+                            user.getName(),
+                            post.getTitle()
                     );
                 });
     }
@@ -384,12 +408,33 @@ public class PostService {
     // 모집글 지원 가능 여부 판단
     @Transactional(readOnly = true)
     public boolean canApply(Long postId, Long userId) {
+        // 1. 로그인 여부
+        if (userId == null) {
+            return false;
+        }
+
         Post post = postRepository.findById(postId)
                 .orElseThrow(ExceptionType.POST_NOT_FOUND::throwException);
 
-        // 리더는 지원 불가
-        return !post.getOwner().getId().equals(userId);
+        // 2. 리더(작성자) 본인 지원 불가
+        if (post.getOwner().getId().equals(userId)) {
+            return false;
+        }
+
+        // 3. 모집이 이미 완료된 경우 지원 불가
+        if (post.getStatus() == PostStatus.COMPLETED) {
+            return false;
+        }
+
+        // 4. 이미 활성 지원(APPLIED)이 존재하면 지원 불가
+        boolean hasActiveApplication = applicationRepository
+                .findByPostIdAndApplicantId(postId, userId)
+                .filter(app -> app.getStatus().isActive())
+                .isPresent();
+
+        return !hasActiveApplication;
     }
+
 
     private void connectRoles(PostRequest request, Post post) {
         if (request.getRoles() != null) {
@@ -401,7 +446,7 @@ public class PostService {
             }
         }
     }
-    
+
     private void connectStacks(PostRequest request, Post post) {
         if (request.getStackIds() != null) {
             for (Long stackId : request.getStackIds()) {
@@ -412,10 +457,10 @@ public class PostService {
             }
         }
     }
-    
+
     private void connectFields(PostRequest request, Post post) {
-        if (request.getCategoryIds() != null) {
-            for (Long keywordId : request.getCategoryIds()) {
+        if (request.getInterestIds() != null) {
+            for (Long keywordId : request.getInterestIds()) {
                 InterestKeyword keyword = interestKeywordRepository.findById(keywordId)
                         .orElseThrow(ExceptionType.INTEREST_NOT_FOUND::throwException);
                 PostField pf = new PostField(post, keyword);
@@ -423,10 +468,9 @@ public class PostService {
             }
         }
     }
-    
 
     @Transactional(readOnly = true)
-    public Page<PostResponse> getPosts(PostSortType sortType, Pageable pageable) {
+    public Page<PostResponse> getPosts(PostSortType sortType, ProjectType projectType, Pageable pageable) {
         Sort sort;
 
         switch (sortType) {
@@ -448,10 +492,11 @@ public class PostService {
                 sort
         );
 
-        Specification<Post> spec = Specification.where(PostSpecification.notDeleted());
+        Specification<Post> spec = Specification.where(PostSpecification.notDeleted())
+                                    .and(PostSpecification.hasType(projectType));
 
-        return postRepository.findAll(sortedPageable)
-                .map(post -> PostResponse.from(post, false)); // 목록에서는 작성자 여부 false
+        return postRepository.findAll(spec, sortedPageable)
+                .map(post -> buildPostResponse(post, null)); // 목록: isOwner=false, 프로필 정보는 포함
     }
 
     @Transactional(readOnly = true)
@@ -510,5 +555,39 @@ public class PostService {
 
         // 7. 최종 응답 생성
         return MyPostListResponse.of(responsePage);
+    }
+
+    private PostResponse buildPostResponse(Post post, Long currentUserId) {
+        boolean isOwner = currentUserId != null && post.getOwner().getId().equals(currentUserId);
+
+        Profile profile = profileRepository.findByUserId(post.getOwner().getId())
+                .orElse(null);
+
+        String ownerNickname = profile != null ? profile.getNickname() : null;
+
+        Integer profileImageCode = profile != null ? profile.getProfileImageCode() : null;
+        String ownerProfileImageUrl = profileImageCode != null
+                ? profileImageCode.toString()
+                : null;
+
+        Long applicationId = null;
+
+        if (currentUserId != null && !isOwner) {
+            applicationId = applicationRepository
+                    .findByPostIdAndApplicantIdAndStatus(
+                            post.getId(),
+                            currentUserId,
+                            ApplicationStatus.APPLIED)
+                    .map(Application::getId)
+                    .orElse(null);
+        }
+
+        return PostResponse.from(
+                post,
+                isOwner,
+                ownerNickname,
+                ownerProfileImageUrl,
+                applicationId
+        );
     }
 }

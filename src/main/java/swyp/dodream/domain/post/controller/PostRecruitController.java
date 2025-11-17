@@ -7,8 +7,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-import swyp.dodream.domain.post.dto.res.RecruitApplicationDetailResponse;
-import swyp.dodream.domain.post.dto.res.RecruitListResponse;
+import swyp.dodream.domain.post.dto.response.RecruitApplicationDetailResponse;
+import swyp.dodream.domain.post.dto.response.RecruitListResponse;
 import swyp.dodream.domain.post.service.RecruitService;
 import swyp.dodream.jwt.dto.UserPrincipal;
 
@@ -79,19 +79,15 @@ public class PostRecruitController {
     @Operation(summary = "멤버 내역 조회", description = "수락된 멤버 목록 조회")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "조회 성공"),
-            @ApiResponse(responseCode = "403", description = "권한 없음"),
             @ApiResponse(responseCode = "404", description = "게시글 없음")
     })
     @GetMapping("/{postId}/recruits/members")
     public ResponseEntity<RecruitListResponse> getMembers(
-            Authentication authentication,
             @PathVariable Long postId,
             @RequestParam(required = false) Long cursor,
             @RequestParam(defaultValue = "10") Integer size
     ) {
-        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
-        RecruitListResponse response = recruitService.getMembers(
-                userPrincipal.getUserId(), postId, cursor, size);
+        RecruitListResponse response = recruitService.getMembers(postId, cursor, size);
         return ResponseEntity.ok(response);
     }
 }

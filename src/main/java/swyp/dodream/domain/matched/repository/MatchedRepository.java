@@ -1,5 +1,6 @@
 package swyp.dodream.domain.matched.repository;
 
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -48,40 +49,6 @@ public interface MatchedRepository extends JpaRepository<Matched, Long> {
     );
 
     /**
-     * 특정 유저가 매칭된 모집글 목록 조회
-     */
-    @Query("""
-        SELECT m FROM Matched m
-        JOIN FETCH m.post p
-        JOIN FETCH p.owner
-        WHERE m.user.id = :userId
-          AND m.isCanceled = false 
-        ORDER BY m.matchedAt DESC
-    """)
-    Slice<Matched> findMatchedByUser(
-            @Param("userId") Long userId,
-            Pageable pageable
-    );
-
-    /**
-     * 특정 유저가 매칭된 모집글 목록 조회 (커서 기반)
-     */
-    @Query("""
-        SELECT m FROM Matched m
-        JOIN FETCH m.post p
-        JOIN FETCH p.owner
-        WHERE m.user.id = :userId
-          AND m.isCanceled = false   
-          AND m.id < :cursor
-        ORDER BY m.matchedAt DESC
-    """)
-    Slice<Matched> findMatchedByUserAfterCursor(
-            @Param("userId") Long userId,
-            @Param("cursor") Long cursor,
-            Pageable pageable
-    );
-
-    /**
      * 특정 게시글의 팀원인지 확인
      */
     boolean existsByPostAndUserAndIsCanceledFalse(Post post, User user);
@@ -124,6 +91,22 @@ public interface MatchedRepository extends JpaRepository<Matched, Long> {
           AND m.isCanceled = false
     """)
     List<Matched> findAllByPostId(@Param("postId") Long postId);
+
+    @Query(value = """
+    SELECT m
+    FROM Matched m
+    JOIN FETCH m.post p
+    JOIN FETCH p.owner
+    WHERE m.user.id = :userId
+    ORDER BY m.matchedAt DESC
+    """,
+            countQuery = """
+    SELECT count(m)
+    FROM Matched m
+    WHERE m.user.id = :userId
+    """
+    )
+    Page<Matched> findMatchedByUser(@Param("userId") Long userId, Pageable pageable);
 
     boolean existsByPostIdAndUserId(Long postId, Long id);
 }

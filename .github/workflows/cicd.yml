@@ -11,9 +11,10 @@ on:
       - 'release/**'  # PR merge 시 자동으로 push 이벤트 발생
 
 jobs:
-  # Job 1: 빌드 및 테스트
+  # Job 1: 빌드 및 테스트 (PR 검증용)
   build-and-test:
     runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
     
     steps:
     - name: 코드 체크아웃
@@ -32,6 +33,13 @@ jobs:
     - name: Gradle 빌드 (테스트 제외)
       run: ./gradlew clean build -x test
     
+    - name: JAR 파일을 artifacts로 업로드
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-jar
+        path: build/libs/*.jar
+        retention-days: 1
+    
     # 테스트는 선택적으로 실행 (실패해도 계속 진행)
     # - name: 테스트 실행
     #   run: ./gradlew test
@@ -39,9 +47,7 @@ jobs:
 
   # Job 2: Docker 이미지 빌드 및 푸시
   build-and-push-docker:
-    needs: build-and-test  # build-and-test가 성공해야 실행됨
     runs-on: ubuntu-latest
-    # release 브랜치에 push된 경우에만 실행 (PR은 제외)
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/release/')
     
     steps:
