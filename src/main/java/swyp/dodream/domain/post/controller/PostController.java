@@ -17,19 +17,19 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import swyp.dodream.domain.application.dto.ApplicationRequest;
-import swyp.dodream.domain.application.dto.CanApplyResponse;
+import swyp.dodream.domain.application.dto.request.ApplicationRequest;
+import swyp.dodream.domain.application.dto.response.CanApplyResponse;
 import swyp.dodream.domain.matched.service.MatchedService;
 import swyp.dodream.domain.post.common.PostSortType;
 import swyp.dodream.domain.post.common.ProjectType;
 import swyp.dodream.domain.post.dto.request.PostCreateRequest;
 import swyp.dodream.domain.post.dto.request.PostUpdateRequest;
-import swyp.dodream.domain.post.dto.request.SuggestionRequest;
+import swyp.dodream.domain.suggestion.dto.SuggestionRequest;
 import swyp.dodream.domain.post.dto.response.MyPostListResponse;
 import swyp.dodream.domain.post.dto.response.PostResponse;
-import swyp.dodream.domain.post.dto.response.SuggestionResponse;
+import swyp.dodream.domain.suggestion.dto.SuggestionResponse;
 import swyp.dodream.domain.post.service.PostService;
-import swyp.dodream.domain.post.service.SuggestionService;
+import swyp.dodream.domain.suggestion.service.SuggestionService;
 import swyp.dodream.jwt.dto.UserPrincipal;
 
 @RestController

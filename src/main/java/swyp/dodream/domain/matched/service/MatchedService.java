@@ -1,6 +1,9 @@
 package swyp.dodream.domain.matched.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import swyp.dodream.common.exception.CustomException;
@@ -8,6 +11,9 @@ import swyp.dodream.common.exception.ExceptionType;
 import swyp.dodream.common.snowflake.SnowflakeIdService;
 import swyp.dodream.domain.application.domain.Application;
 import swyp.dodream.domain.application.repository.ApplicationRepository;
+import swyp.dodream.domain.bookmark.repository.BookmarkRepository;
+import swyp.dodream.domain.matched.dto.MatchedPostPageResponse;
+import swyp.dodream.domain.matched.dto.MatchedPostResponse;
 import swyp.dodream.domain.notification.service.NotificationService;
 import swyp.dodream.domain.post.common.CancelBy;
 import swyp.dodream.domain.post.common.CancelReasonCode;
@@ -15,12 +21,13 @@ import swyp.dodream.domain.matched.domain.Matched;
 import swyp.dodream.domain.matched.dto.MatchingCancelRequest;
 import swyp.dodream.domain.matched.repository.MatchedRepository;
 import swyp.dodream.domain.post.domain.Post;
-import swyp.dodream.domain.post.domain.Suggestion;
+import swyp.dodream.domain.suggestion.domain.Suggestion;
 import swyp.dodream.domain.post.repository.PostRepository;
-import swyp.dodream.domain.post.repository.SuggestionRepository;
+import swyp.dodream.domain.suggestion.repository.SuggestionRepository;
 
 import java.time.LocalDateTime;
 import java.time.YearMonth;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -34,10 +41,41 @@ public class MatchedService {
     private final SnowflakeIdService snowflakeIdService;
     private final SuggestionRepository suggestionRepository;
     private final NotificationService notificationService;
+    private final BookmarkRepository bookmarkRepository;
 
     // 정책 상수
     private static final int LEADER_CANCEL_LIMIT_PER_POST = 2; // 모집글 당 2회
     private static final int MEMBER_MONTHLY_CANCEL_LIMIT_AFTER_24H = 2; // 24시간 이후 월 2회
+
+    /**
+     * 내가 매칭된 글 목록 조회 (페이지네이션)
+     *
+     * @param userId 유저 ID
+     * @param page   페이지 번호
+     * @param size   페이지 크기
+     */
+    public MatchedPostPageResponse getMyMatched(Long userId, int page, int size) {
+        PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "matchedAt"));
+
+        Page<Matched> matchedPage = matchedRepository.findMatchedByUser(userId, pageable);
+
+        List<MatchedPostResponse> contents = matchedPage.getContent().stream()
+                .map(matched -> {
+                    Long postId = matched.getPost().getId();
+                    boolean bookmarked = bookmarkRepository.existsByUserIdAndPostId(userId, postId);
+                    return MatchedPostResponse.from(matched, bookmarked);
+                })
+                .toList();
+
+        return MatchedPostPageResponse.of(
+                contents,
+                matchedPage.getNumber(),
+                matchedPage.getSize(),
+                matchedPage.getTotalElements(),
+                matchedPage.getTotalPages(),
+                matchedPage.hasNext()
+        );
+    }
 
     /**
      *  매칭 취소

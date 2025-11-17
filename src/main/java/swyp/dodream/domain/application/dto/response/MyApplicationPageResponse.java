@@ -1,12 +1,11 @@
-package swyp.dodream.domain.post.dto.response;
+package swyp.dodream.domain.application.dto.response;
 
 import lombok.Builder;
-
 import java.util.List;
 
 @Builder
 public record MyApplicationPageResponse(
-        List<MyApplicationResponse> applications,
+        List<MyApplicationResponse> content,  // ✅ applications → content
         int page,
         int size,
         long totalElements,
@@ -14,7 +13,7 @@ public record MyApplicationPageResponse(
         boolean hasNext
 ) {
     public static MyApplicationPageResponse of(
-            List<MyApplicationResponse> applications,
+            List<MyApplicationResponse> content,
             int page,
             int size,
             long totalElements,
@@ -22,7 +21,7 @@ public record MyApplicationPageResponse(
             boolean hasNext
     ) {
         return MyApplicationPageResponse.builder()
-                .applications(applications)
+                .content(content)
                 .page(page)
                 .size(size)
                 .totalElements(totalElements)

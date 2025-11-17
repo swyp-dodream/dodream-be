@@ -8,18 +8,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import swyp.dodream.common.exception.CustomException;
 import swyp.dodream.common.exception.ExceptionType;
-import swyp.dodream.common.snowflake.SnowflakeIdService;
+import swyp.dodream.domain.application.dto.response.MyApplicationDetailResponse;
 import swyp.dodream.domain.bookmark.repository.BookmarkRepository;
 import swyp.dodream.domain.master.domain.ApplicationStatus;
 import swyp.dodream.domain.application.domain.Application;
-import swyp.dodream.domain.matched.domain.Matched;
-import swyp.dodream.domain.post.domain.Suggestion;
-import swyp.dodream.domain.post.dto.response.MyApplicationDetailResponse;
-import swyp.dodream.domain.post.dto.response.MyApplicationPageResponse;
-import swyp.dodream.domain.post.dto.response.MyApplicationResponse;
+import swyp.dodream.domain.application.dto.response.MyApplicationPageResponse;
+import swyp.dodream.domain.application.dto.response.MyApplicationResponse;
 import swyp.dodream.domain.application.repository.ApplicationRepository;
-import swyp.dodream.domain.matched.repository.MatchedRepository;
-import swyp.dodream.domain.post.repository.SuggestionRepository;
 
 import java.util.List;
 
@@ -29,9 +24,6 @@ import java.util.List;
 public class ApplicationService {
 
     private final ApplicationRepository applicationRepository;
-    private final SuggestionRepository suggestionRepository;
-    private final MatchedRepository matchedRepository;
-    private final SnowflakeIdService snowflakeIdService;
     private final BookmarkRepository bookmarkRepository;
 
     /**
@@ -65,76 +57,6 @@ public class ApplicationService {
                 applications.getTotalElements(),
                 applications.getTotalPages(),
                 applications.hasNext()
-        );
-    }
-
-
-    /**
-     * 내가 제안받은 글 목록 조회 (페이지네이션)
-     *
-     * @param userId 유저 ID
-     * @param page   페이지 번호
-     * @param size   페이지 크기
-     */
-    public MyApplicationPageResponse getMySuggestions(Long userId, int page, int size) {
-
-        PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-
-        // 1. 제안 목록 조회 (Page로)
-        Page<Suggestion> suggestions = suggestionRepository.findSuggestionsByToUser(userId, pageable);
-
-        // 2. DTO 변환
-        List<MyApplicationResponse> contents = suggestions.getContent().stream()
-                .map(suggestion -> {
-                    Long postId = suggestion.getPost().getId();
-                    boolean bookmarked = bookmarkRepository.existsByUserIdAndPostId(userId, postId);
-                    return MyApplicationResponse.fromSuggestion(suggestion, bookmarked);
-                })
-                .toList();
-
-        // 3. 페이지 응답으로 감싸서 반환
-        return MyApplicationPageResponse.of(
-                contents,
-                suggestions.getNumber(),
-                suggestions.getSize(),
-                suggestions.getTotalElements(),
-                suggestions.getTotalPages(),
-                suggestions.hasNext()
-        );
-    }
-
-
-    /**
-     * 내가 매칭된 글 목록 조회 (페이지네이션)
-     *
-     * @param userId 유저 ID
-     * @param page   페이지 번호
-     * @param size   페이지 크기
-     */
-    public MyApplicationPageResponse getMyMatched(Long userId, int page, int size) {
-
-        PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "matchedAt"));
-
-        // 1. 매칭 목록 조회 (Page)
-        Page<Matched> matchedPage = matchedRepository.findMatchedByUser(userId, pageable);
-
-        // 2. DTO 변환
-        List<MyApplicationResponse> contents = matchedPage.getContent().stream()
-                .map(matched -> {
-                    Long postId = matched.getPost().getId();
-                    boolean bookmarked = bookmarkRepository.existsByUserIdAndPostId(userId, postId);
-                    return MyApplicationResponse.fromMatched(matched, bookmarked);
-                })
-                .toList();
-
-        // 3. 페이지 응답으로 감싸서 반환
-        return MyApplicationPageResponse.of(
-                contents,
-                matchedPage.getNumber(),
-                matchedPage.getSize(),
-                matchedPage.getTotalElements(),
-                matchedPage.getTotalPages(),
-                matchedPage.hasNext()
         );
     }
 

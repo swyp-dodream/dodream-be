@@ -1,4 +1,4 @@
-package swyp.dodream.domain.post.repository;
+package swyp.dodream.domain.suggestion.repository;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -6,7 +6,7 @@ import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import swyp.dodream.domain.post.domain.Suggestion;
+import swyp.dodream.domain.suggestion.domain.Suggestion;
 
 import java.util.Optional;
 
@@ -92,7 +92,7 @@ public interface SuggestionRepository extends JpaRepository<Suggestion, Long> {
         WHERE s.post.id = :postId
           AND s.toUser.id = :toUserId
           AND s.withdrawnAt IS NULL
-          AND s.status = swyp.dodream.domain.master.domain.SuggestionStatus.SENT
+          AND s.status = 'SENT'
     """)
     boolean existsActiveByPostIdAndToUserId(@Param("postId") Long postId,
                                             @Param("toUserId") Long toUserId);

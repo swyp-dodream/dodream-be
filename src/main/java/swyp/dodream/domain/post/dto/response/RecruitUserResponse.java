@@ -3,7 +3,7 @@ package swyp.dodream.domain.post.dto.response;
 import lombok.Builder;
 import swyp.dodream.domain.application.domain.Application;
 import swyp.dodream.domain.matched.domain.Matched;
-import swyp.dodream.domain.post.domain.Suggestion;
+import swyp.dodream.domain.suggestion.domain.Suggestion;
 import swyp.dodream.domain.profile.domain.Profile;
 import swyp.dodream.domain.user.domain.User;
 

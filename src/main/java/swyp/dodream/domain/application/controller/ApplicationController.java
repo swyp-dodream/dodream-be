@@ -9,15 +9,15 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-import swyp.dodream.domain.post.dto.response.MyApplicationDetailResponse;
+import swyp.dodream.domain.application.dto.response.MyApplicationDetailResponse;
 import swyp.dodream.domain.application.service.ApplicationService;
-import swyp.dodream.domain.post.dto.response.MyApplicationPageResponse;
+import swyp.dodream.domain.application.dto.response.MyApplicationPageResponse;
 import swyp.dodream.jwt.dto.UserPrincipal;
 
 @RestController
 @RequestMapping("/api/my")
 @RequiredArgsConstructor
-@Tag(name = "내 신청 내역", description = "일반 유저의 지원/제안/매칭 내역 조회")
+@Tag(name = "내 지원 내역", description = "내가 지원한 모집글 관리")
 public class ApplicationController {
 
     private final ApplicationService applicationService;
@@ -68,56 +68,6 @@ public class ApplicationController {
     ) {
         UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
         MyApplicationPageResponse response = applicationService.getMyApplications(
-                userPrincipal.getUserId(), page, size);
-        return ResponseEntity.ok(response);
-    }
-
-
-    @Operation(
-            summary = "내가 제안 받은 글 목록 조회",
-            description = "리더가 나에게 제안한 모집글 목록을 조회합니다 (페이지네이션)"
-    )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "조회 성공"),
-            @ApiResponse(responseCode = "401", description = "인증 필요")
-    })
-    @GetMapping("/suggestions")
-    public ResponseEntity<MyApplicationPageResponse> getMySuggestions(
-            Authentication authentication,
-
-            @Parameter(name = "page", description = "페이지 번호 (0부터 시작)", example = "0")
-            @RequestParam(defaultValue = "0") int page,
-
-            @Parameter(name = "size", description = "페이지 크기 (기본 10개)")
-            @RequestParam(defaultValue = "10") int size
-    ) {
-        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
-        MyApplicationPageResponse response = applicationService.getMySuggestions(
-                userPrincipal.getUserId(), page, size);
-        return ResponseEntity.ok(response);
-    }
-
-
-    @Operation(
-            summary = "내가 매칭된 글 목록 조회",
-            description = "내가 수락되어 참여 중인 모집글 목록을 조회합니다 (페이지네이션)"
-    )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "조회 성공"),
-            @ApiResponse(responseCode = "401", description = "인증 필요")
-    })
-    @GetMapping("/matched")
-    public ResponseEntity<MyApplicationPageResponse> getMyMatched(
-            Authentication authentication,
-
-            @Parameter(name = "page", description = "페이지 번호 (0부터 시작)", example = "0")
-            @RequestParam(defaultValue = "0") int page,
-
-            @Parameter(name = "size", description = "페이지 크기 (기본 10개)")
-            @RequestParam(defaultValue = "10") int size
-    ) {
-        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
-        MyApplicationPageResponse response = applicationService.getMyMatched(
                 userPrincipal.getUserId(), page, size);
         return ResponseEntity.ok(response);
     }

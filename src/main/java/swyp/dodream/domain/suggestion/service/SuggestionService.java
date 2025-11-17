@@ -1,22 +1,28 @@
-package swyp.dodream.domain.post.service;
+package swyp.dodream.domain.suggestion.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import swyp.dodream.common.exception.CustomException;
 import swyp.dodream.common.exception.ExceptionType;
 import swyp.dodream.common.snowflake.SnowflakeIdService;
+import swyp.dodream.domain.bookmark.repository.BookmarkRepository;
 import swyp.dodream.domain.notification.service.NotificationService;
 import swyp.dodream.domain.post.domain.Post;
-import swyp.dodream.domain.post.domain.Suggestion;
-import swyp.dodream.domain.post.dto.request.SuggestionRequest;
-import swyp.dodream.domain.post.dto.response.SuggestionResponse;
+import swyp.dodream.domain.suggestion.domain.Suggestion;
+import swyp.dodream.domain.suggestion.dto.SuggestionPageResponse;
+import swyp.dodream.domain.suggestion.dto.SuggestionRequest;
+import swyp.dodream.domain.suggestion.dto.SuggestionResponse;
 import swyp.dodream.domain.post.repository.PostRepository;
-import swyp.dodream.domain.post.repository.SuggestionRepository;
+import swyp.dodream.domain.suggestion.repository.SuggestionRepository;
 import swyp.dodream.domain.user.domain.User;
 import swyp.dodream.domain.user.repository.UserRepository;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -28,6 +34,7 @@ public class SuggestionService {
     private final UserRepository userRepository;
     private final SnowflakeIdService snowflakeIdService;
     private final NotificationService notificationService;
+    private final BookmarkRepository bookmarkRepository;
 
     @Transactional(readOnly = true)
     public boolean hasActiveSuggestion(Long fromUserId, Long postId, Long toUserId) {
@@ -76,16 +83,8 @@ public class SuggestionService {
                 post.getTitle()   // 게시글 제목
         );
 
-        return SuggestionResponse.builder()
-                .id(suggestion.getId())
-                .postId(postId)
-                .toUserId(toUser.getId())
-                .fromUserId(fromUserId)
-                .suggestionMessage(suggestion.getSuggestionMessage())
-                .createdAt(suggestion.getCreatedAt())
-                .build();
+        return SuggestionResponse.from(suggestion, false);
     }
-
 
     public void cancelSuggestion(Long suggestionId, Long userId) {
         Suggestion suggestion = suggestionRepository.findById(suggestionId)
@@ -103,4 +102,36 @@ public class SuggestionService {
 
         suggestion.withdraw(); // 취소 처리
     }
+
+
+    /**
+     * 내가 제안받은 글 목록 조회 (페이지네이션)
+     *
+     * @param userId 유저 ID
+     * @param page   페이지 번호
+     * @param size   페이지 크기
+     */
+    public SuggestionPageResponse getMySuggestions(Long userId, int page, int size) {
+        PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+
+        Page<Suggestion> suggestions = suggestionRepository.findSuggestionsByToUser(userId, pageable);
+
+        List<SuggestionResponse> contents = suggestions.getContent().stream()
+                .map(suggestion -> {
+                    Long postId = suggestion.getPost().getId();
+                    boolean bookmarked = bookmarkRepository.existsByUserIdAndPostId(userId, postId);
+                    return SuggestionResponse.from(suggestion, bookmarked);
+                })
+                .toList();
+
+        return SuggestionPageResponse.of(
+                contents,
+                suggestions.getNumber(),
+                suggestions.getSize(),
+                suggestions.getTotalElements(),
+                suggestions.getTotalPages(),
+                suggestions.hasNext()
+        );
+    }
+
 }

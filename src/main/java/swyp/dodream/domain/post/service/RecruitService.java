@@ -14,12 +14,12 @@ import swyp.dodream.domain.master.repository.RoleRepository;
 import swyp.dodream.domain.matched.domain.Matched;
 import swyp.dodream.domain.matched.repository.MatchedRepository;
 import swyp.dodream.domain.post.domain.Post;
-import swyp.dodream.domain.post.domain.Suggestion;
+import swyp.dodream.domain.suggestion.domain.Suggestion;
 import swyp.dodream.domain.post.dto.response.RecruitApplicationDetailResponse;
 import swyp.dodream.domain.post.dto.response.RecruitListResponse;
 import swyp.dodream.domain.post.dto.response.RecruitUserResponse;
 import swyp.dodream.domain.post.repository.PostRepository;
-import swyp.dodream.domain.post.repository.SuggestionRepository;
+import swyp.dodream.domain.suggestion.repository.SuggestionRepository;
 import swyp.dodream.domain.profile.domain.Profile;
 import swyp.dodream.domain.profile.repository.ProfileRepository;
 

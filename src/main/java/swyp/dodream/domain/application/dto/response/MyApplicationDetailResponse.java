@@ -1,7 +1,8 @@
-package swyp.dodream.domain.post.dto.response;
+package swyp.dodream.domain.application.dto.response;
 
 import lombok.Builder;
 import swyp.dodream.domain.application.domain.Application;
+import swyp.dodream.domain.post.common.PostStatus;
 
 import java.time.LocalDateTime;
 
@@ -12,7 +13,7 @@ public record MyApplicationDetailResponse(
         String postTitle,
         String projectType,        // project / study
         String activityMode,       // online / offline / hybrid
-        String status,             // recruiting / completed
+        PostStatus postStatus,             // recruiting / completed
         String leaderName,
         String leaderProfileImage,
         String roleName,           // 지원한 직군 이름
@@ -35,7 +36,7 @@ public record MyApplicationDetailResponse(
                 .postTitle(post.getTitle())
                 .projectType(post.getProjectType().name().toLowerCase())
                 .activityMode(post.getActivityMode().name().toLowerCase())
-                .status(post.getStatus().name().toLowerCase())
+                .postStatus(post.getStatus())
                 .leaderName(leader.getName())
                 .leaderProfileImage(leader.getProfileImageUrl())
                 .roleName(role.getName())

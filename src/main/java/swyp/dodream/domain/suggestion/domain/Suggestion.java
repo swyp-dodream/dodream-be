@@ -1,4 +1,4 @@
-package swyp.dodream.domain.post.domain;
+package swyp.dodream.domain.suggestion.domain;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import swyp.dodream.common.entity.BaseEntity;
 import swyp.dodream.domain.master.domain.SuggestionStatus;
+import swyp.dodream.domain.post.domain.Post;
 import swyp.dodream.domain.user.domain.User;
 
 import java.time.LocalDateTime;
@@ -54,10 +55,15 @@ public class Suggestion extends BaseEntity {
         if (this.withdrawnAt != null) {
             throw new IllegalStateException("이미 취소된 제안입니다.");
         }
+        this.status = SuggestionStatus.CANCELED;
         this.withdrawnAt = LocalDateTime.now();
     }
 
     public void markAsAccepted() {
         this.status = SuggestionStatus.ACCEPTED;
+    }
+
+    public void markAsRejected() {
+        this.status = SuggestionStatus.REJECTED;
     }
 }

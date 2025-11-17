@@ -83,7 +83,7 @@ public class HomeService {
         Sort sorting = switch (sort.toLowerCase()) {
             case "popular" -> Sort.by(Sort.Direction.DESC, "postView.views");
             case "deadline" -> Sort.by(Sort.Direction.ASC, "deadlineAt");
-            default -> Sort.by(Sort.Direction.DESC, "createdAt");
+            default -> Sort.by(Sort.Direction.DESC, "suggestedAt");
         };
 
         Pageable sortedPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sorting);

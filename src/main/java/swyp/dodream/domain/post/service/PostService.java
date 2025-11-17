@@ -13,7 +13,7 @@ import swyp.dodream.domain.application.domain.Application;
 import swyp.dodream.common.exception.CustomException;
 import swyp.dodream.common.exception.ExceptionType;
 import swyp.dodream.common.snowflake.SnowflakeIdService;
-import swyp.dodream.domain.application.dto.ApplicationRequest;
+import swyp.dodream.domain.application.dto.request.ApplicationRequest;
 import swyp.dodream.domain.master.domain.ApplicationStatus;
 import swyp.dodream.domain.master.domain.InterestKeyword;
 import swyp.dodream.domain.master.domain.Role;
@@ -38,6 +38,7 @@ import swyp.dodream.domain.profile.domain.Profile;
 import swyp.dodream.domain.profile.repository.ProfileRepository;
 import swyp.dodream.domain.search.document.PostDocument;
 import swyp.dodream.domain.search.repository.PostDocumentRepository;
+import swyp.dodream.domain.suggestion.repository.SuggestionRepository;
 import swyp.dodream.domain.user.domain.User;
 import swyp.dodream.domain.user.repository.UserRepository;
 import swyp.dodream.domain.ai.service.EmbeddingService;
@@ -481,7 +482,7 @@ public class PostService {
                 break;
             case LATEST:
             default:
-                sort = Sort.by(Sort.Direction.DESC, "createdAt"); // 최신순
+                sort = Sort.by(Sort.Direction.DESC, "suggestedAt"); // 최신순
                 break;
         }
 

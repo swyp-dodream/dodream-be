@@ -1,4 +1,4 @@
-package swyp.dodream.domain.application.dto;
+package swyp.dodream.domain.application.dto.request;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
