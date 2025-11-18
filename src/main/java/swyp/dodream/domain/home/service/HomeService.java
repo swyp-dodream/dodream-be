@@ -5,6 +5,7 @@ import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import swyp.dodream.domain.home.dto.HomeResponse;
 import swyp.dodream.domain.post.common.ActivityMode;
 import swyp.dodream.domain.post.common.PostStatus;
 import swyp.dodream.domain.post.common.ProjectType;
@@ -12,6 +13,8 @@ import swyp.dodream.domain.post.domain.Post;
 import swyp.dodream.domain.post.dto.response.PostSummaryResponse;
 import swyp.dodream.domain.post.repository.PostRepository;
 import swyp.dodream.domain.post.repository.PostSpecification;
+import swyp.dodream.domain.user.domain.User;
+import swyp.dodream.domain.user.repository.UserRepository;
 
 import java.util.List;
 
@@ -21,8 +24,10 @@ import java.util.List;
 public class HomeService {
 
     private final PostRepository postRepository;
+    private final UserRepository userRepository;
 
-    public Page<PostSummaryResponse> getHomePosts(
+    public HomeResponse getHomePosts(
+            Long userId,
             ProjectType type,
             List<String> roles,
             List<String> techs,
@@ -32,6 +37,14 @@ public class HomeService {
             String sort,
             Pageable pageable
     ) {
+        // 사용자 프로필 이미지 조회
+        String profileImageUrl = null;
+        if (userId != null) {
+            profileImageUrl = userRepository.findById(userId)
+                    .map(User::getProfileImageUrl)
+                    .orElse(null);
+        }
+
         // 초기 스펙
         Specification<Post> spec = PostSpecification.notDeleted();
 
@@ -83,13 +96,17 @@ public class HomeService {
         Sort sorting = switch (sort.toLowerCase()) {
             case "popular" -> Sort.by(Sort.Direction.DESC, "postView.views");
             case "deadline" -> Sort.by(Sort.Direction.ASC, "deadlineAt");
-            default -> Sort.by(Sort.Direction.DESC, "suggestedAt");
+            default -> Sort.by(Sort.Direction.DESC, "createdAt");
         };
 
         Pageable sortedPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sorting);
 
         Page<Post> posts = postRepository.findAll(spec, sortedPageable);
+        Page<PostSummaryResponse> postResponses = posts.map(PostSummaryResponse::fromEntity);
 
-        return posts.map(PostSummaryResponse::fromEntity);
+        return HomeResponse.builder()
+                .profileImageUrl(profileImageUrl)
+                .posts(postResponses)
+                .build();
     }
 }

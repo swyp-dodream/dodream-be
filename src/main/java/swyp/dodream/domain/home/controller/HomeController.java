@@ -11,7 +11,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import swyp.dodream.domain.home.dto.HomeResponse;
 import swyp.dodream.domain.home.service.HomeService;
 import swyp.dodream.domain.post.common.ActivityMode;
 import swyp.dodream.domain.post.common.ProjectType;
@@ -38,10 +40,12 @@ public class HomeController {
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "조회 성공",
-                    content = @Content(schema = @Schema(implementation = PostSummaryResponse.class)))
+                    content = @Content(schema = @Schema(implementation = HomeResponse.class)))
     })
     @GetMapping
-    public ResponseEntity<Page<PostSummaryResponse>> getHomePosts(
+    public ResponseEntity<HomeResponse> getHomePosts(
+            @AuthenticationPrincipal Long userId,
+
             @Parameter(description = "모집 유형 (ALL, PROJECT, STUDY)", example = "ALL")
             @RequestParam(defaultValue = "ALL") ProjectType type,
 
@@ -82,9 +86,10 @@ public class HomeController {
         // 서비스에 넘겨줄 Pageable 객체를 여기서 생성합니다.
         Pageable pageable = PageRequest.of(page, size);
 
-        Page<PostSummaryResponse> posts = homeService.getHomePosts(
-                type, roles, techs, interests, activityMode, onlyRecruiting, sort, pageable
+        HomeResponse response = homeService.getHomePosts(
+                userId, type, roles, techs, interests, activityMode, onlyRecruiting, sort, pageable
         );
-        return ResponseEntity.ok(posts);
+
+        return ResponseEntity.ok(response);
     }
 }

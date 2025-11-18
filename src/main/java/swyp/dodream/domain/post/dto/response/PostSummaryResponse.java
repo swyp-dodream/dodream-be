@@ -21,7 +21,7 @@ public class PostSummaryResponse {
     private String status;
     private String activityMode;
 
-    // suggestedAt 필드를 DTO에 추가합니다.
+    // createdAt 필드를 DTO에 추가합니다.
     private LocalDateTime createdAt;
 
     public static PostSummaryResponse fromEntity(Post post) {
