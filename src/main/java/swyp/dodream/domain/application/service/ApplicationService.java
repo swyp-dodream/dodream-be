@@ -77,8 +77,9 @@ public class ApplicationService {
             throw new CustomException(ExceptionType.FORBIDDEN, "본인의 지원 정보만 조회할 수 있습니다.");
         }
 
-        // 3. 상태 확인: APPLIED 상태가 아니면 조회 불가
-        if (application.getStatus() != ApplicationStatus.APPLIED) {
+        // 3. 상태 확인: APPLIED 또는 ACCEPTED 상태가 아니면 조회 불가
+        if (application.getStatus() != ApplicationStatus.APPLIED
+                && application.getStatus() != ApplicationStatus.ACCEPTED) {
             throw new CustomException(ExceptionType.NOT_FOUND, "조회 가능한 상태가 아닙니다.");
         }
 
