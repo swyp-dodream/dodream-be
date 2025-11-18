@@ -13,6 +13,7 @@ import java.util.List;
 @Builder
 public record MatchedPostResponse(
         Long id,
+        Long applicationId,
         Long postId,
         String postTitle,
         String projectType,        // project / study
@@ -34,6 +35,11 @@ public record MatchedPostResponse(
 
         return MatchedPostResponse.builder()
                 .id(matched.getId())
+                .applicationId(
+                        matched.getApplication() != null
+                                ? matched.getApplication().getId()
+                                : null
+                )
                 .postId(post.getId())
                 .postTitle(post.getTitle())
                 .projectType(post.getProjectType().name().toLowerCase())
