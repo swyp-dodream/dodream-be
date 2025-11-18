@@ -13,8 +13,9 @@ import swyp.dodream.domain.post.domain.Post;
 import swyp.dodream.domain.post.dto.response.PostSummaryResponse;
 import swyp.dodream.domain.post.repository.PostRepository;
 import swyp.dodream.domain.post.repository.PostSpecification;
+import swyp.dodream.domain.profile.domain.Profile;
+import swyp.dodream.domain.profile.repository.ProfileRepository;
 import swyp.dodream.domain.user.domain.User;
-import swyp.dodream.domain.user.repository.UserRepository;
 
 import java.util.List;
 
@@ -24,7 +25,7 @@ import java.util.List;
 public class HomeService {
 
     private final PostRepository postRepository;
-    private final UserRepository userRepository;
+    private final ProfileRepository profileRepository;
 
     public HomeResponse getHomePosts(
             Long userId,
@@ -37,12 +38,12 @@ public class HomeService {
             String sort,
             Pageable pageable
     ) {
-        // 사용자 프로필 이미지 조회
-        String profileImageUrl = null;
+        // 사용자 프로필 이미지 코드 조회
+        Integer profileImageCode = null;
         if (userId != null) {
-            profileImageUrl = userRepository.findById(userId)
-                    .map(User::getProfileImageUrl)
-                    .orElse(null);
+            profileImageCode = profileRepository.findByUserId(userId)
+                    .map(Profile::getProfileImageCode)
+                    .orElse(1);  // 기본값 1
         }
 
         // 초기 스펙
@@ -105,7 +106,7 @@ public class HomeService {
         Page<PostSummaryResponse> postResponses = posts.map(PostSummaryResponse::fromEntity);
 
         return HomeResponse.builder()
-                .profileImageUrl(profileImageUrl)
+                .profileImageCode(profileImageCode)
                 .posts(postResponses)
                 .build();
     }

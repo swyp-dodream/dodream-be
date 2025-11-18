@@ -7,17 +7,16 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import swyp.dodream.domain.home.dto.HomeResponse;
 import swyp.dodream.domain.home.service.HomeService;
 import swyp.dodream.domain.post.common.ActivityMode;
 import swyp.dodream.domain.post.common.ProjectType;
-import swyp.dodream.domain.post.dto.response.PostSummaryResponse;
+import swyp.dodream.jwt.dto.UserPrincipal;
 
 /**
  * 홈 화면 전용 컨트롤러
@@ -44,7 +43,7 @@ public class HomeController {
     })
     @GetMapping
     public ResponseEntity<HomeResponse> getHomePosts(
-            @AuthenticationPrincipal Long userId,
+            Authentication authentication,
 
             @Parameter(description = "모집 유형 (ALL, PROJECT, STUDY)", example = "ALL")
             @RequestParam(defaultValue = "ALL") ProjectType type,
@@ -83,6 +82,13 @@ public class HomeController {
             @Parameter(description = "페이지 크기", example = "10")
             @RequestParam(defaultValue = "10") int size
     ) {
+        // userId 추출
+        Long userId = null;
+        if (authentication != null) {
+            UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+            userId = userPrincipal.getUserId();
+        }
+
         // 서비스에 넘겨줄 Pageable 객체를 여기서 생성합니다.
         Pageable pageable = PageRequest.of(page, size);
 

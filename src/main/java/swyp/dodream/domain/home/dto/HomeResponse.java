@@ -8,6 +8,6 @@ import swyp.dodream.domain.post.dto.response.PostSummaryResponse;
 @Getter
 @Builder
 public class HomeResponse {
-    private String profileImageUrl;
+    private Integer profileImageCode;
     private Page<PostSummaryResponse> posts;
 }
