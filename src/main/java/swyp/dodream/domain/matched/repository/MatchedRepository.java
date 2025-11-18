@@ -98,6 +98,7 @@ public interface MatchedRepository extends JpaRepository<Matched, Long> {
     JOIN FETCH m.post p
     JOIN FETCH p.owner
     WHERE m.user.id = :userId
+     AND m.isCanceled = false
     ORDER BY m.matchedAt DESC
     """,
             countQuery = """
