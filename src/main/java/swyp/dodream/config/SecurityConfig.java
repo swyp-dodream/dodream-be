@@ -64,6 +64,11 @@ public class SecurityConfig {
                 // CORS 설정
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
+                // (chat 브랜치 참고용)
+                // JWT 환경에서는 Basic 인증을 비활성화하는 경우가 많음.
+                // 필요 시 아래 한 줄을 주석 해제하세요.
+                // .httpBasic(httpBasic -> httpBasic.disable())
+
                 // 세션 사용하지 않음 (JWT 사용)
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
@@ -76,6 +81,9 @@ public class SecurityConfig {
 
                 // 요청 권한 설정
                 .authorizeHttpRequests(auth -> auth
+                        // 모든 OPTIONS 메서드 요청은 인증 없이 허용합니다.
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
                         // 비회원 허용 (GET 전용)
                         .requestMatchers(HttpMethod.GET, "/api/home").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/policies/**").permitAll()
@@ -89,6 +97,9 @@ public class SecurityConfig {
                                         .flatMap(Arrays::stream)
                                         .toArray(String[]::new)
                         ).permitAll()
+
+                        // WebSocket(SockJS) 핸드셰이크를 위한 경로 허용
+                        .requestMatchers("/connect/**").permitAll()
 
                         // 나머지 요청은 로그인 필요
                         .anyRequest().authenticated()
@@ -150,6 +161,12 @@ public class SecurityConfig {
                 "Authorization",
                 "Content-Type"
         ));
+
+        // feature/chat 브랜치의 로컬 테스트용 설정 참고:
+        // configuration.setAllowedOrigins(List.of(
+        //         "http://localhost:3000",
+        //         "http://localhost:3001"
+        // ));
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
