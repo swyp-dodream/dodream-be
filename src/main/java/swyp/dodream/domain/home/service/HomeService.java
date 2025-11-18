@@ -15,9 +15,10 @@ import swyp.dodream.domain.post.repository.PostRepository;
 import swyp.dodream.domain.post.repository.PostSpecification;
 import swyp.dodream.domain.profile.domain.Profile;
 import swyp.dodream.domain.profile.repository.ProfileRepository;
-import swyp.dodream.domain.user.domain.User;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -103,7 +104,27 @@ public class HomeService {
         Pageable sortedPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sorting);
 
         Page<Post> posts = postRepository.findAll(spec, sortedPageable);
-        Page<PostSummaryResponse> postResponses = posts.map(PostSummaryResponse::fromEntity);
+
+        // 작성자들의 userId 목록 추출
+        List<Long> ownerIds = posts.getContent().stream()
+                .map(post -> post.getOwner().getId())
+                .distinct()
+                .toList();
+
+        // 한 번에 Profile 조회 (N+1 방지)
+        Map<Long, Integer> profileImageMap = profileRepository.findByUserIdIn(ownerIds).stream()
+                .collect(Collectors.toMap(
+                        Profile::getUserId,
+                        Profile::getProfileImageCode
+                ));
+
+        // DTO 변환
+        Page<PostSummaryResponse> postResponses = posts.map(post ->
+                PostSummaryResponse.fromEntity(
+                        post,
+                        profileImageMap.getOrDefault(post.getOwner().getId(), 1)
+                )
+        );
 
         return HomeResponse.builder()
                 .profileImageCode(profileImageCode)
