@@ -27,7 +27,8 @@ public record MatchedPostResponse(
         List<String> stacks,
         Long viewCount,
         boolean bookmarked,
-        LocalDateTime postCreatedAt
+        LocalDateTime postCreatedAt, // 모집글 생성일
+        LocalDateTime deadlineAt // 모집글 마감일
 ) {
     public static MatchedPostResponse from(Matched matched, boolean bookmarked) {
         Post post = matched.getPost();
@@ -69,6 +70,7 @@ public record MatchedPostResponse(
                 )
                 .bookmarked(bookmarked)
                 .postCreatedAt(post.getCreatedAt())
+                .deadlineAt(post.getDeadlineAt())
                 .build();
     }
 }
