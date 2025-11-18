@@ -40,9 +40,9 @@ public class HomeService {
             Pageable pageable
     ) {
         // 사용자 프로필 이미지 코드 조회
-        Integer profileImageCode = null;
+        Integer userProfileImageCode = null;
         if (userId != null) {
-            profileImageCode = profileRepository.findByUserId(userId)
+            userProfileImageCode = profileRepository.findByUserId(userId)
                     .map(Profile::getProfileImageCode)
                     .orElse(1);  // 기본값 1
         }
@@ -127,7 +127,7 @@ public class HomeService {
         );
 
         return HomeResponse.builder()
-                .profileImageCode(profileImageCode)
+                .userProfileImageCode(userProfileImageCode)
                 .posts(postResponses)
                 .build();
     }
