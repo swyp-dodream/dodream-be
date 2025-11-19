@@ -21,7 +21,7 @@ public record RecruitUserResponse(
         String status,           // PENDING, ACCEPTED 등
         LocalDateTime createdAt, // 지원/제안/매칭 시간
         String experience,       // 프로필의 경력 (enum name)
-        List<String> jobGroups   // 프로필의 직군(Role) 목록
+        List<String> jobGroups   // 지원시 선택한 직군
 ) {
 
     /**
