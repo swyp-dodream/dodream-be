@@ -37,6 +37,7 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
         SELECT a FROM Application a
         JOIN FETCH a.applicant
         WHERE a.post.id = :postId
+        AND a.status = 'APPLIED'
         ORDER BY a.createdAt DESC
     """)
     Slice<Application> findApplicationsByPost(
@@ -51,6 +52,7 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
         SELECT a FROM Application a
         JOIN FETCH a.applicant
         WHERE a.post.id = :postId
+          AND a.status = 'APPLIED'
           AND a.id < :cursor
         ORDER BY a.createdAt DESC
     """)

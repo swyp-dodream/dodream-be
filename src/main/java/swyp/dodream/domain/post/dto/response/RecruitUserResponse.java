@@ -60,7 +60,7 @@ public record RecruitUserResponse(
                 .status("PENDING")
                 .createdAt(application.getCreatedAt())
                 .experience(profile != null && profile.getExperience() != null ? profile.getExperience().name() : null)
-                .jobGroups(profile != null ? profile.getRoles().stream().map(r -> r.getName()).collect(Collectors.toList()) : List.of())
+                .jobGroups(application.getRole() != null ? List.of(application.getRole().getName()) : List.of())
                 .build();
     }
 
