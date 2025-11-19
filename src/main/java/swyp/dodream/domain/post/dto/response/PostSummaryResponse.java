@@ -3,6 +3,7 @@ package swyp.dodream.domain.post.dto.response;
 import lombok.Builder;
 import lombok.Getter;
 import swyp.dodream.domain.post.domain.Post;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -21,8 +22,6 @@ public class PostSummaryResponse {
     private LocalDateTime deadline;
     private String status;
     private String activityMode;
-
-    // createdAt 필드를 DTO에 추가합니다.
     private LocalDateTime createdAt;
 
     public static PostSummaryResponse fromEntity(Post post) {
@@ -44,10 +43,7 @@ public class PostSummaryResponse {
                 .deadline(post.getDeadlineAt())
                 .status(post.getStatus().name())
                 .activityMode(post.getActivityMode().name())
-
-                // post 객체가 BaseEntity로부터 물려받은 getCreatedAt()을 호출해 DTO에 매핑합니다.
                 .createdAt(post.getCreatedAt())
-
                 .build();
     }
 
@@ -71,8 +67,6 @@ public class PostSummaryResponse {
                 .deadline(post.getDeadlineAt())
                 .status(post.getStatus().name())
                 .activityMode(post.getActivityMode().name())
-
-                // post 객체가 BaseEntity로부터 물려받은 getCreatedAt()을 호출해 DTO에 매핑합니다.
                 .createdAt(post.getCreatedAt())
 
                 .build();

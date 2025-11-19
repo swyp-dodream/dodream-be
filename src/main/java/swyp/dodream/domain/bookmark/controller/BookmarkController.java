@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import swyp.dodream.domain.bookmark.dto.response.MyBookmarkPageResponse;
 import swyp.dodream.domain.post.dto.response.PostSummaryResponse;
 import swyp.dodream.domain.bookmark.service.BookmarkService;
 import swyp.dodream.jwt.dto.UserPrincipal;
@@ -54,20 +55,22 @@ public class BookmarkController {
     // ==============================
     @Operation(
             summary = "내 북마크 목록 조회",
-            description = "현재 로그인한 사용자의 북마크한 모집글 목록을 조회합니다."
+            description = "현재 로그인한 사용자의 북마크한 모집글 목록을 조회합니다. (페이지네이션)"
     )
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "조회 성공",
-                    content = @Content(schema = @Schema(implementation = PostSummaryResponse.class))),
+            @ApiResponse(
+                    responseCode = "200", description = "조회 성공", content = @Content(schema = @Schema(implementation = MyBookmarkPageResponse.class))
+            ),
             @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자")
     })
     @GetMapping
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<List<PostSummaryResponse>> getMyBookmarks(
-            @Parameter(hidden = true, description = "현재 로그인한 사용자 정보 (자동 주입)")
-            @AuthenticationPrincipal UserPrincipal user
+    public ResponseEntity<MyBookmarkPageResponse> getMyBookmarks(
+            @AuthenticationPrincipal UserPrincipal user,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
     ) {
-        List<PostSummaryResponse> bookmarks = bookmarkService.getBookmarkedPosts(user.getUserId());
-        return ResponseEntity.ok(bookmarks);
+        MyBookmarkPageResponse response = bookmarkService.getBookmarkedPosts(user.getUserId(), page, size);
+        return ResponseEntity.ok(response);
     }
 }
