@@ -112,19 +112,21 @@ public class HomeService {
                 .toList();
 
         // 한 번에 Profile 조회 (N+1 방지)
-        Map<Long, Integer> profileImageMap = profileRepository.findByUserIdIn(ownerIds).stream()
+        Map<Long, Profile> profileMap = profileRepository.findByUserIdIn(ownerIds).stream()
                 .collect(Collectors.toMap(
                         Profile::getUserId,
-                        Profile::getProfileImageCode
+                        profile -> profile
                 ));
 
         // DTO 변환
-        Page<PostSummaryResponse> postResponses = posts.map(post ->
-                PostSummaryResponse.fromEntity(
-                        post,
-                        profileImageMap.getOrDefault(post.getOwner().getId(), 1)
-                )
-        );
+        Page<PostSummaryResponse> postResponses = posts.map(post -> {
+            Profile ownerProfile = profileMap.get(post.getOwner().getId());
+            return PostSummaryResponse.fromEntity(
+                    post,
+                    ownerProfile != null ? ownerProfile.getProfileImageCode() : 1,
+                    ownerProfile != null ? ownerProfile.getNickname() : post.getOwner().getName()
+            );
+        });
 
         return HomeResponse.builder()
                 .userProfileImageCode(userProfileImageCode)

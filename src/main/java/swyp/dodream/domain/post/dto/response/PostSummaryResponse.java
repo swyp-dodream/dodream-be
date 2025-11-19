@@ -51,7 +51,7 @@ public class PostSummaryResponse {
                 .build();
     }
 
-    public static PostSummaryResponse fromEntity(Post post, Integer authorProfileImageCode) {
+    public static PostSummaryResponse fromEntity(Post post, Integer authorProfileImageCode, String authorNickname) {
         return PostSummaryResponse.builder()
                 .id(post.getId())
                 .title(post.getTitle())
@@ -65,16 +65,13 @@ public class PostSummaryResponse {
                 .interests(post.getFields().stream()
                         .map(f -> f.getInterestKeyword().getName())
                         .toList())
-                .author(post.getOwner().getName())
+                .author(authorNickname)
                 .authorProfileImageCode(authorProfileImageCode)
                 .viewCount(post.getPostView() != null ? post.getPostView().getViews() : 0L)
                 .deadline(post.getDeadlineAt())
                 .status(post.getStatus().name())
                 .activityMode(post.getActivityMode().name())
-
-                // post 객체가 BaseEntity로부터 물려받은 getCreatedAt()을 호출해 DTO에 매핑합니다.
                 .createdAt(post.getCreatedAt())
-
                 .build();
     }
 }
