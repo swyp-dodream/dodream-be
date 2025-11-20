@@ -5,6 +5,7 @@ import swyp.dodream.domain.master.domain.ApplicationStatus;
 import swyp.dodream.domain.matched.domain.Matched;
 import swyp.dodream.domain.post.common.PostStatus;
 import swyp.dodream.domain.post.domain.Post;
+import swyp.dodream.domain.profile.domain.Profile;
 import swyp.dodream.domain.user.domain.User;
 
 import java.time.LocalDateTime;
@@ -30,7 +31,7 @@ public record MatchedPostResponse(
         LocalDateTime postCreatedAt, // 모집글 생성일
         LocalDateTime deadlineAt // 모집글 마감일
 ) {
-    public static MatchedPostResponse from(Matched matched, boolean bookmarked) {
+    public static MatchedPostResponse from(Matched matched, boolean bookmarked, Profile leaderProfile) {
         Post post = matched.getPost();
         User leader = post.getOwner();
 
@@ -46,8 +47,13 @@ public record MatchedPostResponse(
                 .projectType(post.getProjectType().name().toLowerCase())
                 .activityMode(post.getActivityMode().name().toLowerCase())
                 .postStatus(post.getStatus())
-                .leaderName(leader.getName())
-                .leaderProfileImage(leader.getProfileImageUrl())
+                .leaderName(
+                        leaderProfile != null ? leaderProfile.getNickname() : leader.getName()
+                )
+                .leaderProfileImage(
+                        leaderProfile != null ? String.valueOf(leaderProfile.getProfileImageCode())
+                                : leader.getProfileImageUrl()
+                )
                 .myStatus(
                         // application이 있으면 그 상태, 없으면(작성자) null
                         matched.getApplication() != null

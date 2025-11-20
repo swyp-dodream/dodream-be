@@ -21,6 +21,8 @@ import swyp.dodream.domain.matched.domain.Matched;
 import swyp.dodream.domain.matched.dto.MatchingCancelRequest;
 import swyp.dodream.domain.matched.repository.MatchedRepository;
 import swyp.dodream.domain.post.domain.Post;
+import swyp.dodream.domain.profile.domain.Profile;
+import swyp.dodream.domain.profile.repository.ProfileRepository;
 import swyp.dodream.domain.suggestion.domain.Suggestion;
 import swyp.dodream.domain.post.repository.PostRepository;
 import swyp.dodream.domain.suggestion.repository.SuggestionRepository;
@@ -28,7 +30,10 @@ import swyp.dodream.domain.suggestion.repository.SuggestionRepository;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -42,6 +47,7 @@ public class MatchedService {
     private final SuggestionRepository suggestionRepository;
     private final NotificationService notificationService;
     private final BookmarkRepository bookmarkRepository;
+    private final ProfileRepository profileRepository;
 
     // 정책 상수
     private static final int LEADER_CANCEL_LIMIT_PER_POST = 2; // 모집글 당 2회
@@ -59,11 +65,22 @@ public class MatchedService {
 
         Page<Matched> matchedPage = matchedRepository.findMatchedByUser(userId, pageable);
 
+        Set<Long> leaderIds = matchedPage.getContent().stream()
+                .map(m -> m.getPost().getOwner().getId())
+                .collect(Collectors.toSet());
+
+        Map<Long, Profile> profileMap = profileRepository.findByUserIdIn(leaderIds).stream()
+                .collect(Collectors.toMap(Profile::getUserId, p -> p));
+
         List<MatchedPostResponse> contents = matchedPage.getContent().stream()
                 .map(matched -> {
                     Long postId = matched.getPost().getId();
                     boolean bookmarked = bookmarkRepository.existsByUserIdAndPostId(userId, postId);
-                    return MatchedPostResponse.from(matched, bookmarked);
+
+                    Long leaderId = matched.getPost().getOwner().getId();
+                    Profile leaderProfile = profileMap.get(leaderId);
+
+                    return MatchedPostResponse.from(matched, bookmarked, leaderProfile);
                 })
                 .toList();
 

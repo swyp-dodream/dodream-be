@@ -72,8 +72,7 @@ public class MatchedController {
             @RequestParam(defaultValue = "10") int size
     ) {
         UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
-        MatchedPostPageResponse response = matchedService.getMyMatched(
-                userPrincipal.getUserId(), page, size);
+        MatchedPostPageResponse response = matchedService.getMyMatched(userPrincipal.getUserId(), page, size);
         return ResponseEntity.ok(response);
     }
 
