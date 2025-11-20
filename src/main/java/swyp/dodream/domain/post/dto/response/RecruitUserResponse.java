@@ -13,6 +13,7 @@ import java.util.stream.Collectors;
 
 @Builder
 public record RecruitUserResponse(
+        Long matchedId,
         Long suggestionId,
         Long applicationId,
         Long userId,
@@ -71,6 +72,7 @@ public record RecruitUserResponse(
         User user = matched.getUser();
 
         return RecruitUserResponse.builder()
+                .matchedId(matched.getId())
                 .applicationId(matched.getApplication() != null
                         ? matched.getApplication().getId()
                         : null)
