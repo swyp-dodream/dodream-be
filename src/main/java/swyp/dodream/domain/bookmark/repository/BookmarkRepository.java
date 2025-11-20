@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import swyp.dodream.domain.bookmark.domain.Bookmark;
+import swyp.dodream.domain.post.common.ProjectType;
 import swyp.dodream.domain.post.domain.Post;
 import swyp.dodream.domain.user.domain.User;
 import java.util.List;
@@ -37,4 +38,6 @@ public interface BookmarkRepository extends JpaRepository<Bookmark, Long> {
     boolean existsByUserIdAndPostId(Long userId, Long postId);
 
     Page<Bookmark> findByUserId(Long userId, Pageable pageable);
+
+    Page<Bookmark> findByUserIdAndPost_ProjectType(Long userId,ProjectType projectType,Pageable pageable);
 }

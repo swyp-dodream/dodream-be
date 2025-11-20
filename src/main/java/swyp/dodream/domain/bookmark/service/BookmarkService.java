@@ -13,6 +13,7 @@ import swyp.dodream.domain.bookmark.domain.Bookmark;
 import swyp.dodream.domain.bookmark.dto.response.MyBookmarkPageResponse;
 import swyp.dodream.domain.bookmark.dto.response.MyBookmarkResponse;
 import swyp.dodream.domain.bookmark.repository.BookmarkRepository;
+import swyp.dodream.domain.post.common.ProjectType;
 import swyp.dodream.domain.post.domain.Post;
 import swyp.dodream.domain.post.repository.PostRepository;
 import swyp.dodream.domain.profile.domain.Profile;
@@ -53,11 +54,11 @@ public class BookmarkService {
         }
     }
 
-    public MyBookmarkPageResponse getBookmarkedPosts(Long userId, int page, int size) {
+    public MyBookmarkPageResponse getBookmarkedPosts(Long userId, int page, int size, ProjectType projectType) {
 
         Pageable pageable = PageRequest.of(page, size);
 
-        Page<Bookmark> bookmarkPage = bookmarkRepository.findByUserId(userId, pageable);
+        Page<Bookmark> bookmarkPage = bookmarkRepository.findByUserIdAndPost_ProjectType(userId, projectType, pageable);
 
         Set<Long> leaderIds = bookmarkPage.getContent().stream()
                 .map(b -> b.getPost().getOwner().getId())

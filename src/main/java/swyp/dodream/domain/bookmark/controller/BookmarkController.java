@@ -12,11 +12,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import swyp.dodream.domain.bookmark.dto.response.MyBookmarkPageResponse;
-import swyp.dodream.domain.post.dto.response.PostSummaryResponse;
 import swyp.dodream.domain.bookmark.service.BookmarkService;
+import swyp.dodream.domain.post.common.ProjectType;
 import swyp.dodream.jwt.dto.UserPrincipal;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/bookmarks")
@@ -55,7 +53,7 @@ public class BookmarkController {
     // ==============================
     @Operation(
             summary = "내 북마크 목록 조회",
-            description = "현재 로그인한 사용자의 북마크한 모집글 목록을 조회합니다. (페이지네이션)"
+            description = "현재 로그인한 사용자의 북마크한 모집글 목록을 조회합니다. (페이지네이션)" + "projectType 파라미터로 PROJECT/STUDY 필터링"
     )
     @ApiResponses({
             @ApiResponse(
@@ -68,9 +66,12 @@ public class BookmarkController {
     public ResponseEntity<MyBookmarkPageResponse> getMyBookmarks(
             @AuthenticationPrincipal UserPrincipal user,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
+            @RequestParam(defaultValue = "10") int size,
+
+            @Parameter(description = "북마크 목록을 필터링할 프로젝트 타입 (PROJECT/STUDY)", example = "PROJECT")
+            @RequestParam(name = "projectType", defaultValue = "ALL") ProjectType projectType
     ) {
-        MyBookmarkPageResponse response = bookmarkService.getBookmarkedPosts(user.getUserId(), page, size);
+        MyBookmarkPageResponse response = bookmarkService.getBookmarkedPosts(user.getUserId(), page, size, projectType);
         return ResponseEntity.ok(response);
     }
 }
