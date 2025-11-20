@@ -47,7 +47,7 @@ public class PostSummaryResponse {
                 .build();
     }
 
-    public static PostSummaryResponse fromEntity(Post post, Integer authorProfileImageCode) {
+    public static PostSummaryResponse fromEntity(Post post, Integer authorProfileImageCode, String authorNickname) {
         return PostSummaryResponse.builder()
                 .id(post.getId())
                 .title(post.getTitle())
@@ -61,7 +61,7 @@ public class PostSummaryResponse {
                 .interests(post.getFields().stream()
                         .map(f -> f.getInterestKeyword().getName())
                         .toList())
-                .author(post.getOwner().getName())
+                .author(authorNickname)
                 .authorProfileImageCode(authorProfileImageCode)
                 .viewCount(post.getPostView() != null ? post.getPostView().getViews() : 0L)
                 .deadline(post.getDeadlineAt())
