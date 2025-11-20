@@ -231,8 +231,9 @@ public class ChatService {
 
     // ==================== 6. 내 채팅방 목록 ====================
     @Transactional(readOnly = true)
-    public List<MyChatListResponse> getMyChatRooms(Long myUserId) {
+    public List<MyChatListResponse> getMyChatRooms(Long myUserId, ChatFilterType filter) {
         return chatParticipantRepository.findAllByUserId(myUserId).stream()
+                .filter(cp -> cp.getLeftAt() == null)  // 나간 채팅방 제외
                 .map(cp -> {
                     ChatRoom room = cp.getChatRoom();
                     Long otherUserId = myUserId.equals(room.getLeaderUserId())
@@ -257,10 +258,16 @@ public class ChatService {
                             .myRole(myRole)
                             .build();
                 })
+                .filter(response -> {
+                    if (filter == ChatFilterType.UNREAD) {
+                        return response.getUnReadCount() > 0;
+                    }
+                    return true;
+                })
                 .collect(Collectors.toList());
     }
 
-    // ==================== 7. 읽음 처리 ====================
+        // ==================== 7. 읽음 처리 ====================
     @Transactional
     public int messageRead(String roomId, Long myUserId) {
         ChatRoom chatRoom = chatRoomRepository.findById(roomId)

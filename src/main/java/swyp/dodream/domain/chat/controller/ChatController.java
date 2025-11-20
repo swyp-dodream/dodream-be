@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import swyp.dodream.common.exception.ExceptionType;
+import swyp.dodream.domain.chat.domain.ChatFilterType;
 import swyp.dodream.domain.chat.dto.ChatMessageDto;
 import swyp.dodream.domain.chat.dto.request.ChatInitiateRequest;
 import swyp.dodream.domain.chat.dto.response.ChatInitiateResponse;
@@ -68,16 +69,17 @@ public class ChatController {
     // 내 채팅방 목록
     @Operation(
             summary = "내 채팅방 목록 조회",
-            description = "로그인한 사용자가 포함된 모든 채팅방 목록을 최신순으로 조회"
+            description = "로그인한 사용자가 포함된 모든 채팅방 목록을 최신순으로 조회. filter 파라미터로 전체(ALL)/읽지않음(UNREAD) 필터링 가능"
     )
     @GetMapping("/my/rooms")
     public ResponseEntity<List<MyChatListResponse>> getMyChatRooms(
+            @RequestParam(defaultValue = "ALL") ChatFilterType filter,
             @AuthenticationPrincipal UserPrincipal userPrincipal
     ) {
         validateAuthentication(userPrincipal);
         Long userId = userPrincipal.getUserId();
 
-        List<MyChatListResponse> response = chatService.getMyChatRooms(userId);
+        List<MyChatListResponse> response = chatService.getMyChatRooms(userId, filter);
         return ResponseEntity.ok(response);
     }
 
