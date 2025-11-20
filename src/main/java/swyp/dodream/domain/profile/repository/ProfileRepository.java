@@ -32,4 +32,6 @@ public interface ProfileRepository extends JpaRepository<Profile, Long> {
 
     @EntityGraph(attributePaths = {"roles"})
     List<Profile> findByUserIdIn(Collection<Long> userIds);
+
+    boolean existsByNicknameAndUserIdNot(String nickname, Long userId);
 }

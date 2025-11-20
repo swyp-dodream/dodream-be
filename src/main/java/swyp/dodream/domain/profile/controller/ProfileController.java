@@ -222,10 +222,16 @@ public class ProfileController {
     )
     @GetMapping("/check-nickname")
     public ResponseEntity<NicknameCheckResponse> checkNickname(
-            @Parameter(description = "중복 여부를 확인할 닉네임", example = "현우")
+            Authentication authentication,
+            @Parameter(description = "중복 여부를 확인할 닉네임", example = "홍길동")
             @RequestParam("nickname") String nickname
     ) {
-        boolean exists = profileService.existsNickname(nickname);
+        Long userId = null;
+        if (authentication != null && authentication.getPrincipal() instanceof UserPrincipal principal) {
+            userId = principal.getUserId();
+        }
+
+        boolean exists = profileService.existsNickname(userId, nickname);
         NicknameCheckResponse response = new NicknameCheckResponse(!exists, nickname);
         return ResponseEntity.ok(response);
     }

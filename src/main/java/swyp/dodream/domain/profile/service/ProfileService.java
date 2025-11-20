@@ -461,11 +461,16 @@ public class ProfileService {
     }
 
     @Transactional(readOnly = true)
-    public boolean existsNickname(String nickname) {
+    public boolean existsNickname(Long userId, String nickname) {
         if (nickname == null || nickname.trim().isEmpty()) {
             throw new CustomException(ExceptionType.BAD_REQUEST_INVALID);
         }
-        return profileRepository.existsByNickname(nickname.trim());
+
+        String normalized = nickname.trim();
+        if (userId == null) {
+            return profileRepository.existsByNickname(normalized);
+        }
+        return profileRepository.existsByNicknameAndUserIdNot(normalized, userId);
     }
 
     @Transactional(readOnly = true)
