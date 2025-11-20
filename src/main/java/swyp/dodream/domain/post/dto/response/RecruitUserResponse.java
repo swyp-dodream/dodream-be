@@ -71,8 +71,10 @@ public record RecruitUserResponse(
         User user = matched.getUser();
 
         return RecruitUserResponse.builder()
+                .applicationId(matched.getApplication() != null
+                        ? matched.getApplication().getId()
+                        : null)
                 .suggestionId(null)
-                .applicationId(null)
                 .userId(user.getId())
                 .nickname(profile != null ? profile.getNickname() : user.getName())
                 .profileImage(user.getProfileImageUrl())
