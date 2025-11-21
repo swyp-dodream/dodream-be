@@ -98,16 +98,23 @@ public interface MatchedRepository extends JpaRepository<Matched, Long> {
     JOIN FETCH m.post p
     JOIN FETCH p.owner
     WHERE m.user.id = :userId
-     AND m.isCanceled = false
+      AND m.isCanceled = false
+      AND p.owner.id <> :userId      
     ORDER BY m.matchedAt DESC
-    """,
-            countQuery = """
+    """, countQuery = """
     SELECT count(m)
     FROM Matched m
     WHERE m.user.id = :userId
-    """
-    )
+      AND m.isCanceled = false
+      AND m.post.owner.id <> :userId
+    """)
     Page<Matched> findMatchedByUser(@Param("userId") Long userId, Pageable pageable);
 
     boolean existsByPostIdAndUserId(Long postId, Long id);
+
+    Optional<Matched> findByPostIdAndUserIdAndIsCanceledFalse(Long postId, Long userId);
+
+    Optional<Matched> findByPostIdAndUserIdAndIsCanceledTrue(Long postId, Long userId);
+
+    Optional<Matched> findByApplicationIdAndIsCanceledTrue(Long applicationId);
 }
