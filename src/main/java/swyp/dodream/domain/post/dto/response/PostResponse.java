@@ -30,9 +30,9 @@ public class PostResponse {
     private List<String> interestKeywords;
     private long viewCount;
     private List<String> stacks;
-
     private List<RoleRequirementRes> roles;
     private Long applicationId;
+    private Long matchedId;
 
     @Getter
     @Builder
@@ -46,7 +46,8 @@ public class PostResponse {
             boolean isOwner,
             String ownerNickname,
             String ownerProfileImageUrl,
-            Long applicationId
+            Long applicationId,
+            Long matchedId
     ) {
 
         List<String> interestNames = post.getFields().stream()
@@ -78,20 +79,18 @@ public class PostResponse {
                 .createdAt(post.getCreatedAt())
                 .ownerNickname(ownerNickname)
                 .ownerProfileImageUrl(ownerProfileImageUrl)
-
                 .projectType(post.getProjectType().name())
                 .activityMode(post.getActivityMode().name())
                 .duration(post.getDuration().name())
                 .deadlineDate(post.getDeadlineAt() != null
                         ? post.getDeadlineAt().toLocalDate()
                         : null)
-
                 .interestKeywords(interestNames)
                 .stacks(stackNames)
                 .roles(roles)
                 .viewCount(viewCount)
                 .applicationId(applicationId)
-
+                .matchedId(matchedId)
                 .build();
     }
 }
