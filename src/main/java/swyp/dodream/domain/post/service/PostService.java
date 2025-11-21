@@ -343,6 +343,17 @@ public class PostService {
             throw new IllegalStateException("작성자는 자신의 모집글에 지원할 수 없습니다.");
         }
 
+        // 매칭 취소된 글에 재지원 불가능 처리하기
+        boolean hasCanceledMatched = matchedRepository
+                .findByPostIdAndUserIdAndIsCanceledTrue(postId, userId)
+                .isPresent();
+
+        if (hasCanceledMatched) {
+            throw ExceptionType.CONFLICT_MATCHED_ALREADY_CANCELED.throwException(
+                    "이미 매칭이 취소된 모집글에는 다시 지원할 수 없습니다."
+            );
+        }
+
         // 1. 모집 마감 여부
         if (post.getStatus() == PostStatus.COMPLETED) {
             throw new IllegalStateException("모집이 마감되었습니다.");
@@ -571,14 +582,27 @@ public class PostService {
                 : null;
 
         Long applicationId = null;
+        Long matchedId = null;
 
-        if (currentUserId != null && !isOwner) {
-            applicationId = applicationRepository
-                    .findByPostIdAndApplicantIdAndStatus(
-                            post.getId(),
-                            currentUserId,
-                            ApplicationStatus.APPLIED)
-                    .map(Application::getId)
+        if (currentUserId != null) {
+            if (!isOwner) {
+                applicationId = applicationRepository
+                        .findByPostIdAndApplicantIdAndStatus(
+                                post.getId(),
+                                currentUserId,
+                                ApplicationStatus.APPLIED)
+                        .or(() -> applicationRepository.findByPostIdAndApplicantIdAndStatus(
+                                post.getId(),
+                                currentUserId,
+                                ApplicationStatus.ACCEPTED
+                        ))
+                        .map(Application::getId)
+                        .orElse(null);
+            }
+
+            matchedId = matchedRepository
+                    .findByPostIdAndUserIdAndIsCanceledFalse(post.getId(), currentUserId)
+                    .map(Matched::getId)
                     .orElse(null);
         }
 
@@ -587,7 +611,8 @@ public class PostService {
                 isOwner,
                 ownerNickname,
                 ownerProfileImageUrl,
-                applicationId
+                applicationId,
+                matchedId
         );
     }
 }

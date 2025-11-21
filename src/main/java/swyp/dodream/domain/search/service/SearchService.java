@@ -45,6 +45,6 @@ public class SearchService {
                 ? profileImageCode.toString()
                 : null;
 
-        return PostResponse.from(post, isOwner, ownerNickname, ownerProfileImageUrl,null);
+        return PostResponse.from(post, isOwner, ownerNickname, ownerProfileImageUrl,null,null);
     }
 }

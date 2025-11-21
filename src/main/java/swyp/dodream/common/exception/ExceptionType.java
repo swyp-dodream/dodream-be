@@ -48,6 +48,7 @@ public enum ExceptionType {
     USER_ALREADY_WITHDRAWN(HttpStatus.CONFLICT, "이미 탈퇴한 사용자입니다"),
     DUPLICATE_TECH_STACK(HttpStatus.CONFLICT, "이미 추가된 기술 스택입니다"),
     DUPLICATE_INTEREST(HttpStatus.CONFLICT, "이미 추가된 관심 분야입니다"),
+    CONFLICT_MATCHED_ALREADY_CANCELED(HttpStatus.BAD_REQUEST, "이미 매칭 취소된 모집글에 지원 및 지원 취소 불가능합니다."),
 
     // Internal Server Error(500)
     SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 에러"),

@@ -15,6 +15,7 @@ import swyp.dodream.domain.application.domain.Application;
 import swyp.dodream.domain.application.dto.response.MyApplicationPageResponse;
 import swyp.dodream.domain.application.dto.response.MyApplicationResponse;
 import swyp.dodream.domain.application.repository.ApplicationRepository;
+import swyp.dodream.domain.matched.repository.MatchedRepository;
 
 import java.util.List;
 
@@ -25,6 +26,7 @@ public class ApplicationService {
 
     private final ApplicationRepository applicationRepository;
     private final BookmarkRepository bookmarkRepository;
+    private final MatchedRepository matchedRepository;
 
     /**
      * 내가 지원한 글 목록 조회 (페이지네이션)
@@ -92,11 +94,20 @@ public class ApplicationService {
         Application app = applicationRepository.findByIdAndApplicantId(applicationId, userId)
                 .orElseThrow(() -> new CustomException(ExceptionType.NOT_FOUND, "지원 내역을 찾을 수 없습니다."));
 
+        boolean canceledMatchedExists = matchedRepository
+                .findByApplicationIdAndIsCanceledTrue(applicationId)
+                .isPresent();
+
+        if (canceledMatchedExists) {
+            throw ExceptionType.CONFLICT_MATCHED_ALREADY_CANCELED.throwException(
+                    "이미 매칭이 취소된 상태에서는 지원 취소가 불가능합니다."
+            );
+        }
+
         if (app.getStatus() != ApplicationStatus.APPLIED) {
             throw new CustomException(ExceptionType.BAD_REQUEST_INVALID, "이미 처리된 지원은 취소할 수 없습니다.");
         }
 
-        app.withdraw(); // status 변경 + withdrawn_at 기록
-        // 알림 없음(요구사항: 리더 알림 X)
+        app.withdraw();
     }
 }
