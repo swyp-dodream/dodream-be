@@ -248,6 +248,18 @@ public class ChatService {
                     String myRole = myUserId.equals(room.getLeaderUserId()) ? "LEADER" : "MEMBER";
                     String topicId = buildTopicId(room.getPostId(), room.getLeaderUserId(), room.getMemberUserId());
 
+                    // 마지막 메시지 조회 - roomId 사용
+                    Optional<ChatMessage> lastMessageOpt = chatMessageRepository
+                            .findLastMessageByRoomId(room.getId());
+
+                    String lastMessage = lastMessageOpt
+                            .map(ChatMessage::getBody)
+                            .orElse(null);
+
+                    LocalDateTime lastMessageAt = lastMessageOpt
+                            .map(ChatMessage::getCreatedAt)
+                            .orElse(null);
+
                     return MyChatListResponse.builder()
                             .roomId(room.getId())
                             .roomName(roomName)
@@ -256,6 +268,8 @@ public class ChatService {
                             .leaderId(String.valueOf(room.getLeaderUserId()))
                             .memberId(String.valueOf(room.getMemberUserId()))
                             .myRole(myRole)
+                            .lastMessage(lastMessage)
+                            .lastMessageAt(lastMessageAt)
                             .build();
                 })
                 .filter(response -> {
@@ -264,6 +278,8 @@ public class ChatService {
                     }
                     return true;
                 })
+                .sorted(Comparator.comparing(MyChatListResponse::getLastMessageAt,
+                        Comparator.nullsLast(Comparator.reverseOrder())))  // 최신순 정렬
                 .collect(Collectors.toList());
     }
 

@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -17,4 +19,7 @@ public class MyChatListResponse {
     private String leaderId;
     private String memberId;
     private String myRole;
+
+    private String lastMessage;           // 마지막 메시지 내용
+    private LocalDateTime lastMessageAt;  // 마지막 메시지 시간
 }
