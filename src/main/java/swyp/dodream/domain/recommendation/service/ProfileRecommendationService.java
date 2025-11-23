@@ -6,6 +6,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import swyp.dodream.domain.ai.service.EmbeddingService;
+import swyp.dodream.domain.master.domain.SuggestionStatus;
+import swyp.dodream.domain.matched.repository.MatchedRepository;
 import swyp.dodream.domain.post.common.ActivityMode;
 import swyp.dodream.domain.post.domain.Post;
 import swyp.dodream.domain.post.repository.PostRepository;
@@ -15,6 +17,7 @@ import swyp.dodream.domain.recommendation.dto.RecommendationProfileListResponse;
 import swyp.dodream.domain.recommendation.dto.RecommendationProfileResponse;
 import swyp.dodream.domain.recommendation.repository.VectorRepository;
 import swyp.dodream.domain.recommendation.util.TextExtractor;
+import swyp.dodream.domain.suggestion.repository.SuggestionRepository;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -38,6 +41,8 @@ public class ProfileRecommendationService {
     private final ProfileRepository profileRepository;
     private final Optional<EmbeddingService> embeddingService;
     private final Optional<VectorRepository> vectorRepository;
+    private final MatchedRepository matchedRepository;
+    private final SuggestionRepository suggestionRepository;
 
     private static final int DEFAULT_SIZE = 10;  // Qdrant에서 검색할 개수 (필터링 후 5개 확보를 위해 여유있게)
     private static final int FINAL_LIMIT = 5;    // 최종 반환할 개수
@@ -108,9 +113,16 @@ public class ProfileRecommendationService {
     ) {
         List<RecommendationProfileResponse> result = new ArrayList<>();
 
+        Set<Long> existingMemberIdSet = new HashSet<>(matchedRepository.findUserIdsByPostId(postId)); // 이미 매칭된 맴버
+
         for (Map.Entry<Long, Double> entry : profileSimilarities.entrySet()) {
             Long userId = entry.getKey();
             Double similarity = entry.getValue();
+
+            if (existingMemberIdSet.contains(userId)) {
+                log.debug("이미 멤버인 유저이므로 추천 제외: userId={}, postId={}", userId, postId);
+                continue;
+            }
 
             // Qdrant에 저장된 ID는 userId이므로 findByUserId 사용
             Profile profile = profileRepository.findByUserId(userId)
@@ -129,8 +141,12 @@ public class ProfileRecommendationService {
             // 태그 생성
             List<String> tags = generateTags(profile, post);
 
+            // 제안 ID 여부 확인
+            List<SuggestionStatus> validStatuses = List.of( SuggestionStatus.SENT, SuggestionStatus.ACCEPTED );
+            Long suggestionId = suggestionRepository.findValidSuggestionId(postId, userId, validStatuses).orElse(null);
+
             // 실제 유사도 점수 사용 (Qdrant에서 반환된 Cosine Similarity 점수)
-            RecommendationProfileResponse response = RecommendationProfileResponse.from(profile, similarity, tags);
+            RecommendationProfileResponse response = RecommendationProfileResponse.from(profile, similarity, tags, suggestionId);
             result.add(response);
         }
 

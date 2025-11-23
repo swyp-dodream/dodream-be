@@ -117,4 +117,12 @@ public interface MatchedRepository extends JpaRepository<Matched, Long> {
     Optional<Matched> findByPostIdAndUserIdAndIsCanceledTrue(Long postId, Long userId);
 
     Optional<Matched> findByApplicationIdAndIsCanceledTrue(Long applicationId);
+
+    @Query("""
+        SELECT m.user.id
+        FROM Matched m
+        WHERE m.post.id = :postId
+          AND m.isCanceled = false
+        """)
+    List<Long> findUserIdsByPostId(@Param("postId") Long postId);
 }

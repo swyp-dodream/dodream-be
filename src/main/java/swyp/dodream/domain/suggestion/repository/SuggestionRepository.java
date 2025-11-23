@@ -6,8 +6,10 @@ import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import swyp.dodream.domain.master.domain.SuggestionStatus;
 import swyp.dodream.domain.suggestion.domain.Suggestion;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface SuggestionRepository extends JpaRepository<Suggestion, Long> {
@@ -107,4 +109,13 @@ public interface SuggestionRepository extends JpaRepository<Suggestion, Long> {
     """)
     Optional<Suggestion> findActiveByPostIdAndToUserId(@Param("postId") Long postId,
                                                        @Param("toUserId") Long toUserId);
+
+    @Query("""
+    SELECT s.id
+    FROM Suggestion s
+    WHERE s.post.id = :postId
+      AND s.toUser.id = :userId
+      AND s.status IN :validStatuses
+    """)
+    Optional<Long> findValidSuggestionId(@Param("postId") Long postId, @Param("userId") Long userId, @Param("validStatuses") List<SuggestionStatus> validStatuses);
 }

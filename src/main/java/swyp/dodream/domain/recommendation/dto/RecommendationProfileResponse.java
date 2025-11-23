@@ -23,12 +23,13 @@ public record RecommendationProfileResponse(
         List<String> interestKeywords,
         List<String> roles,
         
-        List<String> tags  // 추천 태그 (#선호하는활동방식, #사용하는기술스택, #선호하는분야)
+        List<String> tags,  // 추천 태그 (#선호하는활동방식, #사용하는기술스택, #선호하는분야)
+        Long suggestionId // 제안 id
 ) {
     /**
      * Profile 엔티티를 RecommendationProfileResponse로 변환
      */
-    public static RecommendationProfileResponse from(Profile profile, Double similarity, List<String> tags) {
+    public static RecommendationProfileResponse from(Profile profile, Double similarity, List<String> tags, Long suggestionId) {
         return RecommendationProfileResponse.builder()
                 .profileId(profile.getId())
                 .userId(profile.getUserId())
@@ -42,6 +43,7 @@ public record RecommendationProfileResponse(
                 .interestKeywords(extractInterestKeywords(profile))
                 .roles(extractRoles(profile))
                 .tags(tags)
+                .suggestionId(suggestionId)
                 .build();
     }
 
