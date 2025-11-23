@@ -54,6 +54,10 @@ public class ChatController {
             summary = "채팅방 나가기",
             description = "해당 roomId에서 나간다."
     )
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "채팅방 나가기 성공"),
+            @ApiResponse(responseCode = "401", description = "인증 정보 없음")
+    })
     @DeleteMapping("/rooms/{roomId}/leave")
     public ResponseEntity<Void> leaveChatRoom(
             @PathVariable String roomId,  // String
@@ -63,7 +67,7 @@ public class ChatController {
         Long userId = userPrincipal.getUserId();
 
         chatService.leaveRoom(roomId, userId);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
 
     // 내 채팅방 목록
