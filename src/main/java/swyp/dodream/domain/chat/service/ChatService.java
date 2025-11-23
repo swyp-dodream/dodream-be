@@ -65,8 +65,17 @@ public class ChatService {
             ChatRoom room = existingRoom.get();
             checkParticipantStatus(room.getId(), memberId);
 
-            List<ChatMessageDto> history = chatMessageRepository.findByChatRoomOrderByCreatedAtAsc(room)
-                    .stream()
+            // 기존 코드 (전체 조회)
+            // List<ChatMessageDto> history = chatMessageRepository.findByChatRoomOrderByCreatedAtAsc(room)
+            //     .stream()
+            //     .map(ChatMessage::toDto)
+            //     .collect(Collectors.toList());
+
+            // 최신 50개만 조회
+            List<ChatMessage> recentMessages = chatMessageRepository
+                    .findRecentMessagesByRoom(room, 50);
+            Collections.reverse(recentMessages);  // 오래된 것부터
+            List<ChatMessageDto> history = recentMessages.stream()
                     .map(ChatMessage::toDto)
                     .collect(Collectors.toList());
 
@@ -304,25 +313,42 @@ public class ChatService {
 
 
     // ==================== 8. 채팅 내역 조회 ====================
+    // 최신 메시지 n개만 조회 (초기 입장 시)
     @Transactional(readOnly = true)
-    public List<ChatMessageDto> getChatHistory(String roomId, Long myUserId) {
+    public List<ChatMessageDto> getRecentMessages(String roomId, Long userId, int limit) {
         ChatRoom chatRoom = chatRoomRepository.findById(roomId)
                 .orElseThrow(() -> new EntityNotFoundException("채팅방을 찾을 수 없습니다."));
 
-        boolean isLeader = myUserId.equals(chatRoom.getLeaderUserId());
+        checkParticipantStatus(roomId, userId);
 
-        if (!isLeader) {
-            ChatParticipant participant = chatParticipantRepository.findById(
-                            new ChatParticipantId(roomId, myUserId))
-                    .orElseThrow(() -> new IllegalArgumentException("본인이 속하지 않은 채팅방입니다."));
+        List<ChatMessage> messages = chatMessageRepository
+                .findRecentMessagesByRoom(chatRoom, limit);
 
-            if (participant.getLeftAt() != null) {
-                throw new AccessDeniedException("이미 나간 채팅방의 대화 내역은 조회할 수 없습니다.");
-            }
-        }
+        // 시간순(오래된 것 먼저)으로 정렬해서 반환
+        Collections.reverse(messages);
 
-        return chatMessageRepository.findByChatRoomOrderByCreatedAtAsc(chatRoom)
-                .stream()
+        return messages.stream()
+                .map(ChatMessage::toDto)
+                .collect(Collectors.toList());
+    }
+
+    // 특정 메시지 ID 이전 메시지 조회 (무한 스크롤용)
+    @Transactional(readOnly = true)
+    public List<ChatMessageDto> getMessagesBeforeId(
+            String roomId, Long userId, String lastMessageId, int limit) {
+
+        ChatRoom chatRoom = chatRoomRepository.findById(roomId)
+                .orElseThrow(() -> new EntityNotFoundException("채팅방을 찾을 수 없습니다."));
+
+        checkParticipantStatus(roomId, userId);
+
+        List<ChatMessage> messages = chatMessageRepository
+                .findMessagesBeforeId(chatRoom, lastMessageId, limit);
+
+        // 시간순으로 정렬 (오래된 것부터)
+        Collections.reverse(messages);
+
+        return messages.stream()
                 .map(ChatMessage::toDto)
                 .collect(Collectors.toList());
     }

@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -18,6 +19,7 @@ import swyp.dodream.domain.chat.dto.response.MyChatListResponse;
 import swyp.dodream.domain.chat.service.ChatService;
 import swyp.dodream.jwt.dto.UserPrincipal;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -100,22 +102,31 @@ public class ChatController {
         return ResponseEntity.ok(new MessageReadResponse(readCount));
     }
 
-
     // 채팅 내역 조회
     @Operation(
-            summary = "채팅방 히스토리 조회",
-            description = "과거 메시지를 timestamp 순으로 조회"
+            summary = "채팅 메시지 조회 (페이지네이션)",
+            description = "채팅방의 메시지를 페이지네이션으로 조회. lastMessageId 파라미터 없으면 최신 메시지, 있으면 해당 ID 이전 메시지 조회"
     )
-    @GetMapping("/rooms/{roomId}/history")
-    public ResponseEntity<List<ChatMessageDto>> getChatHistory(
-            @PathVariable String roomId,  // String
+    @GetMapping("/rooms/{roomId}/messages")
+    public ResponseEntity<List<ChatMessageDto>> getMessages(
+            @PathVariable String roomId,
+            @RequestParam(required = false) String lastMessageId,
+            @RequestParam(defaultValue = "50") int size,
             @AuthenticationPrincipal UserPrincipal userPrincipal
     ) {
         validateAuthentication(userPrincipal);
         Long userId = userPrincipal.getUserId();
 
-        List<ChatMessageDto> history = chatService.getChatHistory(roomId, userId);
-        return ResponseEntity.ok(history);
+        List<ChatMessageDto> messages;
+        if (lastMessageId == null) {
+            // 최신 메시지
+            messages = chatService.getRecentMessages(roomId, userId, size);
+        } else {
+            // 특정 ID 이전 메시지
+            messages = chatService.getMessagesBeforeId(roomId, userId, lastMessageId, size);  // 🔥 변경
+        }
+
+        return ResponseEntity.ok(messages);
     }
 
     // --- 인증 검증 헬퍼 ---
