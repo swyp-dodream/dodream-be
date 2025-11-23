@@ -70,6 +70,12 @@ public record RecruitUserResponse(
      */
     public static RecruitUserResponse fromMatched(Matched matched, Profile profile) {
         User user = matched.getUser();
+        Application application = matched.getApplication();
+
+        List<String> jobGroups = List.of();
+        if (application != null && application.getRole() != null) {
+            jobGroups = List.of(application.getRole().getName());
+        }
 
         return RecruitUserResponse.builder()
                 .matchedId(matched.getId())
@@ -83,7 +89,7 @@ public record RecruitUserResponse(
                 .status("ACCEPTED")
                 .createdAt(matched.getMatchedAt())
                 .experience(profile != null && profile.getExperience() != null ? profile.getExperience().name() : null)
-                .jobGroups(profile != null ? profile.getRoles().stream().map(r -> r.getName()).collect(Collectors.toList()) : List.of())
+                .jobGroups(jobGroups)
                 .build();
     }
 }
