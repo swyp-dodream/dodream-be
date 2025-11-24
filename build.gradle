@@ -14,6 +14,10 @@ java {
     }
 }
 
+ext {
+    elasticsearchVersion = '8.17.4'
+}
+
 repositories {
     mavenCentral()
 }
@@ -44,8 +48,10 @@ dependencies {
     implementation 'com.squareup.okhttp3:okhttp:4.12.0'
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
 
-    // Elasticsearch
+    // Elasticsearch - 8.17.4 버전으로 명시
     implementation 'org.springframework.boot:spring-boot-starter-data-elasticsearch'
+    implementation "co.elastic.clients:elasticsearch-java:${elasticsearchVersion}"
+    implementation "org.elasticsearch.client:elasticsearch-rest-client:${elasticsearchVersion}"
 
     // Lombok
     compileOnly 'org.projectlombok:lombok'
