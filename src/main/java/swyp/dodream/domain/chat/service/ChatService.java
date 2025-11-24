@@ -146,11 +146,12 @@ public class ChatService {
         }
 
         ChatMessage chatMessage = new ChatMessage();
-        chatMessage.setId(snowflakeIdService.nextStringId());  // 직접 할당
+        chatMessage.setId(snowflakeIdService.nextStringId());
         chatMessage.setChatRoom(room);
         chatMessage.setSenderUserId(senderId);
         chatMessage.setBody(messageDto.getBody());
         chatMessage.setDeletedAt(false);
+        chatMessage.setMessageType(ChatMessage.MessageType.TALK);
 
         ChatMessage savedMessage = chatMessageRepository.save(chatMessage);
 
@@ -217,25 +218,29 @@ public class ChatService {
                 .orElseThrow(() -> new EntityNotFoundException("채팅방 참여자가 아닙니다."));
 
         if (participant.getLeftAt() == null) {
-            participant.leave();  // 메서드 사용
+            participant.leave();
             chatParticipantRepository.save(participant);
 
             ChatRoom room = chatRoomRepository.findById(roomId).orElseThrow();
-            String topicId = buildTopicId(room.getPostId(), room.getLeaderUserId(), room.getMemberUserId());
 
-            ChatMessageDto leaveMessage = new ChatMessageDto(
-                    null,                                 // id
-                    roomId,                                  // roomId
-                    String.valueOf(room.getPostId()),        // postId
-                    String.valueOf(userId),                  // senderId
-                    null,                                    // receiverId
-                    null,                                    // senderNickname (시스템 메시지라 불필요)
-                    "상대방이 채팅방을 나갔습니다.",              // body
-                    LocalDateTime.now(),                     // createdAt
-                    ChatMessageDto.MessageType.LEAVE         // messageType
-            );
+            // 1. DB에 LEAVE 메시지 저장
+            ChatMessage leaveSystemMessage = new ChatMessage();
+            leaveSystemMessage.setId(snowflakeIdService.nextStringId());
+            leaveSystemMessage.setChatRoom(room);
+            leaveSystemMessage.setSenderUserId(userId);
+            leaveSystemMessage.setBody("상대방이 채팅방을 나갔습니다.");
+            leaveSystemMessage.setDeletedAt(false);
+            leaveSystemMessage.setMessageType(ChatMessage.MessageType.LEAVE);
+            ChatMessage savedMessage = chatMessageRepository.save(leaveSystemMessage);
+
+            // 2. 저장된 메시지를 DTO로 변환 (이미 messageType이 LEAVE로 설정됨)
+            ChatMessageDto leaveMessage = enrichMessageWithNickname(savedMessage);
+
+            // 3. WebSocket으로 실시간 전송
+            String topicId = buildTopicId(room.getPostId(), room.getLeaderUserId(), room.getMemberUserId());
             messagingTemplate.convertAndSend(topicId, leaveMessage);
-            messagingTemplate.convertAndSend(topicId, leaveMessage);
+
+            log.info("채팅방 나가기 완료. RoomId: {}, UserId: {}", roomId, userId);
         }
     }
 
@@ -282,6 +287,7 @@ public class ChatService {
                             .myRole(myRole)
                             .lastMessage(lastMessage)
                             .lastMessageAt(lastMessageAt)
+                            .postId(room.getPostId())
                             .build();
                 })
                 .filter(response -> {

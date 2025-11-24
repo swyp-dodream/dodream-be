@@ -19,6 +19,7 @@ public class MyChatListResponse {
     private String leaderId;
     private String memberId;
     private String myRole;
+    private Long postId;
 
     private String lastMessage;           // 마지막 메시지 내용
     private LocalDateTime lastMessageAt;  // 마지막 메시지 시간

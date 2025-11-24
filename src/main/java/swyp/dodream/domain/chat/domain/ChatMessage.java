@@ -36,8 +36,17 @@ public class ChatMessage extends BaseEntity {
     @Column(name = "deleted_at", nullable = false)
     private Boolean deletedAt = false;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "message_type", length = 20)
+    private MessageType messageType = MessageType.TALK;
+
     @OneToMany(mappedBy = "chatMessage", cascade = CascadeType.REMOVE, orphanRemoval = true)
     private List<ReadStatus> readStatuses = new ArrayList<>();
+
+    public enum MessageType {
+        TALK,
+        LEAVE
+    }
 
     public ChatMessageDto toDto() {
         // receiverId 계산: sender가 아닌 다른 참여자
@@ -50,11 +59,11 @@ public class ChatMessage extends BaseEntity {
                 this.chatRoom.getId(),
                 String.valueOf(this.chatRoom.getPostId()),
                 String.valueOf(this.senderUserId),
-                String.valueOf(receiverId),  // 계산된 receiverId
+                String.valueOf(receiverId),
                 null,  // senderNickname - Service에서 채워줌
                 this.body,
                 this.getCreatedAt(),
-                ChatMessageDto.MessageType.TALK
+                ChatMessageDto.MessageType.valueOf(this.messageType.name())
         );
     }
 }
