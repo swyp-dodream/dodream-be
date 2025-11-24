@@ -20,6 +20,9 @@ public class ChatMessageDto {
     private String senderId;         // 보낸 사람
     private String receiverId;       // 받는 사람
 
+    // --- 보낸 사람 닉네임 ---
+    private String senderNickname;
+
     // --- 메시지 내용 ---
     private String body;
     private LocalDateTime createdAt;

@@ -16,6 +16,8 @@ import swyp.dodream.domain.chat.dto.response.MyChatListResponse;
 import swyp.dodream.domain.chat.repository.*;
 import swyp.dodream.domain.post.domain.Post;
 import swyp.dodream.domain.post.repository.PostRepository;
+import swyp.dodream.domain.profile.domain.Profile;
+import swyp.dodream.domain.profile.repository.ProfileRepository;
 import swyp.dodream.domain.user.domain.User;
 import swyp.dodream.domain.user.repository.UserRepository;
 
@@ -35,6 +37,8 @@ public class ChatService {
 
     private final PostRepository postRepository;
     private final UserRepository userRepository;
+
+    private final ProfileRepository profileRepository;
 
     private final SimpMessagingTemplate messagingTemplate;
     private final SnowflakeIdService snowflakeIdService;
@@ -67,7 +71,7 @@ public class ChatService {
 
             List<ChatMessageDto> history = chatMessageRepository.findByChatRoomOrderByCreatedAtAsc(room)
                     .stream()
-                    .map(ChatMessage::toDto)
+                    .map(this::enrichMessageWithNickname)
                     .collect(Collectors.toList());
 
             String myRole = "MEMBER";
@@ -161,7 +165,8 @@ public class ChatService {
             readStatusRepository.save(newStatus);
         });
 
-        messagingTemplate.convertAndSend(topicId, savedMessage.toDto());
+        ChatMessageDto enrichedDto = enrichMessageWithNickname(savedMessage);
+        messagingTemplate.convertAndSend(topicId, enrichedDto);  // 수정
         return savedMessage;
     }
 
@@ -219,12 +224,17 @@ public class ChatService {
             String topicId = buildTopicId(room.getPostId(), room.getLeaderUserId(), room.getMemberUserId());
 
             ChatMessageDto leaveMessage = new ChatMessageDto(
-                    null, roomId, String.valueOf(room.getPostId()),
-                    String.valueOf(userId), null,
-                    "상대방이 채팅방을 나갔습니다.",
-                    LocalDateTime.now(),
-                    ChatMessageDto.MessageType.LEAVE
+                    null,                                 // id
+                    roomId,                                  // roomId
+                    String.valueOf(room.getPostId()),        // postId
+                    String.valueOf(userId),                  // senderId
+                    null,                                    // receiverId
+                    null,                                    // senderNickname (시스템 메시지라 불필요)
+                    "상대방이 채팅방을 나갔습니다.",              // body
+                    LocalDateTime.now(),                     // createdAt
+                    ChatMessageDto.MessageType.LEAVE         // messageType
             );
+            messagingTemplate.convertAndSend(topicId, leaveMessage);
             messagingTemplate.convertAndSend(topicId, leaveMessage);
         }
     }
@@ -238,9 +248,11 @@ public class ChatService {
                     ChatRoom room = cp.getChatRoom();
                     Long otherUserId = myUserId.equals(room.getLeaderUserId())
                             ? room.getMemberUserId() : room.getLeaderUserId();
-                    String roomName = userRepository.findById(otherUserId)
-                            .map(User::getName)
-                            .orElse("알 수 없는 사용자");
+                    String roomName = profileRepository.findByUserId(otherUserId)
+                            .map(Profile::getNickname)
+                            .orElse(userRepository.findById(otherUserId)
+                                    .map(User::getName)
+                                    .orElse("알 수 없는 사용자"));
 
                     Long unReadCount = readStatusRepository.countByChatRoomAndUserAndIsReadFalse(room,
                             userRepository.getReferenceById(myUserId));
@@ -323,7 +335,7 @@ public class ChatService {
 
         return chatMessageRepository.findByChatRoomOrderByCreatedAtAsc(chatRoom)
                 .stream()
-                .map(ChatMessage::toDto)
+                .map(this::enrichMessageWithNickname)
                 .collect(Collectors.toList());
     }
 
@@ -339,5 +351,14 @@ public class ChatService {
                         throw new AccessDeniedException("이미 나간 채팅방입니다. 재입장할 수 없습니다.");
                     }
                 });
+    }
+
+    private ChatMessageDto enrichMessageWithNickname(ChatMessage message) {
+        ChatMessageDto dto = message.toDto();
+
+        profileRepository.findByUserId(message.getSenderUserId())
+                .ifPresent(profile -> dto.setSenderNickname(profile.getNickname()));
+
+        return dto;
     }
 }

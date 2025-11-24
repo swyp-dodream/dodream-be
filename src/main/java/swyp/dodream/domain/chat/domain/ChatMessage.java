@@ -40,12 +40,18 @@ public class ChatMessage extends BaseEntity {
     private List<ReadStatus> readStatuses = new ArrayList<>();
 
     public ChatMessageDto toDto() {
+        // receiverId 계산: sender가 아닌 다른 참여자
+        Long receiverId = this.senderUserId.equals(this.chatRoom.getLeaderUserId())
+                ? this.chatRoom.getMemberUserId()
+                : this.chatRoom.getLeaderUserId();
+
         return new ChatMessageDto(
                 this.id,
                 this.chatRoom.getId(),
                 String.valueOf(this.chatRoom.getPostId()),
                 String.valueOf(this.senderUserId),
-                null,
+                String.valueOf(receiverId),  // 계산된 receiverId
+                null,  // senderNickname - Service에서 채워줌
                 this.body,
                 this.getCreatedAt(),
                 ChatMessageDto.MessageType.TALK
