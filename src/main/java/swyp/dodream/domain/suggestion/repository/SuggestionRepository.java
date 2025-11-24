@@ -1,5 +1,6 @@
 package swyp.dodream.domain.suggestion.repository;
 
+import jakarta.validation.constraints.NotNull;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -118,4 +119,6 @@ public interface SuggestionRepository extends JpaRepository<Suggestion, Long> {
       AND s.status IN :validStatuses
     """)
     Optional<Long> findValidSuggestionId(@Param("postId") Long postId, @Param("userId") Long userId, @Param("validStatuses") List<SuggestionStatus> validStatuses);
+
+    Optional<Suggestion> findByPostIdAndToUserId(Long postId, Long toUserId);
 }

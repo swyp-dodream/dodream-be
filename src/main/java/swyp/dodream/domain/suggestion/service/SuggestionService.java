@@ -63,15 +63,26 @@ public class SuggestionService {
         User toUser = userRepository.findById(request.toUserId())
                 .orElseThrow(() -> new CustomException(ExceptionType.NOT_FOUND, "제안 대상 회원을 찾을 수 없습니다."));
 
-        // 5. 제안 생성
-        Suggestion suggestion = new Suggestion(
-                snowflakeIdService.generateId(),
-                request.suggestionMessage(),
-                post,
-                post.getOwner(),   // fromUser
-                toUser,
-                LocalDateTime.now()
-        );
+        // 5. 기존 제안 있는지 조회 (상태 무관: CANCELED, REJECTED 포함)
+        java.util.Optional<Suggestion> existingOpt =
+                suggestionRepository.findByPostIdAndToUserId(postId, request.toUserId());
+
+        Suggestion suggestion;
+
+        if (existingOpt.isPresent()) {
+            suggestion = existingOpt.get();
+            suggestion.resend(request.suggestionMessage());
+        } else {
+            suggestion = new Suggestion(
+                    snowflakeIdService.generateId(),
+                    request.suggestionMessage(),
+                    post,
+                    post.getOwner(),
+                    toUser,
+                    LocalDateTime.now()
+            );
+            suggestionRepository.save(suggestion);
+        }
 
         suggestionRepository.save(suggestion);
 

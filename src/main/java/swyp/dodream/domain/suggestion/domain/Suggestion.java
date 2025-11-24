@@ -66,4 +66,18 @@ public class Suggestion extends BaseEntity {
     public void markAsRejected() {
         this.status = SuggestionStatus.REJECTED;
     }
+
+    public void resend(String suggestionMessage) {
+        // 다시 보낼 수 있는 상태만 허용(CANCELED, REJECTED)
+        if (this.status != SuggestionStatus.CANCELED && this.status != SuggestionStatus.REJECTED) {
+            throw new IllegalStateException("현재 상태에서는 제안을 다시 보낼 수 없습니다.");
+        }
+
+        this.status = SuggestionStatus.SENT;
+        this.withdrawnAt = null;
+
+        if (suggestionMessage != null && !suggestionMessage.isBlank()) {
+            this.suggestionMessage = suggestionMessage;
+        }
+    }
 }

@@ -19,6 +19,8 @@ import swyp.dodream.domain.suggestion.dto.SuggestionResponse;
 import swyp.dodream.domain.suggestion.service.SuggestionService;
 import swyp.dodream.jwt.dto.UserPrincipal;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/my/suggestions")
 @RequiredArgsConstructor
@@ -97,7 +99,7 @@ public class SuggestionController {
             @ApiResponse(responseCode = "200", description = "조회 성공")
     })
     @GetMapping("/{postId}/suggestions/status")
-    public ResponseEntity<java.util.Map<String, Object>> getSuggestionStatus(
+    public ResponseEntity<Map<String, Object>> getSuggestionStatus(
             Authentication authentication,
             @PathVariable Long postId,
             @RequestParam Long toUserId
@@ -105,7 +107,7 @@ public class SuggestionController {
         UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
         boolean exists = suggestionService.hasActiveSuggestion(userPrincipal.getUserId(), postId, toUserId);
         Long suggestionId = suggestionService.getActiveSuggestionId(postId, toUserId).orElse(null);
-        java.util.Map<String, Object> body = new java.util.LinkedHashMap<>();
+        Map<String, Object> body = new java.util.LinkedHashMap<>();
         body.put("suggested", exists);
         body.put("suggestionId", suggestionId);
         return ResponseEntity.ok(body);
