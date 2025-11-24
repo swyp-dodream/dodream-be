@@ -155,9 +155,7 @@ public class RecruitService {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new CustomException(ExceptionType.NOT_FOUND, "게시글을 찾을 수 없습니다."));
 
-        // if (!post.getOwner().getId().equals(userId)) {
-        //     throw new CustomException(ExceptionType.FORBIDDEN, "권한이 없습니다.");
-        // }
+        Long leaderId = post.getOwner().getId();
 
         // 2. 멤버 목록 조회
         Slice<Matched> members;
@@ -169,18 +167,25 @@ public class RecruitService {
                     postId, cursor, PageRequest.of(0, size));
         }
 
+        List<Matched> filteredMembers = members.getContent().stream()
+                .filter(m -> !m.getUser().getId().equals(leaderId))
+                .toList();
+
         // 3. 멤버 유저 id 모으기
-        List<Long> targetUserIds = members.getContent().stream()
+        List<Long> targetUserIds = filteredMembers.stream()
                 .map(m -> m.getUser().getId())
                 .toList();
 
         // 4. 프로필 한 번에 조회
-        List<Profile> profiles = profileRepository.findByUserIdIn(targetUserIds);
+        List<Profile> profiles = targetUserIds.isEmpty()
+                ? List.of()
+                : profileRepository.findByUserIdIn(targetUserIds);
+
         Map<Long, Profile> profileMap = profiles.stream()
                 .collect(Collectors.toMap(Profile::getUserId, p -> p));
 
         // 5. DTO 변환
-        List<RecruitUserResponse> users = members.getContent().stream()
+        List<RecruitUserResponse> users = filteredMembers.stream()
                 .map(m -> {
                     Long memberId = m.getUser().getId();
                     Profile profile = profileMap.get(memberId);
