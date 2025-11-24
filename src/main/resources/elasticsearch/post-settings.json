@@ -1,0 +1,82 @@
+{
+  "analysis": {
+    "filter": {
+      "my_synonyms": {
+        "type": "synonym",
+        "synonyms": [
+          "프론트엔드, front, frontend, front-end",
+          "백엔드, backend, back-end",
+          "ios, iOS",
+          "안드로이드, android",
+          "디자이너, designer, design",
+          "기획자, planner",
+          "마케터, marketer, marketing",
+          "온라인, online",
+          "오프라인, offline",
+          "온오프라인, hybrid",
+          "기술, tech",
+          "ai, AI, 인공지능",
+          "모빌리티, mobility",
+          "데이터, data",
+          "비즈니스, business",
+          "이커머스, commerce, e-commerce, ecommerce",
+          "O2O, o2o",
+          "금융, finance, fin",
+          "사회, society, social",
+          "환경, environment",
+          "지역, local, 로컬",
+          "교육, education, ed",
+          "라이프, life",
+          "F&B, fnb, food",
+          "패션&뷰티, 패션, fashion, beauty",
+          "건강, health",
+          "여행, travel, trip",
+          "스포츠, sport",
+          "반려동물, pet, companion animal",
+          "문화, culture",
+          "게임, game",
+          "미디어, media",
+          "예술&공연, 예술, 예술공연, art, performance",
+          "javascript, js, 자바스크립트",
+          "typescript, ts, 타입스크립트",
+          "react, 리액트",
+          "vue, 뷰",
+          "svelte, 스벨트",
+          "nextjs, next, 넥스트",
+          "java, 자바",
+          "spring, 스프링",
+          "springboot, 스프링부트",
+          "nodejs, node, 노드",
+          "nestjs, nest, 네스트",
+          "go, golang",
+          "kotlin, 코틀린",
+          "express, 익스프레스",
+          "mysql, my-sql",
+          "mongodb, mongo, 몽고",
+          "ruby, 루비",
+          "python, 파이썬",
+          "django, 장고",
+          "php, 피에이치피",
+          "graphql, graph-ql",
+          "firebase, 파이어베이스",
+          "swift, 스위프트",
+          "objective-c, objc",
+          "flutter, 플러터",
+          "reactnative, react-native, rn, 리액트네이티브",
+          "디자인, 디자인툴, design tool, 디자인도구",
+          "zeplin, 제플린",
+          "figma, 피그마",
+          "sketch, 스케치",
+          "adobexd, xd"
+        ]
+      }
+    },
+    "analyzer": {
+      "post_analyzer": {
+        "type": "custom",
+        "tokenizer": "nori_tokenizer",
+        "filter": ["lowercase", "my_synonyms"]
+      }
+    }
+  }
+}
