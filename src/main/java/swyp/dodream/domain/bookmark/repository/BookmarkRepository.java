@@ -40,4 +40,7 @@ public interface BookmarkRepository extends JpaRepository<Bookmark, Long> {
     Page<Bookmark> findByUserId(Long userId, Pageable pageable);
 
     Page<Bookmark> findByUserIdAndPost_ProjectType(Long userId,ProjectType projectType,Pageable pageable);
+
+    @Query("SELECT b.post.id FROM Bookmark b WHERE b.user.id = :userId")
+    List<Long> findPostIdsByUserId(@Param("userId") Long userId);
 }

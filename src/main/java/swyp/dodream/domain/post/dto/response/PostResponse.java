@@ -33,6 +33,7 @@ public class PostResponse {
     private List<RoleRequirementRes> roles;
     private Long applicationId;
     private Long matchedId;
+    private Boolean isBookmarked;
 
     @Getter
     @Builder
@@ -47,7 +48,8 @@ public class PostResponse {
             String ownerNickname,
             String ownerProfileImageUrl,
             Long applicationId,
-            Long matchedId
+            Long matchedId,
+            Boolean isBookmarked
     ) {
 
         List<String> interestNames = post.getFields().stream()
@@ -91,6 +93,7 @@ public class PostResponse {
                 .viewCount(viewCount)
                 .applicationId(applicationId)
                 .matchedId(matchedId)
+                .isBookmarked(isBookmarked)
                 .build();
     }
 }

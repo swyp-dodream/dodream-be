@@ -23,6 +23,7 @@ public class PostSummaryResponse {
     private String status;
     private String activityMode;
     private LocalDateTime createdAt;
+    private Boolean isBookmarked;
 
     public static PostSummaryResponse fromEntity(Post post) {
         return PostSummaryResponse.builder()
@@ -44,10 +45,11 @@ public class PostSummaryResponse {
                 .status(post.getStatus().name())
                 .activityMode(post.getActivityMode().name())
                 .createdAt(post.getCreatedAt())
+                .isBookmarked(false)
                 .build();
     }
 
-    public static PostSummaryResponse fromEntity(Post post, Integer authorProfileImageCode, String authorNickname) {
+    public static PostSummaryResponse fromEntity(Post post, Integer authorProfileImageCode, String authorNickname, Boolean isBookmarked) {
         return PostSummaryResponse.builder()
                 .id(post.getId())
                 .title(post.getTitle())
@@ -68,6 +70,7 @@ public class PostSummaryResponse {
                 .status(post.getStatus().name())
                 .activityMode(post.getActivityMode().name())
                 .createdAt(post.getCreatedAt())
+                .isBookmarked(isBookmarked)
 
                 .build();
     }

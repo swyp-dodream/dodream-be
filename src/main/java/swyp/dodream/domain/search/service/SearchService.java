@@ -2,6 +2,7 @@ package swyp.dodream.domain.search.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import swyp.dodream.domain.bookmark.repository.BookmarkRepository;
 import swyp.dodream.domain.post.domain.Post;
 import swyp.dodream.domain.post.dto.response.PostResponse;
 import swyp.dodream.domain.post.repository.PostRepository;
@@ -19,8 +20,9 @@ public class SearchService {
     private final PostDocumentRepository postDocumentRepository;
     private final PostRepository postRepository;
     private final ProfileRepository profileRepository;
+    private final BookmarkRepository bookmarkRepository;
 
-    public List<PostResponse> searchPosts(String keyword) {
+    public List<PostResponse> searchPosts(String keyword, Long userId) {
 
         List<PostDocument> docs = postDocumentRepository.searchByTitleOrDescription(keyword);
 
@@ -28,12 +30,12 @@ public class SearchService {
                 .map(doc -> postRepository.findById(doc.getId())
                         .orElseThrow(() -> new RuntimeException("POST not found in DB: " + doc.getId()))
                 )
-                .map(this::toPostResponse)
+                .map(post -> toPostResponse(post, userId))
                 .toList();
     }
 
-    private PostResponse toPostResponse(Post post) {
-        boolean isOwner = false;
+    private PostResponse toPostResponse(Post post, Long userId) {
+        boolean isOwner = userId != null && post.getOwner().getId().equals(userId);
 
         Profile profile = profileRepository.findByUserId(post.getOwner().getId())
                 .orElse(null);
@@ -45,6 +47,19 @@ public class SearchService {
                 ? profileImageCode.toString()
                 : null;
 
-        return PostResponse.from(post, isOwner, ownerNickname, ownerProfileImageUrl,null,null);
+        Boolean isBookmarked = false;
+        if (userId != null) {
+            isBookmarked = bookmarkRepository.existsByUserIdAndPostId(userId, post.getId());
+        }
+
+        return PostResponse.from(
+                post,
+                isOwner,
+                ownerNickname,
+                ownerProfileImageUrl,
+                null,
+                null,
+                isBookmarked
+        );
     }
 }

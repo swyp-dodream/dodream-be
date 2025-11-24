@@ -7,12 +7,14 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import swyp.dodream.domain.post.dto.response.PostResponse;
 import swyp.dodream.domain.search.service.SearchService;
+import swyp.dodream.jwt.dto.UserPrincipal;
 
 import java.util.List;
 
@@ -29,6 +31,7 @@ public class SearchController {
             description = """
                 키워드를 기준으로 게시글 제목/내용을 전체 검색합니다.
                 (Elasticsearch 기반)
+                로그인한 경우 북마크 여부도 함께 반환됩니다.
                 """
     )
     @ApiResponses({
@@ -36,10 +39,17 @@ public class SearchController {
                     content = @Content(schema = @Schema(implementation = PostResponse.class)))
     })
     public List<PostResponse> search(
+            Authentication authentication,
             @Parameter(description = "검색 키워드", example = "자바")
             @RequestParam String keyword
     ) {
-        return searchService.searchPosts(keyword);
+        Long userId = null;
+        if (authentication != null) {
+            UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+            userId = userPrincipal.getUserId();
+        }
+
+        return searchService.searchPosts(keyword, userId);
     }
 
 }

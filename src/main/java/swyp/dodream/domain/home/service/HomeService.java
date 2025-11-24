@@ -5,6 +5,7 @@ import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import swyp.dodream.domain.bookmark.repository.BookmarkRepository;
 import swyp.dodream.domain.home.dto.HomeResponse;
 import swyp.dodream.domain.post.common.ActivityMode;
 import swyp.dodream.domain.post.common.PostStatus;
@@ -16,8 +17,10 @@ import swyp.dodream.domain.post.repository.PostSpecification;
 import swyp.dodream.domain.profile.domain.Profile;
 import swyp.dodream.domain.profile.repository.ProfileRepository;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -27,6 +30,7 @@ public class HomeService {
 
     private final PostRepository postRepository;
     private final ProfileRepository profileRepository;
+    private final BookmarkRepository bookmarkRepository;
 
     public HomeResponse getHomePosts(
             Long userId,
@@ -118,13 +122,21 @@ public class HomeService {
                         profile -> profile
                 ));
 
+        // 북마크 정보 조회
+        Set<Long> bookmarkedPostIds = userId != null
+                ? new HashSet<>(bookmarkRepository.findPostIdsByUserId(userId))
+                : new HashSet<>();
+
         // DTO 변환
         Page<PostSummaryResponse> postResponses = posts.map(post -> {
             Profile ownerProfile = profileMap.get(post.getOwner().getId());
+            boolean isBookmarked = bookmarkedPostIds.contains(post.getId());
+
             return PostSummaryResponse.fromEntity(
                     post,
                     ownerProfile != null ? ownerProfile.getProfileImageCode() : 1,
-                    ownerProfile != null ? ownerProfile.getNickname() : post.getOwner().getName()
+                    ownerProfile != null ? ownerProfile.getNickname() : post.getOwner().getName(),
+                    isBookmarked
             );
         });
 
