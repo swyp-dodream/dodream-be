@@ -14,14 +14,14 @@ import swyp.dodream.domain.master.repository.RoleRepository;
 import swyp.dodream.domain.matched.domain.Matched;
 import swyp.dodream.domain.matched.repository.MatchedRepository;
 import swyp.dodream.domain.post.domain.Post;
-import swyp.dodream.domain.suggestion.domain.Suggestion;
 import swyp.dodream.domain.post.dto.response.RecruitApplicationDetailResponse;
 import swyp.dodream.domain.post.dto.response.RecruitListResponse;
 import swyp.dodream.domain.post.dto.response.RecruitUserResponse;
 import swyp.dodream.domain.post.repository.PostRepository;
-import swyp.dodream.domain.suggestion.repository.SuggestionRepository;
 import swyp.dodream.domain.profile.domain.Profile;
 import swyp.dodream.domain.profile.repository.ProfileRepository;
+import swyp.dodream.domain.suggestion.domain.Suggestion;
+import swyp.dodream.domain.suggestion.repository.SuggestionRepository;
 
 import java.util.List;
 import java.util.Map;
@@ -126,12 +126,18 @@ public class RecruitService {
         Map<Long, Profile> profileMap = profiles.stream()
                 .collect(Collectors.toMap(Profile::getUserId, p -> p));
 
+        List<Suggestion> suggestions = suggestionRepository.findActiveByPostIdAndToUserIdIn(postId, targetUserIds);
+
+        Map<Long, Long> suggestionIdMap = suggestions.stream() .collect(Collectors.toMap(s -> s.getToUser().getId(), Suggestion::getId));
+
         // 5. DTO 변환
         List<RecruitUserResponse> users = applications.getContent().stream()
                 .map(a -> {
                     Long applicantId = a.getApplicant().getId();
                     Profile profile = profileMap.get(applicantId);
-                    return RecruitUserResponse.fromApplication(a, profile);
+                    Long suggestionId = suggestionIdMap.get(applicantId);
+
+                    return RecruitUserResponse.fromApplication(a, profile, suggestionId);
                 })
                 .toList();
 

@@ -117,4 +117,17 @@ public interface SuggestionRepository extends JpaRepository<Suggestion, Long> {
       )
     """)
     Page<Suggestion> findSuggestionsExcludingApplied(@Param("userId") Long userId, Pageable pageable);
+
+    @Query("""
+    SELECT s
+    FROM Suggestion s
+    WHERE s.post.id = :postId
+      AND s.toUser.id IN :toUserIds
+      AND s.withdrawnAt IS NULL
+      AND s.status = swyp.dodream.domain.master.domain.SuggestionStatus.SENT
+""")
+    List<Suggestion> findActiveByPostIdAndToUserIdIn(
+            @Param("postId") Long postId,
+            @Param("toUserIds") List<Long> toUserIds
+    );
 }

@@ -49,11 +49,11 @@ public record RecruitUserResponse(
      * Application → RecruitUserResponse
      * 지원한 유저의 프로필도 같이 받아서 매핑
      */
-    public static RecruitUserResponse fromApplication(Application application, Profile profile) {
+    public static RecruitUserResponse fromApplication(Application application, Profile profile, Long suggestionId) {
         User user = application.getApplicant();
 
         return RecruitUserResponse.builder()
-                .suggestionId(null)
+                .suggestionId(suggestionId)
                 .applicationId(application.getId())
                 .userId(user.getId())
                 .nickname(profile != null ? profile.getNickname() : user.getName())
