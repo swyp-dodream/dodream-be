@@ -71,24 +71,6 @@ public interface SuggestionRepository extends JpaRepository<Suggestion, Long> {
             @Param("toUserId") Long toUserId
     );
 
-    boolean existsByPostIdAndToUserId(Long postId, Long toUserId);
-
-    @Query(value = """
-        SELECT s
-        FROM Suggestion s
-        JOIN FETCH s.post p
-        JOIN FETCH p.owner
-        WHERE s.toUser.id = :userId
-        ORDER BY s.createdAt DESC
-        """,
-            countQuery = """
-        SELECT count(s)
-        FROM Suggestion s
-        WHERE s.toUser.id = :userId
-        """
-    )
-    Page<Suggestion> findSuggestionsByToUser(@Param("userId") Long userId, Pageable pageable);
-
     @Query("""
         SELECT CASE WHEN COUNT(s) > 0 THEN true ELSE false END
         FROM Suggestion s
@@ -121,4 +103,18 @@ public interface SuggestionRepository extends JpaRepository<Suggestion, Long> {
     Optional<Long> findValidSuggestionId(@Param("postId") Long postId, @Param("userId") Long userId, @Param("validStatuses") List<SuggestionStatus> validStatuses);
 
     Optional<Suggestion> findByPostIdAndToUserId(Long postId, Long toUserId);
+
+    @Query("""
+    SELECT s
+    FROM Suggestion s
+    WHERE s.toUser.id = :userId
+      AND NOT EXISTS (
+          SELECT 1 FROM Application a
+          WHERE a.post.id = s.post.id
+            AND a.applicant.id = :userId
+            AND (a.status = swyp.dodream.domain.master.domain.ApplicationStatus.APPLIED
+                 OR a.status = swyp.dodream.domain.master.domain.ApplicationStatus.ACCEPTED)
+      )
+    """)
+    Page<Suggestion> findSuggestionsExcludingApplied(@Param("userId") Long userId, Pageable pageable);
 }

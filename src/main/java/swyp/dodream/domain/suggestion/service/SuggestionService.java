@@ -125,7 +125,7 @@ public class SuggestionService {
     public SuggestionPageResponse getMySuggestions(Long userId, int page, int size) {
         PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
 
-        Page<Suggestion> suggestions = suggestionRepository.findSuggestionsByToUser(userId, pageable);
+        Page<Suggestion> suggestions = suggestionRepository.findSuggestionsExcludingApplied(userId, pageable);
 
         List<SuggestionResponse> contents = suggestions.getContent().stream()
                 .map(suggestion -> {
@@ -144,5 +144,4 @@ public class SuggestionService {
                 suggestions.hasNext()
         );
     }
-
 }
