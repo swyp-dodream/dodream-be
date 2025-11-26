@@ -6,28 +6,28 @@
 -- -- =======================
 -- -- Role (직군 마스터)
 -- -- =======================
--- INSERT IGNORE INTO role (code, name) VALUES
--- ('FE', '프론트엔드'),
--- ('BE', '백엔드'),
--- ('iOS', 'iOS'),
--- ('AOS', 'Android'),
--- ('Designer', '디자이너'),
--- ('PM', 'PM'),
--- ('Planner', '기획자'),
--- ('Marketer', '마케터');
+INSERT IGNORE INTO role (code, name) VALUES
+('FE', '프론트엔드'),
+('BE', '백엔드'),
+('iOS', 'iOS'),
+('AOS', 'Android'),
+('Designer', '디자이너'),
+('PM', 'PM'),
+('Planner', '기획자'),
+('Marketer', '마케터');
 --
 -- -- =======================
 -- -- Interest Category (관심 분야 카테고리)
 -- -- =======================
--- INSERT IGNORE INTO interest_category (name) VALUES
--- ('웹 개발'),
--- ('모바일 앱'),
--- ('AI/ML'),
--- ('데이터 분석'),
--- ('게임 개발'),
--- ('디자인'),
--- ('마케팅'),
--- ('기타');
+INSERT IGNORE INTO interest_category (name) VALUES
+('웹 개발'),
+('모바일 앱'),
+('AI/ML'),
+('데이터 분석'),
+('게임 개발'),
+('디자인'),
+('마케팅'),
+('기타');
 --
 -- -- =======================
 -- -- Interest Keyword (관심 분야 키워드)

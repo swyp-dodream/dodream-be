@@ -19,6 +19,8 @@ spring:
     redis:
       host: ${SPRING_DATA_REDIS_HOST:localhost}  # 서버에서 별도로 관리하는 Redis (host 네트워크 사용 시 localhost)
       port: ${SPRING_DATA_REDIS_PORT:6379}
+      repositories:
+        enabled: false
   
   elasticsearch:
     uris: ${SPRING_ELASTICSEARCH_URIS:http://localhost:9200}  # 서버에서 별도로 관리하는 Elasticsearch (host 네트워크 사용 시 localhost)
