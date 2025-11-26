@@ -10,7 +10,6 @@ import swyp.dodream.domain.application.domain.Application;
 import swyp.dodream.domain.application.repository.ApplicationRepository;
 import swyp.dodream.domain.master.domain.ApplicationStatus;
 import swyp.dodream.domain.post.domain.Post;
-import swyp.dodream.domain.post.domain.PostRole;
 import swyp.dodream.domain.post.domain.PostStack;
 import swyp.dodream.domain.post.repository.PostRepository;
 import swyp.dodream.domain.profile.domain.Profile;
@@ -19,6 +18,7 @@ import swyp.dodream.domain.recommendation.dto.RecommendedApplicantListResponse;
 import swyp.dodream.domain.recommendation.dto.RecommendedApplicantResponse;
 import swyp.dodream.domain.recommendation.repository.VectorRepository;
 import swyp.dodream.domain.recommendation.util.TextExtractor;
+import swyp.dodream.domain.suggestion.repository.SuggestionRepository;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -36,6 +36,7 @@ public class ApplicantRecommendationService {
     private final PostRepository postRepository;
     private final ProfileRepository profileRepository;
     private final ApplicationRepository applicationRepository;
+    private final SuggestionRepository suggestionRepository;
     private final Optional<EmbeddingService> embeddingService;
     private final Optional<VectorRepository> vectorRepository;
 
@@ -61,11 +62,20 @@ public class ApplicantRecommendationService {
             throw new IllegalArgumentException("해당 게시글의 리더만 추천을 받을 수 있습니다.");
         }
 
-        // 2. 지원자 목록 조회 (APPLIED 상태만)
+        // 2. 제안한 지원자 목록 조회 (제외 대상)
+        List<swyp.dodream.domain.suggestion.domain.Suggestion> suggestions = suggestionRepository
+                .findSuggestionsByPost(postId, userId, org.springframework.data.domain.PageRequest.of(0, Integer.MAX_VALUE))
+                .getContent();
+        Set<Long> suggestedUserIds = suggestions.stream()
+                .map(s -> s.getToUser().getId())
+                .collect(Collectors.toSet());
+
+        // 3. 지원자 목록 조회 (APPLIED 상태만, 제안한 지원자 제외)
         List<Application> applications = applicationRepository.findApplicationsByPost(postId, null).getContent();
         List<Application> filteredApplications = applications.stream()
                 .filter(app -> app.getStatus() == ApplicationStatus.APPLIED)
                 .filter(app -> roleId == null || app.getRole().getId().equals(roleId))
+                .filter(app -> !suggestedUserIds.contains(app.getApplicant().getId()))
                 .collect(Collectors.toList());
 
         log.info("필터링된 지원자 수: {}", filteredApplications.size());
