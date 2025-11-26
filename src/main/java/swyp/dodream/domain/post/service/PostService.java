@@ -578,7 +578,7 @@ public class PostService {
 
         if (currentUserId != null) {
             if (!isOwner) {
-                applicationId = applicationRepository
+                Optional<Application> applicationOpt = applicationRepository
                         .findByPostIdAndApplicantIdAndStatus(
                                 post.getId(),
                                 currentUserId,
@@ -587,9 +587,18 @@ public class PostService {
                                 post.getId(),
                                 currentUserId,
                                 ApplicationStatus.ACCEPTED
-                        ))
-                        .map(Application::getId)
-                        .orElse(null);
+                        ));
+
+                if (applicationOpt.isPresent()) {
+                    Long appId = applicationOpt.get().getId();
+                    boolean hasCanceledMatched = matchedRepository
+                            .findByApplicationIdAndIsCanceledTrue(appId)
+                            .isPresent();
+                    
+                    if (!hasCanceledMatched) {
+                        applicationId = appId;
+                    }
+                }
             }
 
             matchedId = matchedRepository

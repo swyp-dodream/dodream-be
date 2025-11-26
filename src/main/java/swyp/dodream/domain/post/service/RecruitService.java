@@ -51,15 +51,13 @@ public class RecruitService {
             throw new CustomException(ExceptionType.FORBIDDEN, "권한이 없습니다.");
         }
 
-        // 2. 제안 목록 조회
+        // 2. 제안 목록 조회 (지원/매칭 상태 제외)
         Slice<Suggestion> suggestions;
         if (cursor == null) {
-            // 최초 로드
-            suggestions = suggestionRepository.findSuggestionsByPost(
+            suggestions = suggestionRepository.findSuggestionsByPostExcludingAppliedAndMatched(
                     postId, userId, PageRequest.of(0, size));
         } else {
-            // 다음 페이지
-            suggestions = suggestionRepository.findSuggestionsByPostAfterCursor(
+            suggestions = suggestionRepository.findSuggestionsByPostAfterCursorExcludingAppliedAndMatched(
                     postId, userId, cursor, PageRequest.of(0, size));
         }
 

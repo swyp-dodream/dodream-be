@@ -1,6 +1,5 @@
 package swyp.dodream.domain.suggestion.repository;
 
-import jakarta.validation.constraints.NotNull;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -112,8 +111,8 @@ public interface SuggestionRepository extends JpaRepository<Suggestion, Long> {
           SELECT 1 FROM Application a
           WHERE a.post.id = s.post.id
             AND a.applicant.id = :userId
-            AND (a.status = swyp.dodream.domain.master.domain.ApplicationStatus.APPLIED
-                 OR a.status = swyp.dodream.domain.master.domain.ApplicationStatus.ACCEPTED)
+            AND (a.status = 'APPLIED'
+                 OR a.status = 'ACCEPTED')
       )
     """)
     Page<Suggestion> findSuggestionsExcludingApplied(@Param("userId") Long userId, Pageable pageable);
@@ -129,5 +128,63 @@ public interface SuggestionRepository extends JpaRepository<Suggestion, Long> {
     List<Suggestion> findActiveByPostIdAndToUserIdIn(
             @Param("postId") Long postId,
             @Param("toUserIds") List<Long> toUserIds
+    );
+
+    @Query("""
+        SELECT s FROM Suggestion s
+        JOIN FETCH s.toUser
+        JOIN FETCH s.post p
+        WHERE s.post.id = :postId
+          AND s.fromUser.id = :fromUserId
+          AND s.withdrawnAt IS NULL
+          AND p.deleted = false
+          AND NOT EXISTS (
+              SELECT 1 FROM Application a
+              WHERE a.post.id = s.post.id
+                AND a.applicant.id = s.toUser.id
+                AND (a.status = 'APPLIED'
+                     OR a.status = 'ACCEPTED')
+          )
+          AND NOT EXISTS (
+              SELECT 1 FROM Matched m
+              WHERE m.post.id = s.post.id
+                AND m.user.id = s.toUser.id
+          )
+        ORDER BY s.id DESC
+    """)
+    Slice<Suggestion> findSuggestionsByPostExcludingAppliedAndMatched(
+            @Param("postId") Long postId,
+            @Param("fromUserId") Long fromUserId,
+            Pageable pageable
+    );
+
+    @Query("""
+        SELECT s FROM Suggestion s
+        JOIN FETCH s.toUser
+        JOIN FETCH s.post p
+        WHERE s.post.id = :postId
+          AND s.fromUser.id = :fromUserId
+          AND s.id < :cursor
+          AND s.withdrawnAt IS NULL
+          AND p.deleted = false
+          AND NOT EXISTS (
+              SELECT 1 FROM Application a
+              WHERE a.post.id = s.post.id
+                AND a.applicant.id = s.toUser.id
+                AND (a.status = 'APPLIED'
+                     OR a.status = 'ACCEPTED')
+          )
+          AND NOT EXISTS (
+              SELECT 1 FROM Matched m
+              WHERE m.post.id = s.post.id
+                AND m.user.id = s.toUser.id
+          )
+        ORDER BY s.id DESC
+    """)
+    Slice<Suggestion> findSuggestionsByPostAfterCursorExcludingAppliedAndMatched(
+            @Param("postId") Long postId,
+            @Param("fromUserId") Long fromUserId,
+            @Param("cursor") Long cursor,
+            Pageable pageable
     );
 }
