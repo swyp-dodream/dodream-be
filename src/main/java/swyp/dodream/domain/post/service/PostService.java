@@ -602,7 +602,7 @@ public class PostService {
             }
 
             matchedId = matchedRepository
-                    .findByPostIdAndUserIdAndIsCanceledFalse(post.getId(), currentUserId)
+                    .findByPostIdAndUserIdOrderByCanceledStatus(post.getId(), currentUserId)
                     .map(Matched::getId)
                     .orElse(null);
 
