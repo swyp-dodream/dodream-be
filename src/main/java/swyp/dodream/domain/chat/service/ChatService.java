@@ -61,6 +61,12 @@ public class ChatService {
             throw new EntityNotFoundException("리더의 계정이 존재하지 않거나 비활성화되었습니다.");
         }
 
+        // 프로필 이미지 코드 조회 추가
+        Profile leaderProfile = profileRepository.findByUserId(leaderId)
+                .orElseThrow(() -> new EntityNotFoundException("리더 프로필을 찾을 수 없습니다."));
+        Profile memberProfile = profileRepository.findByUserId(memberId)
+                .orElseThrow(() -> new EntityNotFoundException("멤버 프로필을 찾을 수 없습니다."));
+
         String topicId = buildTopicId(postId, leaderId, memberId);
 
         Optional<ChatRoom> existingRoom = chatRoomRepository.findByPostIdAndLeaderUserIdAndMemberUserId(postId, leaderId, memberId);
@@ -83,7 +89,9 @@ public class ChatService {
                     String.valueOf(leaderId),
                     String.valueOf(memberId),
                     myRole,
-                    history
+                    history,
+                    leaderProfile.getProfileImageCode(),
+                    memberProfile.getProfileImageCode()
             );
         } else {
             log.info("신규 채팅방 초기화. TopicId: {}", topicId);
@@ -93,7 +101,9 @@ public class ChatService {
                     String.valueOf(leaderId),
                     String.valueOf(memberId),
                     "MEMBER",
-                    Collections.emptyList()
+                    Collections.emptyList(),
+                    leaderProfile.getProfileImageCode(),
+                    memberProfile.getProfileImageCode()
             );
         }
     }
@@ -253,6 +263,13 @@ public class ChatService {
                     ChatRoom room = cp.getChatRoom();
                     Long otherUserId = myUserId.equals(room.getLeaderUserId())
                             ? room.getMemberUserId() : room.getLeaderUserId();
+
+                    // 프로필 조회 (이미지 코드 포함)
+                    Profile leaderProfile = profileRepository.findByUserId(room.getLeaderUserId())
+                            .orElseThrow(() -> new EntityNotFoundException("리더 프로필을 찾을 수 없습니다."));
+                    Profile memberProfile = profileRepository.findByUserId(room.getMemberUserId())
+                            .orElseThrow(() -> new EntityNotFoundException("멤버 프로필을 찾을 수 없습니다."));
+
                     String roomName = profileRepository.findByUserId(otherUserId)
                             .map(Profile::getNickname)
                             .orElse(userRepository.findById(otherUserId)
@@ -265,7 +282,7 @@ public class ChatService {
                     String myRole = myUserId.equals(room.getLeaderUserId()) ? "LEADER" : "MEMBER";
                     String topicId = buildTopicId(room.getPostId(), room.getLeaderUserId(), room.getMemberUserId());
 
-                    // 마지막 메시지 조회 - roomId 사용
+                    // 마지막 메시지 조회
                     Optional<ChatMessage> lastMessageOpt = chatMessageRepository
                             .findLastMessageByRoomId(room.getId());
 
@@ -288,6 +305,8 @@ public class ChatService {
                             .lastMessage(lastMessage)
                             .lastMessageAt(lastMessageAt)
                             .postId(room.getPostId())
+                            .leaderProfileImageCode(leaderProfile.getProfileImageCode())
+                            .memberProfileImageCode(memberProfile.getProfileImageCode())
                             .build();
                 })
                 .filter(response -> {
@@ -297,7 +316,7 @@ public class ChatService {
                     return true;
                 })
                 .sorted(Comparator.comparing(MyChatListResponse::getLastMessageAt,
-                        Comparator.nullsLast(Comparator.reverseOrder())))  // 최신순 정렬
+                        Comparator.nullsLast(Comparator.reverseOrder())))
                 .collect(Collectors.toList());
     }
 

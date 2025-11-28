@@ -23,4 +23,7 @@ public class MyChatListResponse {
 
     private String lastMessage;           // 마지막 메시지 내용
     private LocalDateTime lastMessageAt;  // 마지막 메시지 시간
+
+    private Integer leaderProfileImageCode;   // 리더 프로필 이미지 코드
+    private Integer memberProfileImageCode;   // 멤버 프로필 이미지 코드
 }

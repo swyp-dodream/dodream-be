@@ -21,4 +21,7 @@ public class ChatInitiateResponse {
     private String myRole; // "LEADER" or "MEMBER"
 
     private List<ChatMessageDto> history; // 기존 대화 내역
+
+    private Integer leaderProfileImageCode;   // 리더 프로필 이미지 코드
+    private Integer memberProfileImageCode;   // 멤버 프로필 이미지 코드
 }
