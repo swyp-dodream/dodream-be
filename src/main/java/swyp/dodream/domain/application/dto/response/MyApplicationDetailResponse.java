@@ -25,7 +25,7 @@ public record MyApplicationDetailResponse(
     /**
      * Application → MyApplicationDetailResponse
      */
-    public static MyApplicationDetailResponse fromApplication(Application application) {
+    public static MyApplicationDetailResponse fromApplication(Application application, String leaderNickname) {
         var post = application.getPost();
         var leader = post.getOwner();
         var role = application.getRole();
@@ -37,7 +37,7 @@ public record MyApplicationDetailResponse(
                 .projectType(post.getProjectType().name().toLowerCase())
                 .activityMode(post.getActivityMode().name().toLowerCase())
                 .postStatus(post.getStatus())
-                .leaderName(leader.getName())
+                .leaderName(leaderNickname)
                 .leaderProfileImage(leader.getProfileImageUrl())
                 .roleName(role.getName())
                 .roleCode(String.valueOf(role.getCode()))

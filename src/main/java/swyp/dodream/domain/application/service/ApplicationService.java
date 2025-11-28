@@ -16,6 +16,8 @@ import swyp.dodream.domain.application.dto.response.MyApplicationPageResponse;
 import swyp.dodream.domain.application.dto.response.MyApplicationResponse;
 import swyp.dodream.domain.application.repository.ApplicationRepository;
 import swyp.dodream.domain.matched.repository.MatchedRepository;
+import swyp.dodream.domain.profile.domain.Profile;
+import swyp.dodream.domain.profile.repository.ProfileRepository;
 
 import java.util.List;
 
@@ -27,6 +29,7 @@ public class ApplicationService {
     private final ApplicationRepository applicationRepository;
     private final BookmarkRepository bookmarkRepository;
     private final MatchedRepository matchedRepository;
+    private final ProfileRepository profileRepository;
 
     /**
      * 내가 지원한 글 목록 조회 (페이지네이션)
@@ -48,7 +51,14 @@ public class ApplicationService {
                 .map(app -> {
                     Long postId = app.getPost().getId();
                     boolean bookmarked = bookmarkRepository.existsByUserIdAndPostId(userId, postId);
-                    return MyApplicationResponse.fromApplication(app, bookmarked);
+
+                    // 리더의 닉네임 조회
+                    Long leaderId = app.getPost().getOwner().getId();
+                    String leaderNickname = profileRepository.findByUserId(leaderId)
+                            .map(Profile::getNickname)
+                            .orElse(app.getPost().getOwner().getName()); // fallback
+
+                    return MyApplicationResponse.fromApplication(app, bookmarked, leaderNickname);
                 })
                 .toList();
 
@@ -70,23 +80,25 @@ public class ApplicationService {
      * @return 지원 상세 정보
      */
     public MyApplicationDetailResponse getMyApplicationDetail(Long userId, Long applicationId) {
-        // 1. 지원 정보 조회
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new CustomException(ExceptionType.NOT_FOUND, "지원 정보를 찾을 수 없습니다."));
 
-        // 2. 본인 지원인지 확인
         if (!application.getApplicant().getId().equals(userId)) {
             throw new CustomException(ExceptionType.FORBIDDEN, "본인의 지원 정보만 조회할 수 있습니다.");
         }
 
-        // 3. 상태 확인: APPLIED 또는 ACCEPTED 상태가 아니면 조회 불가
         if (application.getStatus() != ApplicationStatus.APPLIED
                 && application.getStatus() != ApplicationStatus.ACCEPTED) {
             throw new CustomException(ExceptionType.NOT_FOUND, "조회 가능한 상태가 아닙니다.");
         }
 
-        // 4. DTO 변환
-        return MyApplicationDetailResponse.fromApplication(application);
+        // 리더의 닉네임 조회
+        Long leaderId = application.getPost().getOwner().getId();
+        String leaderNickname = profileRepository.findByUserId(leaderId)
+                .map(Profile::getNickname)
+                .orElse(application.getPost().getOwner().getName()); // fallback
+
+        return MyApplicationDetailResponse.fromApplication(application, leaderNickname);
     }
 
     @Transactional

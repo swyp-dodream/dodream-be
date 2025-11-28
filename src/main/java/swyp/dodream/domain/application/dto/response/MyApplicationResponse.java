@@ -32,7 +32,7 @@ public record MyApplicationResponse(
     /**
      * Application → MyApplicationResponse
      */
-    public static MyApplicationResponse fromApplication(Application application, boolean bookmarked) {
+    public static MyApplicationResponse fromApplication(Application application, boolean bookmarked, String leaderNickname) {
         Post post = application.getPost();
         User leader = post.getOwner();
 
@@ -43,7 +43,7 @@ public record MyApplicationResponse(
             .projectType(post.getProjectType().name().toLowerCase())
             .activityMode(post.getActivityMode().name().toLowerCase())
             .postStatus(post.getStatus())
-            .leaderName(leader.getName())
+            .leaderName(leaderNickname)
             .leaderProfileImage(leader.getProfileImageUrl())
             .myStatus(application.getStatus())  // 지원 상태
             .appliedAt(application.getCreatedAt())
