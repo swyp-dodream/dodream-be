@@ -80,6 +80,37 @@ public class JwtUtil {
         }
     }
 
+    // 만료된 토큰인지 확인 (ExpiredJwtException 체크)
+    public boolean isTokenExpired(String token) {
+        try {
+            getClaims(token);
+            return false; // 유효한 토큰
+        } catch (ExpiredJwtException e) {
+            return true; // 만료된 토큰
+        } catch (JwtException | IllegalArgumentException e) {
+            return false; // 다른 오류 (만료가 아님)
+        }
+    }
+
+    // 만료된 토큰에서도 정보 추출 (재발급을 위해)
+    public Long getUserIdFromExpiredToken(String token) {
+        try {
+            return getUserIdFromToken(token);
+        } catch (ExpiredJwtException e) {
+            return Long.parseLong(e.getClaims().getSubject());
+        }
+    }
+
+    // Access Token 만료 시간을 초 단위로 반환 (쿠키 maxAge용)
+    public int getAccessTokenExpirationInSeconds() {
+        return (int) (accessTokenExpiration / 1000);
+    }
+
+    // Refresh Token 만료 시간을 초 단위로 반환 (쿠키 maxAge용)
+    public int getRefreshTokenExpirationInSeconds() {
+        return (int) (refreshTokenExpiration / 1000);
+    }
+
     // Claims 추출
     private Claims getClaims(String token) {
         return Jwts.parser()

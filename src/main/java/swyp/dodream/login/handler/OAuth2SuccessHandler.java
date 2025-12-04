@@ -1,5 +1,6 @@
 package swyp.dodream.login.handler;
 
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -58,18 +59,26 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
             tokenService.saveRefreshToken(userId, name, refreshToken);
             log.info("Refresh Token 저장 완료");
 
-            // 프론트엔드로 리다이렉트 (토큰을 쿼리 파라미터로 전달)
+            // Access Token을 쿠키에 저장 (설정 파일의 만료 시간 사용)
+            Cookie accessTokenCookie = createCookie("accessToken", accessToken, jwtUtil.getAccessTokenExpirationInSeconds(), request.isSecure());
+            response.addCookie(accessTokenCookie);
+            log.info("Access Token 쿠키 설정 완료 (만료 시간: {}초)", jwtUtil.getAccessTokenExpirationInSeconds());
+
+            // Refresh Token을 쿠키에 저장 (설정 파일의 만료 시간 사용)
+            Cookie refreshTokenCookie = createCookie("refreshToken", refreshToken, jwtUtil.getRefreshTokenExpirationInSeconds(), request.isSecure());
+            response.addCookie(refreshTokenCookie);
+            log.info("Refresh Token 쿠키 설정 완료 (만료 시간: {}초)", jwtUtil.getRefreshTokenExpirationInSeconds());
+
+            // 프론트엔드로 리다이렉트 (쿠키에 토큰 저장 완료)
             String redirectUrl = String.format(
-                    "%s/auth/callback?accessToken=%s&refreshToken=%s&userId=%d&email=%s&name=%s",
+                    "%s/auth/callback?userId=%d&email=%s&name=%s",
                     targetFrontendUrl,
-                    accessToken,
-                    refreshToken,
                     userId,
                     java.net.URLEncoder.encode(email, "UTF-8"),
                     java.net.URLEncoder.encode(name, "UTF-8")
             );
             
-            log.info("프론트엔드로 리다이렉트: {}", redirectUrl.replaceAll("accessToken=[^&]*", "accessToken=***"));
+            log.info("프론트엔드로 리다이렉트: {}", redirectUrl);
             response.sendRedirect(redirectUrl);
             log.info("OAuth2 로그인 성공 처리 완료");
             
@@ -112,6 +121,17 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         } catch (Exception ignored) {
         }
         return DEFAULT_FRONTEND_URL;
+    }
+
+    // 쿠키 생성 헬퍼 메서드
+    private Cookie createCookie(String name, String value, int maxAge, boolean secure) {
+        Cookie cookie = new Cookie(name, value);
+        cookie.setPath("/");
+        cookie.setMaxAge(maxAge);
+        cookie.setHttpOnly(true);
+        cookie.setSecure(secure);
+        cookie.setAttribute("SameSite", "Lax");
+        return cookie;
     }
 }
 
