@@ -95,11 +95,9 @@ AI 기반 추천 시스템을 통해 사용자에게 맞는 프로젝트/스터�
 
 
 ## 📊 ERD
-
 [ERD Cloud 링크](https://www.erdcloud.com/d/MWtoCFWtryAdgCrYc)
 
 
 ## 🔗 관련 링크
-
-- [프론트엔드 저장소](https://github.com/swyp-dodream/dodream-fe)
+[프론트엔드 저장소](https://github.com/swyp-dodream/dodream-fe)
 
