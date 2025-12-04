@@ -14,6 +14,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import swyp.dodream.jwt.filter.JwtAuthenticationFilter;
 import swyp.dodream.jwt.util.JwtUtil;
 import swyp.dodream.login.handler.OAuth2SuccessHandler;
+import swyp.dodream.login.service.AuthService;
 import swyp.dodream.login.service.CustomOAuth2UserService;
 
 import java.util.Arrays;
@@ -26,6 +27,7 @@ public class SecurityConfig {
     private final CustomOAuth2UserService customOAuth2UserService;
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
     private final JwtUtil jwtUtil;
+    private final AuthService authService;
 
     // 인증 없이 접근 가능한 URL 목록
     private static final String[] WHITE_LIST = {
@@ -46,16 +48,18 @@ public class SecurityConfig {
 
     public SecurityConfig(CustomOAuth2UserService customOAuth2UserService,
                           OAuth2SuccessHandler oAuth2SuccessHandler,
-                          JwtUtil jwtUtil) {
+                          JwtUtil jwtUtil,
+                          AuthService authService) {
         this.customOAuth2UserService = customOAuth2UserService;
         this.oAuth2SuccessHandler = oAuth2SuccessHandler;
         this.jwtUtil = jwtUtil;
+        this.authService = authService;
     }
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        // JWT 인증 필터 생성
-        JwtAuthenticationFilter jwtFilter = new JwtAuthenticationFilter(jwtUtil);
+        // JWT 인증 필터 생성 (자동 재발급 기능 포함)
+        JwtAuthenticationFilter jwtFilter = new JwtAuthenticationFilter(jwtUtil, authService);
 
         http
                 // CSRF 비활성화 (REST API용)
