@@ -146,32 +146,38 @@ public class RecommendationService {
      * 게시글을 추천 목록에 포함할지 판단
      */
     private boolean shouldIncludePost(Post post, Long userId, ProjectType projectType) {
-        // 1. 모집 중인가?
-        if (post.getStatus() != PostStatus.RECRUITING) {
-            log.debug("게시글 제외: 모집 중이 아님 - postId={}, status={}", post.getId(), post.getStatus());
+        // 1. 삭제된 게시글인가?
+        if (Boolean.TRUE.equals(post.getDeleted())) {
+            log.debug("게시글 제외: 삭제됨 - postId={}", post.getId());
             return false;
         }
 
-        // 2. 마감일이 지나지 않았는가?
+        // 2. 모집 중인가? (모집 마감된 게시글 제외)
+        if (post.getStatus() != PostStatus.RECRUITING) {
+            log.debug("게시글 제외: 모집 중이 아님 (모집 마감) - postId={}, status={}", post.getId(), post.getStatus());
+            return false;
+        }
+
+        // 3. 마감일이 지나지 않았는가?
         if (post.getDeadlineAt() != null && post.getDeadlineAt().isBefore(LocalDateTime.now())) {
             log.debug("게시글 제외: 마감일 지남 - postId={}, deadlineAt={}", post.getId(), post.getDeadlineAt());
             return false;
         }
 
-        // 3. 본인이 작성한 글인가?
+        // 4. 본인이 작성한 글인가?
         if (post.getOwner().getId().equals(userId)) {
             log.debug("게시글 제외: 본인 게시글 - postId={}, ownerId={}", post.getId(), post.getOwner().getId());
             return false;
         }
 
-        // 4. 이미 지원한 글인가?
+        // 5. 이미 지원한 글인가?
         User user = userRepository.findById(userId).orElse(null);
         if (user != null && applicationRepository.existsByPostAndApplicant(post, user)) {
             log.debug("게시글 제외: 이미 지원함 - postId={}, userId={}", post.getId(), userId);
             return false;
         }
 
-        // 5. projectType 필터링 (null이거나 ALL이면 모든 타입 포함)
+        // 6. projectType 필터링 (null이거나 ALL이면 모든 타입 포함)
         if (projectType != null && projectType != ProjectType.ALL) {
             if (post.getProjectType() != projectType) {
                 log.debug("게시글 제외: projectType 불일치 - postId={}, postProjectType={}, filterProjectType={}", 
