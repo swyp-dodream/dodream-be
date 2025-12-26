@@ -33,8 +33,8 @@ AI 기반 추천 시스템을 통해 사용자에게 맞는 프로젝트/스터�
 
 ## 🙋‍♂️ 개발자들 및 역할
 - **조훈** : Oauth2 (GOOGLE,NAVER) 로그인, CI-CD, 서버배포 및 관리, AI매칭
-- **김소희** : 모집글, 검색(ES), 채팅(WebSocket + STOMP) 
-- **최현우** : 프로필, 알람(SSE, Redis Pub/Sub)
+- **김소희** : 모집글, 필터, 검색(ES), 채팅(WebSocket + STOMP)
+- **최현우** : 프로필, 제안/지원/매칭, 알람(SSE, Redis Pub/Sub), AI 자기소개 초안 생성
   
 
 ## 🕒 프로젝트 기간
