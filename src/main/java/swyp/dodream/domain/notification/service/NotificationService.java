@@ -34,7 +34,7 @@ public class NotificationService {
         }
 
         Long id = snowflakeIdService.generateId();
-        String msg = leaderName + "님이 제안을 보냈습니다. " + "\'" + postTitle + "\'로 이동하여 지원을 하시면 매칭이 가능합니다.";
+        String msg = leaderName + "님에게서 " + "[" + postTitle + "] 지원 제안이 도착했어요";
 
         Notification notification = new Notification(
                 id,
@@ -81,7 +81,7 @@ public class NotificationService {
         if (exists) return;
 
         Long id = snowflakeIdService.generateId();
-        String msg = "이전에 제안했던 " + applicantName + "님이 '" + postTitle + "'에 지원했습니다.";
+        String msg = "지원 제안했던 " + applicantName + "님이 [" + postTitle + "]에 지원했어요";
 
         Notification notification = new Notification(
                 id,
@@ -114,7 +114,7 @@ public class NotificationService {
         if (exists) return;
 
         Long id = snowflakeIdService.generateId();
-        String msg = leaderName + "님이 '" + postTitle + "' 지원을 수락했어요.";
+        String msg = "[" + postTitle + "] 매칭이 완료되었어요";
 
         Notification notification = new Notification(
                 id,
@@ -145,7 +145,7 @@ public class NotificationService {
         if (exists) return;
 
         Long id = snowflakeIdService.generateId();
-        String msg = applicantName + "님과 매칭이 완료됐어요.";
+        String msg = applicantName + "님과 매칭이 완료되었어요";
 
         Notification notification = new Notification(
                 id,
@@ -169,7 +169,7 @@ public class NotificationService {
     public void sendFeedbackWrittenNotification(Long receiverId, Long postId, String postTitle) {
 
         Long id = snowflakeIdService.generateId();
-        String msg = "익명의 팀원이 '" + postTitle + "'에 피드백을 작성했습니다.";
+        String msg = "[" + postTitle + "] 함께한 팀원이 회원님에게 새로운 후기를 남겼어요";
 
         Notification notification = new Notification(
                 id,
@@ -198,7 +198,7 @@ public class NotificationService {
         if (exists) return;
 
         Long id = snowflakeIdService.generateId();
-        String msg = "북마크 해둔 '" + postTitle + "' 모집글이 오늘 마감됩니다. 잊지말고 확인해보세요!";
+        String msg = "북마크하신 [" + postTitle + "] 모집이 오늘 마감돼요";
 
         Notification notification = new Notification(
                 id,
@@ -226,7 +226,7 @@ public class NotificationService {
         if (exists) return;
 
         Long id = snowflakeIdService.generateId();
-        String msg = "'" + postTitle + "' 모집글에 대한 팀원 피드백을 오늘부터 작성할 수 있어요.";
+        String msg = "함께 활동한 [" + postTitle + "] 팀원에 대한 후기를 작성해주세요";
 
         Notification notification = new Notification(
                 id,
