@@ -11,6 +11,7 @@ import swyp.dodream.domain.notification.infra.SseEmitterPool;
 import swyp.dodream.domain.notification.repository.NotificationRepository;
 import swyp.dodream.domain.notification.service.NotificationService;
 import swyp.dodream.jwt.dto.UserPrincipal;
+import org.springframework.http.ResponseEntity;
 
 import java.util.List;
 
@@ -53,10 +54,11 @@ public class NotificationController {
     )
     @PreAuthorize("isAuthenticated()")
     @PostMapping("/{id}/read")
-    public void read(@PathVariable Long id, Authentication authentication) {
+    public ResponseEntity<Void> read(@PathVariable Long id, Authentication authentication) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
         Long userId = principal.getUserId();
         notificationService.markAsRead(id, userId);
+        return ResponseEntity.status(204).build();
     }
 
     @Operation(
