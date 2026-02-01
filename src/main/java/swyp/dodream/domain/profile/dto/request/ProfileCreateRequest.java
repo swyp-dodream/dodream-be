@@ -47,7 +47,7 @@ public record ProfileCreateRequest(
         @Schema(description = "관심 분야 이름 목록 (1~5개)", example = "[\"AI\", \"모빌리티\"]")
         @NotNull(message = "관심 분야는 필수입니다")
         @Size(min = 1, max = 5, message = "관심 분야는 1개 이상 5개 이하여야 합니다")
-        List<String> interestKeywordNames,
+        List<Long> interestKeywordIds,
 
         @Schema(description = "기술 스택 이름 목록 (1~5개)", example = "[\"Spring\", \"MySQL\", \"Java\"]")
         @NotNull(message = "기술 스택은 필수입니다")
