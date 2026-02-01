@@ -52,7 +52,7 @@ public record ProfileCreateRequest(
         @Schema(description = "기술 스택 이름 목록 (1~5개)", example = "[\"Spring\", \"MySQL\", \"Java\"]")
         @NotNull(message = "기술 스택은 필수입니다")
         @Size(min = 1, max = 5, message = "기술 스택은 1개 이상 5개 이하여야 합니다")
-        List<String> techSkillNames,
+        List<Long> techSkillIds,
 
         @Schema(description = "자기소개 (최대 600자)", example = "안녕하세요. 백엔드 개발자입니다.")
         @Size(max = 600, message = "자기소개는 600자 이하여야 합니다")

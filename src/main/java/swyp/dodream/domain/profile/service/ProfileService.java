@@ -80,20 +80,17 @@ public class ProfileService {
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
                 .toList();
-        List<String> normalizedTechSkillNames = request.techSkillNames().stream()
-                .map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .toList();
+        List<Long> techSkillIds = request.techSkillIds();
 
-        log.info("프로필 생성 요청 - 직군: {}, 관심분야: {}, 기술스택: {}", normalizedRoleNames, normalizedInterestNames, normalizedTechSkillNames);
+        log.info("프로필 생성 요청 - 직군: {}, 관심분야: {}, 기술스택: {}", normalizedRoleNames, normalizedInterestNames, techSkillIds);
 
         // 모든 데이터를 가져와서 Java에서 필터링 (가장 확실한 방법)
         List<Role> allRoles = roleRepository.findAll();
         List<InterestKeyword> allInterests = interestKeywordRepository.findAll();
-        List<TechSkill> allTechSkills = techSkillRepository.findAll();
+        List<TechSkill> techSkills = techSkillRepository.findAllById(techSkillIds);
         
         log.info("전체 직군 개수: {}, 전체 관심분야 개수: {}, 전체 기술스택 개수: {}", 
-                allRoles.size(), allInterests.size(), allTechSkills.size());
+                allRoles.size(), allInterests.size(), techSkillIds.size());
         
         Set<String> roleNameSet = allRoles.stream().map(Role::getName).collect(Collectors.toSet());
         
@@ -109,17 +106,15 @@ public class ProfileService {
                 .filter(ik -> normalizedInterestNames.contains(ik.getName()))
                 .toList();
         
-        List<TechSkill> techSkills = allTechSkills.stream()
-                .filter(ts -> normalizedTechSkillNames.contains(ts.getName()))
-                .toList();
-        
         log.info("조회된 직군 개수: {} / 요청: {}, 조회된 값: {}", roles.size(), normalizedRoleNames.size(), roles.stream().map(Role::getName).toList());
         log.info("조회된 관심분야 개수: {} / 요청: {}, 조회된 값: {}", interestKeywords.size(), normalizedInterestNames.size(), interestKeywords.stream().map(InterestKeyword::getName).toList());
-        log.info("조회된 기술스택 개수: {} / 요청: {}, 조회된 값: {}", techSkills.size(), normalizedTechSkillNames.size(), techSkills.stream().map(TechSkill::getName).toList());
+        log.info("조회된 기술스택 개수: {} / 요청: {}, 조회된 값: {}", techSkills.size(), techSkillIds.size(), techSkills.stream().map(TechSkill::getName).toList());
         
         requireSameCount(ExceptionType.NOT_FOUND, "직군", normalizedRoleNames, roles, Role::getName);
         requireSameCount(ExceptionType.INTEREST_NOT_FOUND, "관심 키워드", normalizedInterestNames, interestKeywords, InterestKeyword::getName);
-        requireSameCount(ExceptionType.TECH_STACK_NOT_FOUND, "기술 스택", normalizedTechSkillNames, techSkills, TechSkill::getName);
+        if (techSkills.size() != techSkillIds.size()) {
+            throw new CustomException(ExceptionType.TECH_STACK_NOT_FOUND, "존재하지 않는 기술 스택 ID가 포함되어 있습니다");
+        }
 
         // 3) 프로필 생성 (공개 true 기본)
         Long profileId = snowflakeIdService.generateId();
@@ -308,18 +303,16 @@ public class ProfileService {
         }
 
         // 기술
-        if (req.getTechSkillNames() != null && !req.getTechSkillNames().isEmpty()) {
-            if (req.getTechSkillNames().size() > 5)
+        if (req.getTechSkillIds() != null && !req.getTechSkillIds().isEmpty()) {
+            if (req.getTechSkillIds().size() > 5)
                 throw new CustomException(ExceptionType.BAD_REQUEST_INVALID, "기술 스택은 최대 5개까지 선택 가능합니다.");
-            List<String> normalizedTechSkillNames = req.getTechSkillNames().stream()
-                    .map(String::trim)
-                    .filter(s -> !s.isEmpty())
-                    .toList();
-            List<TechSkill> allTechSkills = techSkillRepository.findAll();
-            List<TechSkill> skills = allTechSkills.stream()
-                    .filter(ts -> normalizedTechSkillNames.contains(ts.getName()))
-                    .toList();
-            requireSameCount(ExceptionType.TECH_STACK_NOT_FOUND, "기술 스택", normalizedTechSkillNames, skills, TechSkill::getName);
+
+            List<TechSkill> skills = techSkillRepository.findAllById(req.getTechSkillIds());
+
+            if (skills.size() != req.getTechSkillIds().size()) {
+                throw new CustomException(ExceptionType.TECH_STACK_NOT_FOUND, "존재하지 않는 기술 스택 ID가 포함되어 있습니다");
+            }
+
             profile.clearTechSkills();
             skills.forEach(profile::addTechSkill);
         }
