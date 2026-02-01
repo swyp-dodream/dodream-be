@@ -6,9 +6,9 @@ on:
     branches:
       - 'release/**'  # release/DODREAM-0.1.0 등
     types: [opened, synchronize, reopened]
-  push:
-    branches:
-      - 'release/**'  # PR merge 시 자동으로 push 이벤트 발생
+#  push:
+#    branches:
+#      - 'release/**'  # PR merge 시 자동으로 push 이벤트 발생 (비활성화)
 
 jobs:
   # Job 1: 빌드 및 테스트 (PR 검증용)
