@@ -76,21 +76,18 @@ public class ProfileService {
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
                 .toList();
-        List<String> normalizedInterestNames = request.interestKeywordNames().stream()
-                .map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .toList();
         List<Long> techSkillIds = request.techSkillIds();
+        List<Long> interestKeywordIds = request.interestKeywordIds();
 
-        log.info("프로필 생성 요청 - 직군: {}, 관심분야: {}, 기술스택: {}", normalizedRoleNames, normalizedInterestNames, techSkillIds);
+        log.info("프로필 생성 요청 - 직군: {}, 관심분야: {}, 기술스택: {}", normalizedRoleNames, interestKeywordIds, techSkillIds);
 
-        // 모든 데이터를 가져와서 Java에서 필터링 (가장 확실한 방법)
+        // 모든 데이터를 가져와서 Java에서 필터링
         List<Role> allRoles = roleRepository.findAll();
-        List<InterestKeyword> allInterests = interestKeywordRepository.findAll();
         List<TechSkill> techSkills = techSkillRepository.findAllById(techSkillIds);
+        List<InterestKeyword> interestKeywords = interestKeywordRepository.findAllById(interestKeywordIds);
         
         log.info("전체 직군 개수: {}, 전체 관심분야 개수: {}, 전체 기술스택 개수: {}", 
-                allRoles.size(), allInterests.size(), techSkillIds.size());
+                allRoles.size(), interestKeywordIds.size(), techSkillIds.size());
         
         Set<String> roleNameSet = allRoles.stream().map(Role::getName).collect(Collectors.toSet());
         
@@ -102,18 +99,16 @@ public class ProfileService {
                 .filter(r -> normalizedRoleNames.contains(r.getName()))
                 .toList();
         
-        List<InterestKeyword> interestKeywords = allInterests.stream()
-                .filter(ik -> normalizedInterestNames.contains(ik.getName()))
-                .toList();
-        
         log.info("조회된 직군 개수: {} / 요청: {}, 조회된 값: {}", roles.size(), normalizedRoleNames.size(), roles.stream().map(Role::getName).toList());
-        log.info("조회된 관심분야 개수: {} / 요청: {}, 조회된 값: {}", interestKeywords.size(), normalizedInterestNames.size(), interestKeywords.stream().map(InterestKeyword::getName).toList());
+        log.info("조회된 관심분야 개수: {} / 요청: {}, 조회된 값: {}", interestKeywords.size(), interestKeywordIds.size(), interestKeywords.stream().map(InterestKeyword::getName).toList());
         log.info("조회된 기술스택 개수: {} / 요청: {}, 조회된 값: {}", techSkills.size(), techSkillIds.size(), techSkills.stream().map(TechSkill::getName).toList());
         
         requireSameCount(ExceptionType.NOT_FOUND, "직군", normalizedRoleNames, roles, Role::getName);
-        requireSameCount(ExceptionType.INTEREST_NOT_FOUND, "관심 키워드", normalizedInterestNames, interestKeywords, InterestKeyword::getName);
         if (techSkills.size() != techSkillIds.size()) {
             throw new CustomException(ExceptionType.TECH_STACK_NOT_FOUND, "존재하지 않는 기술 스택 ID가 포함되어 있습니다");
+        }
+        if (interestKeywords.size() != interestKeywordIds.size()) {
+            throw new CustomException(ExceptionType.INTEREST_NOT_FOUND, "존재하지 않는 관심 분야 ID가 포함되어 있습니다");
         }
 
         // 3) 프로필 생성 (공개 true 기본)
@@ -286,18 +281,16 @@ public class ProfileService {
         }
 
         // 관심
-        if (req.getInterestKeywordNames() != null && !req.getInterestKeywordNames().isEmpty()) {
-            if (req.getInterestKeywordNames().size() > 5)
+        if (req.getInterestKeywordIds() != null && !req.getInterestKeywordIds().isEmpty()) {
+            if (req.getInterestKeywordIds().size() > 5)
                 throw new CustomException(ExceptionType.BAD_REQUEST_INVALID, "관심 분야는 최대 5개까지 선택 가능합니다.");
-            List<String> normalizedInterestNames = req.getInterestKeywordNames().stream()
-                    .map(String::trim)
-                    .filter(s -> !s.isEmpty())
-                    .toList();
-            List<InterestKeyword> allInterests = interestKeywordRepository.findAll();
-            List<InterestKeyword> interests = allInterests.stream()
-                    .filter(ik -> normalizedInterestNames.contains(ik.getName()))
-                    .toList();
-            requireSameCount(ExceptionType.INTEREST_NOT_FOUND, "관심 키워드", normalizedInterestNames, interests, InterestKeyword::getName);
+
+            List<InterestKeyword> interests = interestKeywordRepository.findAllById(req.getInterestKeywordIds());
+
+            if (interests.size() != req.getInterestKeywordIds().size()) {
+                throw new CustomException(ExceptionType.INTEREST_NOT_FOUND, "존재하지 않는 관심 분야 ID가 포함되어 있습니다");
+            }
+
             profile.clearInterestKeywords();
             interests.forEach(profile::addInterestKeyword);
         }
