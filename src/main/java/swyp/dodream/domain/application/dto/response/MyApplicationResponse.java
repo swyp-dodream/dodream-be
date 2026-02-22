@@ -19,7 +19,7 @@ public record MyApplicationResponse(
         String activityMode,       // online / offline / hybrid
         PostStatus postStatus,             // recruiting / completed
         String leaderName,
-        String leaderProfileImage,
+        Integer leaderProfileImage,
         ApplicationStatus myStatus, // APPLIED, WITHDRAWN, ACCEPTED, REJECTED
         LocalDateTime appliedAt,    // 지원 시간
         List<String> roles,
@@ -32,9 +32,8 @@ public record MyApplicationResponse(
     /**
      * Application → MyApplicationResponse
      */
-    public static MyApplicationResponse fromApplication(Application application, boolean bookmarked, String leaderNickname) {
+    public static MyApplicationResponse fromApplication(Application application, boolean bookmarked, String leaderNickname, Integer leaderProfileImageCode) {
         Post post = application.getPost();
-        User leader = post.getOwner();
 
         return MyApplicationResponse.builder()
             .id(application.getId())
@@ -44,7 +43,7 @@ public record MyApplicationResponse(
             .activityMode(post.getActivityMode().name().toLowerCase())
             .postStatus(post.getStatus())
             .leaderName(leaderNickname)
-            .leaderProfileImage(leader.getProfileImageUrl())
+            .leaderProfileImage(leaderProfileImageCode)
             .myStatus(application.getStatus())  // 지원 상태
             .appliedAt(application.getCreatedAt())
             .roles(

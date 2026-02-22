@@ -54,11 +54,17 @@ public class ApplicationService {
 
                     // 리더의 닉네임 조회
                     Long leaderId = app.getPost().getOwner().getId();
-                    String leaderNickname = profileRepository.findByUserId(leaderId)
-                            .map(Profile::getNickname)
-                            .orElse(app.getPost().getOwner().getName()); // fallback
+                    Profile leaderProfile = profileRepository.findByUserId(leaderId).orElse(null);
 
-                    return MyApplicationResponse.fromApplication(app, bookmarked, leaderNickname);
+                    String leaderNickname = leaderProfile != null
+                            ? leaderProfile.getNickname()
+                            : app.getPost().getOwner().getName();
+
+                    Integer leaderProfileImageCode = leaderProfile != null
+                            ? leaderProfile.getProfileImageCode()
+                            : null;
+
+                    return MyApplicationResponse.fromApplication(app, bookmarked, leaderNickname, leaderProfileImageCode);
                 })
                 .toList();
 
@@ -92,13 +98,19 @@ public class ApplicationService {
             throw new CustomException(ExceptionType.NOT_FOUND, "조회 가능한 상태가 아닙니다.");
         }
 
-        // 리더의 닉네임 조회
+        // 리더의 프로필 조회
         Long leaderId = application.getPost().getOwner().getId();
-        String leaderNickname = profileRepository.findByUserId(leaderId)
-                .map(Profile::getNickname)
-                .orElse(application.getPost().getOwner().getName()); // fallback
+        Profile leaderProfile = profileRepository.findByUserId(leaderId).orElse(null);
 
-        return MyApplicationDetailResponse.fromApplication(application, leaderNickname);
+        String leaderNickname = leaderProfile != null
+                ? leaderProfile.getNickname()
+                : application.getPost().getOwner().getName();
+
+        Integer leaderProfileImageCode = leaderProfile != null
+                ? leaderProfile.getProfileImageCode()
+                : null;
+
+        return MyApplicationDetailResponse.fromApplication(application, leaderNickname, leaderProfileImageCode);
     }
 
     @Transactional

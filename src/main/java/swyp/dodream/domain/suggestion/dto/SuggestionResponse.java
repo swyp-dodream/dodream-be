@@ -4,6 +4,7 @@ import lombok.Builder;
 import swyp.dodream.domain.master.domain.SuggestionStatus;
 import swyp.dodream.domain.post.common.PostStatus;
 import swyp.dodream.domain.post.domain.Post;
+import swyp.dodream.domain.profile.domain.Profile;
 import swyp.dodream.domain.suggestion.domain.Suggestion;
 import swyp.dodream.domain.user.domain.User;
 
@@ -26,7 +27,7 @@ public record SuggestionResponse(
         String activityMode,       // online / offline / hybrid
         PostStatus postStatus,             // recruiting / completed
         String leaderName,
-        String leaderProfileImage,
+        Integer leaderProfileImage,
         SuggestionStatus suggestionStatus,  // SENT, CANCELED, ACCEPTED, REJECTED
         List<String> roles,
         List<String> stacks,
@@ -35,7 +36,7 @@ public record SuggestionResponse(
 
         boolean bookmarked
 ) {
-    public static SuggestionResponse from(Suggestion suggestion, boolean bookmarked) {
+    public static SuggestionResponse from(Suggestion suggestion, boolean bookmarked, Profile leaderProfile) {
         Post post = suggestion.getPost();
         User leader = post.getOwner();
 
@@ -53,8 +54,8 @@ public record SuggestionResponse(
                 .projectType(post.getProjectType().name().toLowerCase())
                 .activityMode(post.getActivityMode().name().toLowerCase())
                 .postStatus(post.getStatus())
-                .leaderName(leader.getName())
-                .leaderProfileImage(leader.getProfileImageUrl())
+                .leaderName(leaderProfile != null ? leaderProfile.getNickname() : leader.getName())
+                .leaderProfileImage(leaderProfile != null ? leaderProfile.getProfileImageCode() : null)
                 .suggestionStatus(suggestion.getStatus())
                 .roles(
                         post.getRoleRequirements().stream()

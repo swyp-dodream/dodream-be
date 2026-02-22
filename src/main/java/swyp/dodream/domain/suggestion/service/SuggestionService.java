@@ -12,6 +12,8 @@ import swyp.dodream.common.snowflake.SnowflakeIdService;
 import swyp.dodream.domain.bookmark.repository.BookmarkRepository;
 import swyp.dodream.domain.notification.service.NotificationService;
 import swyp.dodream.domain.post.domain.Post;
+import swyp.dodream.domain.profile.domain.Profile;
+import swyp.dodream.domain.profile.repository.ProfileRepository;
 import swyp.dodream.domain.suggestion.domain.Suggestion;
 import swyp.dodream.domain.suggestion.dto.SuggestionPageResponse;
 import swyp.dodream.domain.suggestion.dto.SuggestionRequest;
@@ -35,6 +37,7 @@ public class SuggestionService {
     private final SnowflakeIdService snowflakeIdService;
     private final NotificationService notificationService;
     private final BookmarkRepository bookmarkRepository;
+    private final ProfileRepository profileRepository;
 
     @Transactional(readOnly = true)
     public boolean hasActiveSuggestion(Long fromUserId, Long postId, Long toUserId) {
@@ -94,7 +97,8 @@ public class SuggestionService {
                 post.getTitle()   // 게시글 제목
         );
 
-        return SuggestionResponse.from(suggestion, false);
+        Profile leaderProfile = profileRepository.findByUserId(post.getOwner().getId()).orElse(null);
+        return SuggestionResponse.from(suggestion, false, leaderProfile);
     }
 
     public void cancelSuggestion(Long suggestionId, Long userId) {
@@ -131,7 +135,11 @@ public class SuggestionService {
                 .map(suggestion -> {
                     Long postId = suggestion.getPost().getId();
                     boolean bookmarked = bookmarkRepository.existsByUserIdAndPostId(userId, postId);
-                    return SuggestionResponse.from(suggestion, bookmarked);
+
+                    Long leaderId = suggestion.getPost().getOwner().getId();
+                    Profile leaderProfile = profileRepository.findByUserId(leaderId).orElse(null);
+
+                    return SuggestionResponse.from(suggestion, bookmarked, leaderProfile);
                 })
                 .toList();
 

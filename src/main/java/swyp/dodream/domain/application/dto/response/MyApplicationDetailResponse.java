@@ -15,7 +15,7 @@ public record MyApplicationDetailResponse(
         String activityMode,       // online / offline / hybrid
         PostStatus postStatus,             // recruiting / completed
         String leaderName,
-        String leaderProfileImage,
+        Integer leaderProfileImage,
         String roleName,           // 지원한 직군 이름
         String roleCode,           // 지원한 직군 코드
         String message,            // 지원 메시지
@@ -25,7 +25,7 @@ public record MyApplicationDetailResponse(
     /**
      * Application → MyApplicationDetailResponse
      */
-    public static MyApplicationDetailResponse fromApplication(Application application, String leaderNickname) {
+    public static MyApplicationDetailResponse fromApplication(Application application, String leaderNickname, Integer leaderProfileImageCode) {
         var post = application.getPost();
         var leader = post.getOwner();
         var role = application.getRole();
@@ -38,7 +38,7 @@ public record MyApplicationDetailResponse(
                 .activityMode(post.getActivityMode().name().toLowerCase())
                 .postStatus(post.getStatus())
                 .leaderName(leaderNickname)
-                .leaderProfileImage(leader.getProfileImageUrl())
+                .leaderProfileImage(leaderProfileImageCode)
                 .roleName(role.getName())
                 .roleCode(String.valueOf(role.getCode()))
                 .message(application.getMessage())
