@@ -176,12 +176,15 @@ public class MatchedService {
 
         matchedRepository.save(matched);
 
+        Profile applicantProfile = profileRepository.findByUserId(app.getApplicant().getId()).orElse(null);
+        String applicantNickname = applicantProfile != null ? applicantProfile.getNickname() : app.getApplicant().getName();
+
         // 지원자에게만 매칭 알림 보내기
         notificationService.sendApplicationAcceptedToApplicant(
                 app.getApplicant().getId(),
                 post.getId(),
                 post.getTitle(),
-                post.getOwner().getName()
+                applicantNickname
         );
     }
 

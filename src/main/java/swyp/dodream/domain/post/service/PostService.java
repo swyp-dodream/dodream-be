@@ -398,10 +398,13 @@ public class PostService {
 
         suggestionRepository.findLatestValidSuggestion(postId, leaderId, applicantId)
                 .ifPresent(suggestion -> {
+                    Profile applicantProfile = profileRepository.findByUserId(applicantId).orElse(null);
+                    String applicantNickname = applicantProfile != null ? applicantProfile.getNickname() : user.getName();
+
                     notificationService.sendProposalAppliedNotification(
                             leaderId,
                             postId,
-                            user.getName(),
+                            applicantNickname,
                             post.getTitle()
                     );
                 });

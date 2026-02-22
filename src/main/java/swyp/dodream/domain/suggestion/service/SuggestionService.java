@@ -89,15 +89,17 @@ public class SuggestionService {
 
         suggestionRepository.save(suggestion);
 
+        Profile leaderProfile = profileRepository.findByUserId(post.getOwner().getId()).orElse(null);
+        String leaderNickname = leaderProfile != null ? leaderProfile.getNickname() : post.getOwner().getName();
+
         // 게시글 작성자가 일반 유저에게 제안하는 경우 알림이 가도록 하는 로직 추가!
         notificationService.sendProposalNotificationToUser(
                 toUser.getId(),    // 알림 받을 사람
                 post.getId(),     // 관련 게시글
-                post.getOwner().getName(), // 보낸 사람 이름
+                leaderNickname, // 보낸 사람 닉네임
                 post.getTitle()   // 게시글 제목
         );
 
-        Profile leaderProfile = profileRepository.findByUserId(post.getOwner().getId()).orElse(null);
         return SuggestionResponse.from(suggestion, false, leaderProfile);
     }
 
