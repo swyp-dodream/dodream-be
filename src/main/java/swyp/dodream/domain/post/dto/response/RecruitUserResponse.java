@@ -18,7 +18,7 @@ public record RecruitUserResponse(
         Long applicationId,
         Long userId,
         String nickname,
-        String profileImage,
+        Integer profileImage,
         String status,           // PENDING, ACCEPTED 등
         LocalDateTime createdAt, // 지원/제안/매칭 시간
         String experience,       // 프로필의 경력 (enum name)
@@ -37,7 +37,7 @@ public record RecruitUserResponse(
                 .applicationId(null)
                 .userId(user.getId())
                 .nickname(profile != null ? profile.getNickname() : user.getName())
-                .profileImage(user.getProfileImageUrl())
+                .profileImage(profile != null ? profile.getProfileImageCode() : null)
                 .status("PENDING")
                 .createdAt(suggestion.getCreatedAt())
                 .experience(profile != null && profile.getExperience() != null ? profile.getExperience().name() : null)
@@ -57,7 +57,7 @@ public record RecruitUserResponse(
                 .applicationId(application.getId())
                 .userId(user.getId())
                 .nickname(profile != null ? profile.getNickname() : user.getName())
-                .profileImage(user.getProfileImageUrl())
+                .profileImage(profile != null ? profile.getProfileImageCode() : null)
                 .status("PENDING")
                 .createdAt(application.getCreatedAt())
                 .experience(profile != null && profile.getExperience() != null ? profile.getExperience().name() : null)
@@ -85,7 +85,7 @@ public record RecruitUserResponse(
                 .suggestionId(null)
                 .userId(user.getId())
                 .nickname(profile != null ? profile.getNickname() : user.getName())
-                .profileImage(user.getProfileImageUrl())
+                .profileImage(profile != null ? profile.getProfileImageCode() : null)
                 .status("ACCEPTED")
                 .createdAt(matched.getMatchedAt())
                 .experience(profile != null && profile.getExperience() != null ? profile.getExperience().name() : null)
