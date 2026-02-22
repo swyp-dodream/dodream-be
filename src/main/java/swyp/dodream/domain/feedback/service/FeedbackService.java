@@ -17,6 +17,8 @@ import swyp.dodream.domain.matched.repository.MatchedRepository;
 import swyp.dodream.domain.notification.service.NotificationService;
 import swyp.dodream.domain.post.domain.Post;
 import swyp.dodream.domain.post.repository.PostRepository;
+import swyp.dodream.domain.profile.domain.Profile;
+import swyp.dodream.domain.profile.repository.ProfileRepository;
 import swyp.dodream.domain.user.domain.User;
 import swyp.dodream.domain.user.repository.UserRepository;
 
@@ -36,6 +38,7 @@ public class FeedbackService {
     private final UserRepository userRepository;
     private final NotificationService notificationService;
     private final SnowflakeIdService snowflakeIdService;
+    private final ProfileRepository profileRepository;
 
     /**
      * 피드백 옵션 전체 목록 조회
@@ -163,10 +166,15 @@ public class FeedbackService {
         Feedback saved = feedbackRepository.save(feedback);
 
         // 11. 알림 - 익명의 팀원이 피드백을 작성하면 피드백을 받는 대상이 알림을 받기
+        Profile fromUserProfile = profileRepository.findByUserId(fromUserId).orElse(null);
+        Integer profileImageCode = fromUserProfile != null ? fromUserProfile.getProfileImageCode() : null;
+
         notificationService.sendFeedbackWrittenNotification(
-                request.toUserId(),          // 피드백 받은 사람
+                request.toUserId(),
+                fromUserId,
                 post.getId(),
-                post.getTitle()
+                post.getTitle(),
+                profileImageCode
         );
 
         return FeedbackCreateResponse.of(saved.getId());

@@ -10,6 +10,8 @@ import swyp.dodream.domain.matched.repository.MatchedRepository;
 import swyp.dodream.domain.notification.service.NotificationService;
 import swyp.dodream.domain.post.domain.Post;
 import swyp.dodream.domain.post.repository.PostRepository;
+import swyp.dodream.domain.profile.domain.Profile;
+import swyp.dodream.domain.profile.repository.ProfileRepository;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -23,6 +25,7 @@ public class FeedbackActivationScheduler {
     private final PostRepository postRepository;
     private final MatchedRepository matchedRepository;
     private final NotificationService notificationService;
+    private final ProfileRepository profileRepository;
 
     /**
      * 매일 00:10에 '한 달 전에 마감된' 모집글의 팀원들에게
@@ -41,6 +44,9 @@ public class FeedbackActivationScheduler {
         List<Post> posts = postRepository.findByDeadlineAtBetween(start, end);
 
         for (Post post : posts) {
+            Profile ownerProfile = profileRepository.findByUserId(post.getOwner().getId()).orElse(null);
+            Integer profileImageCode = ownerProfile != null ? ownerProfile.getProfileImageCode() : null;
+
             // 이 글에 매칭된 팀원 전부 가져오기
             List<Matched> members = matchedRepository.findAllByPostId(post.getId());
             for (Matched member : members) {
@@ -48,8 +54,10 @@ public class FeedbackActivationScheduler {
 
                 notificationService.sendReviewActivated(
                         member.getUser().getId(),
+                        post.getOwner().getId(),
                         post.getId(),
-                        post.getTitle()
+                        post.getTitle(),
+                        profileImageCode
                 );
             }
         }

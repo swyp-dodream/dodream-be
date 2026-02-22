@@ -7,11 +7,18 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import swyp.dodream.domain.notification.domain.Notification;
+import swyp.dodream.domain.notification.dto.NotificationResponse;
 import swyp.dodream.domain.notification.infra.SseEmitterPool;
 import swyp.dodream.domain.notification.repository.NotificationRepository;
 import swyp.dodream.domain.notification.service.NotificationService;
+import swyp.dodream.domain.profile.domain.Profile;
+import swyp.dodream.domain.profile.repository.ProfileRepository;
 import swyp.dodream.jwt.dto.UserPrincipal;
 import org.springframework.http.ResponseEntity;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import java.util.List;
 
@@ -23,6 +30,7 @@ public class NotificationController {
     private final SseEmitterPool sseEmitterPool;
     private final NotificationRepository notificationRepository;
     private final NotificationService notificationService;
+    private final ProfileRepository profileRepository;
 
     @Operation(
             summary = "알림 SSE 구독",
@@ -42,10 +50,26 @@ public class NotificationController {
     )
     @PreAuthorize("isAuthenticated()")
     @GetMapping
-    public List<Notification> list(Authentication authentication) {
+    public List<NotificationResponse> list(Authentication authentication) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
         Long userId = principal.getUserId();
-        return notificationRepository.findAllByReceiverIdOrderByCreatedAtDesc(userId);
+
+        List<Notification> notifications = notificationRepository.findAllByReceiverIdOrderByCreatedAtDesc(userId);
+
+        Set<Long> senderIds = notifications.stream()
+                .map(Notification::getSenderId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        Map<Long, Integer> profileImageMap = profileRepository.findByUserIdIn(senderIds).stream()
+                .collect(Collectors.toMap(Profile::getUserId, Profile::getProfileImageCode));
+
+        return notifications.stream()
+                .map(n -> NotificationResponse.of(
+                        n,
+                        n.getSenderId() != null ? profileImageMap.get(n.getSenderId()) : null
+                ))
+                .toList();
     }
 
     @Operation(
@@ -67,6 +91,6 @@ public class NotificationController {
     )
     @PostMapping("/dev/notify")
     public void notifyTest(@RequestParam Long receiverId) {
-        notificationService.sendProposalNotificationToUser(receiverId, 999L, "테스터", "글제목");
+        notificationService.sendProposalNotificationToUser(receiverId, null,999L, "테스터", "글제목", null);
     }
 }

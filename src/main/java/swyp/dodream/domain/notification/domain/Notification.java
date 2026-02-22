@@ -15,6 +15,9 @@ public class Notification extends BaseEntity {
     @Id
     private Long id;
 
+    @Column
+    private Long senderId;
+
     @Column(nullable = false)
     private Long receiverId; // 알림 받을 유저
 
@@ -35,8 +38,9 @@ public class Notification extends BaseEntity {
     private boolean isRead = false;
 
     // 신규 알림 생성용 생성자
-    public Notification(Long id, Long receiverId, NotificationType type, String message,Long targetPostId, String targetPostTitle) {
+    public Notification(Long id, Long senderId, Long receiverId, NotificationType type, String message,Long targetPostId, String targetPostTitle) {
         this.id = id;
+        this.senderId = senderId;
         this.receiverId = receiverId;
         this.type = type;
         this.message = message;

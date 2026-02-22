@@ -22,7 +22,7 @@ public class NotificationService {
      * 리더가 유저에게 제안을 보낼 때 알림 전송
      */
     @Transactional
-    public void sendProposalNotificationToUser(Long receiverId, Long postId, String leaderName, String postTitle) {
+    public void sendProposalNotificationToUser(Long receiverId, Long senderId, Long postId, String leaderName, String postTitle, Integer profileImageCode)  {
         // 동일 알림 중복 방지 (유저 + 타입 + 모집글 기본키)
         boolean exists = notificationRepository.existsByReceiverIdAndTypeAndTargetPostId(
                 receiverId,
@@ -38,6 +38,7 @@ public class NotificationService {
 
         Notification notification = new Notification(
                 id,
+                senderId,
                 receiverId,
                 NotificationType.PROPOSAL_SENT,
                 msg,
@@ -49,7 +50,7 @@ public class NotificationService {
 
         // 실시간 SSE 전파를 위한 Redis Pub
         redisPublisher.publish(
-                new NotificationPayload(receiverId, NotificationType.PROPOSAL_SENT, msg, postId)
+                new NotificationPayload(receiverId, NotificationType.PROPOSAL_SENT, msg, postId, profileImageCode)
         );
     }
 
@@ -72,7 +73,7 @@ public class NotificationService {
      * 제안받은 유저가 실제 지원했을 때 글작성자에게 알림 전송
      */
     @Transactional
-    public void sendProposalAppliedNotification(Long leaderId, Long postId, String applicantName, String postTitle) {
+    public void sendProposalAppliedNotification(Long leaderId, Long senderId, Long postId, String applicantName, String postTitle, Integer profileImageCode) {
         boolean exists = notificationRepository.existsByReceiverIdAndTypeAndTargetPostId(
                 leaderId,
                 NotificationType.PROPOSAL_APPLIED,
@@ -85,6 +86,7 @@ public class NotificationService {
 
         Notification notification = new Notification(
                 id,
+                senderId,
                 leaderId,
                 NotificationType.PROPOSAL_APPLIED,
                 msg,
@@ -96,7 +98,7 @@ public class NotificationService {
 
         // 실시간 알림 전송
         redisPublisher.publish(
-                new NotificationPayload(leaderId, NotificationType.PROPOSAL_APPLIED, msg, postId)
+                new NotificationPayload(leaderId, NotificationType.PROPOSAL_APPLIED, msg, postId, profileImageCode)
         );
     }
 
@@ -105,9 +107,11 @@ public class NotificationService {
      */
     @Transactional
     public void sendApplicationAcceptedToApplicant(Long applicantId,
+                                                   Long senderId,
                                                    Long postId,
                                                    String postTitle,
-                                                   String leaderName) {
+                                                   String leaderName,
+                                                   Integer profileImageCode) {
 
         boolean exists = notificationRepository
                 .existsByReceiverIdAndTypeAndTargetPostId(applicantId, NotificationType.APPLICATION_ACCEPTED, postId);
@@ -118,6 +122,7 @@ public class NotificationService {
 
         Notification notification = new Notification(
                 id,
+                senderId,
                 applicantId,
                 NotificationType.APPLICATION_ACCEPTED,
                 msg,
@@ -127,7 +132,7 @@ public class NotificationService {
         notificationRepository.save(notification);
 
         redisPublisher.publish(
-                new NotificationPayload(applicantId, NotificationType.APPLICATION_ACCEPTED, msg, postId)
+                new NotificationPayload(applicantId, NotificationType.APPLICATION_ACCEPTED, msg, postId, profileImageCode)
         );
     }
 
@@ -136,9 +141,11 @@ public class NotificationService {
      */
     @Transactional
     public void sendApplicationAcceptedToLeader(Long leaderId,
+                                                Long senderId,
                                                 Long postId,
                                                 String applicantName,
-                                                String postTitle) {
+                                                String postTitle,
+                                                Integer profileImageCode) {
 
         boolean exists = notificationRepository
                 .existsByReceiverIdAndTypeAndTargetPostId(leaderId, NotificationType.APPLICATION_ACCEPTED, postId);
@@ -149,6 +156,7 @@ public class NotificationService {
 
         Notification notification = new Notification(
                 id,
+                senderId,
                 leaderId,
                 NotificationType.APPLICATION_ACCEPTED,
                 msg,
@@ -158,7 +166,7 @@ public class NotificationService {
         notificationRepository.save(notification);
 
         redisPublisher.publish(
-                new NotificationPayload(leaderId, NotificationType.APPLICATION_ACCEPTED, msg, postId)
+                new NotificationPayload(leaderId, NotificationType.APPLICATION_ACCEPTED, msg, postId, profileImageCode)
         );
     }
 
@@ -166,13 +174,14 @@ public class NotificationService {
      * 다른 사람이 자신에게 피드백을 달아주었을 때 알림
      */
     @Transactional
-    public void sendFeedbackWrittenNotification(Long receiverId, Long postId, String postTitle) {
+    public void sendFeedbackWrittenNotification(Long receiverId, Long senderId, Long postId, String postTitle, Integer profileImageCode) {
 
         Long id = snowflakeIdService.generateId();
         String msg = "[" + postTitle + "] 함께한 팀원이 회원님에게 새로운 후기를 남겼어요";
 
         Notification notification = new Notification(
                 id,
+                senderId,
                 receiverId,                       // 글 작성자
                 NotificationType.FEEDBACK_WRITTEN,
                 msg,
@@ -184,12 +193,12 @@ public class NotificationService {
 
         // SSE 푸시
         redisPublisher.publish(
-                new NotificationPayload(receiverId, NotificationType.FEEDBACK_WRITTEN, msg, postId)
+                new NotificationPayload(receiverId, NotificationType.FEEDBACK_WRITTEN, msg, postId, profileImageCode)
         );
     }
 
     @Transactional
-    public void sendBookmarkDeadlineNotification(Long receiverId, Long postId, String postTitle) {
+    public void sendBookmarkDeadlineNotification(Long receiverId, Long senderId, Long postId, String postTitle, Integer profileImageCode) {
         boolean exists = notificationRepository.existsByReceiverIdAndTypeAndTargetPostId(
                 receiverId,
                 NotificationType.BOOKMARK_DEADLINE,
@@ -202,6 +211,7 @@ public class NotificationService {
 
         Notification notification = new Notification(
                 id,
+                senderId,
                 receiverId,
                 NotificationType.BOOKMARK_DEADLINE,
                 msg,
@@ -212,12 +222,12 @@ public class NotificationService {
         notificationRepository.save(notification);
 
         redisPublisher.publish(
-                new NotificationPayload(receiverId, NotificationType.BOOKMARK_DEADLINE, msg, postId)
+                new NotificationPayload(receiverId, NotificationType.BOOKMARK_DEADLINE, msg, postId, profileImageCode)
         );
     }
 
     @Transactional
-    public void sendReviewActivated(Long receiverId, Long postId, String postTitle) {
+    public void sendReviewActivated(Long receiverId, Long senderId, Long postId, String postTitle, Integer profileImageCode) {
         boolean exists = notificationRepository.existsByReceiverIdAndTypeAndTargetPostId(
                 receiverId,
                 NotificationType.REVIEW_ACTIVATED,
@@ -230,6 +240,7 @@ public class NotificationService {
 
         Notification notification = new Notification(
                 id,
+                senderId,
                 receiverId,
                 NotificationType.REVIEW_ACTIVATED,
                 msg,
@@ -240,7 +251,7 @@ public class NotificationService {
         notificationRepository.save(notification);
 
         redisPublisher.publish(
-                new NotificationPayload(receiverId, NotificationType.REVIEW_ACTIVATED, msg, postId)
+                new NotificationPayload(receiverId, NotificationType.REVIEW_ACTIVATED, msg, postId, profileImageCode)
         );
     }
 

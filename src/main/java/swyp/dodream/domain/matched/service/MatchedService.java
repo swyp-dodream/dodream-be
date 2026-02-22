@@ -178,13 +178,16 @@ public class MatchedService {
 
         Profile applicantProfile = profileRepository.findByUserId(app.getApplicant().getId()).orElse(null);
         String applicantNickname = applicantProfile != null ? applicantProfile.getNickname() : app.getApplicant().getName();
+        Profile leaderProfile = profileRepository.findByUserId(post.getOwner().getId()).orElse(null);
 
         // 지원자에게만 매칭 알림 보내기
         notificationService.sendApplicationAcceptedToApplicant(
                 app.getApplicant().getId(),
+                leaderId,
                 post.getId(),
                 post.getTitle(),
-                applicantNickname
+                applicantNickname,
+                leaderProfile != null ? leaderProfile.getProfileImageCode() : null
         );
     }
 

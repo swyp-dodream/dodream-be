@@ -403,9 +403,12 @@ public class PostService {
 
                     notificationService.sendProposalAppliedNotification(
                             leaderId,
+                            applicantId,
                             postId,
                             applicantNickname,
-                            post.getTitle()
+                            post.getTitle(),
+                            applicantProfile != null ? applicantProfile.getProfileImageCode() : null  // 추가
+
                     );
                 });
     }

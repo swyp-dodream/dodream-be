@@ -10,6 +10,8 @@ import swyp.dodream.domain.bookmark.repository.BookmarkRepository;
 import swyp.dodream.domain.notification.service.NotificationService;
 import swyp.dodream.domain.post.domain.Post;
 import swyp.dodream.domain.post.repository.PostRepository;
+import swyp.dodream.domain.profile.domain.Profile;
+import swyp.dodream.domain.profile.repository.ProfileRepository;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -22,6 +24,7 @@ public class BookmarkDeadlineScheduler {
     private final PostRepository postRepository;
     private final BookmarkRepository bookmarkRepository;
     private final NotificationService notificationService;
+    private final ProfileRepository profileRepository;
 
     /**
      * 매일 자정에 오늘 마감 모집글 북마크 유저에게 알림 전송
@@ -37,12 +40,17 @@ public class BookmarkDeadlineScheduler {
         );
 
         for (Post post : posts) {
+            Profile ownerProfile = profileRepository.findByUserId(post.getOwner().getId()).orElse(null);
+            Integer profileImageCode = ownerProfile != null ? ownerProfile.getProfileImageCode() : null;
+
             List<Bookmark> bookmarks = bookmarkRepository.findByPost(post);
             for (Bookmark bookmark : bookmarks) {
                 notificationService.sendBookmarkDeadlineNotification(
                         bookmark.getUser().getId(),
+                        post.getOwner().getId(),
                         post.getId(),
-                        post.getTitle()
+                        post.getTitle(),
+                        profileImageCode
                 );
             }
         }

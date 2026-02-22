@@ -13,4 +13,5 @@ public class NotificationPayload {
     private NotificationType type;
     private String message;
     private Long targetPostId;
+    private Integer profileImageCode;
 }

@@ -95,9 +95,11 @@ public class SuggestionService {
         // 게시글 작성자가 일반 유저에게 제안하는 경우 알림이 가도록 하는 로직 추가!
         notificationService.sendProposalNotificationToUser(
                 toUser.getId(),    // 알림 받을 사람
+                post.getOwner().getId(),
                 post.getId(),     // 관련 게시글
                 leaderNickname, // 보낸 사람 닉네임
-                post.getTitle()   // 게시글 제목
+                post.getTitle(),   // 게시글 제목
+                leaderProfile != null ? leaderProfile.getProfileImageCode() : null
         );
 
         return SuggestionResponse.from(suggestion, false, leaderProfile);
