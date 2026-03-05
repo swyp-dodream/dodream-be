@@ -29,9 +29,10 @@ public record MatchedPostResponse(
         Long viewCount,
         boolean bookmarked,
         LocalDateTime postCreatedAt, // 모집글 생성일
-        LocalDateTime deadlineAt // 모집글 마감일
+        LocalDateTime deadlineAt, // 모집글 마감일
+        long reviewCount // 리뷰 개수
 ) {
-    public static MatchedPostResponse from(Matched matched, boolean bookmarked, Profile leaderProfile) {
+    public static MatchedPostResponse from(Matched matched, boolean bookmarked, Profile leaderProfile, long reviewCount) {
         Post post = matched.getPost();
         User leader = post.getOwner();
 
@@ -77,6 +78,7 @@ public record MatchedPostResponse(
                 .bookmarked(bookmarked)
                 .postCreatedAt(post.getCreatedAt())
                 .deadlineAt(post.getDeadlineAt())
+                .reviewCount(reviewCount)
                 .build();
     }
 }

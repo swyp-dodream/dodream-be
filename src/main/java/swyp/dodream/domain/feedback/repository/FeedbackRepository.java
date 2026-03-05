@@ -105,4 +105,18 @@ public interface FeedbackRepository extends JpaRepository<Feedback, Long> {
      */
     List<Feedback> findByPostAndToUserOrderByCreatedAtDesc(Post post, User toUser);
 
+    /**
+     * postId 목록에 대해 유저에 대한 리뷰 수를 한 번에 조회
+     */
+    @Query("""
+        SELECT f.post.id, COUNT(f)
+        FROM Feedback f
+        WHERE f.post.id IN :postIds
+          AND f.toUser.id = :userId
+        GROUP BY f.post.id
+    """)
+    List<Object[]> countFeedbacksForUserByPosts(
+            @Param("userId") Long userId,
+            @Param("postIds") List<Long> postIds
+    );
 }

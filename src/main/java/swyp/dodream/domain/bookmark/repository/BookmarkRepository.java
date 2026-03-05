@@ -10,6 +10,7 @@ import swyp.dodream.domain.post.common.ProjectType;
 import swyp.dodream.domain.post.domain.Post;
 import swyp.dodream.domain.user.domain.User;
 import java.util.List;
+import java.util.Set;
 
 public interface BookmarkRepository extends JpaRepository<Bookmark, Long> {
     boolean existsByUserAndPost(User user, Post post);
@@ -43,4 +44,7 @@ public interface BookmarkRepository extends JpaRepository<Bookmark, Long> {
 
     @Query("SELECT b.post.id FROM Bookmark b WHERE b.user.id = :userId")
     List<Long> findPostIdsByUserId(@Param("userId") Long userId);
+
+    @Query("SELECT b.post.id FROM Bookmark b WHERE b.user.id = :userId AND b.post.id IN :postIds")
+    Set<Long> findPostIdsByUserIdAndPostIdIn(@Param("userId") Long userId, @Param("postIds") List<Long> postIds);
 }

@@ -26,6 +26,7 @@ import swyp.dodream.domain.profile.repository.ProfileRepository;
 import swyp.dodream.domain.suggestion.domain.Suggestion;
 import swyp.dodream.domain.post.repository.PostRepository;
 import swyp.dodream.domain.suggestion.repository.SuggestionRepository;
+import swyp.dodream.domain.feedback.repository.FeedbackRepository;
 
 import java.time.LocalDateTime;
 import java.time.YearMonth;
@@ -48,6 +49,7 @@ public class MatchedService {
     private final NotificationService notificationService;
     private final BookmarkRepository bookmarkRepository;
     private final ProfileRepository profileRepository;
+    private final FeedbackRepository feedbackRepository;
 
     // 정책 상수
     private static final int LEADER_CANCEL_LIMIT_PER_POST = 2; // 모집글 당 2회
@@ -64,23 +66,40 @@ public class MatchedService {
         PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "matchedAt"));
 
         Page<Matched> matchedPage = matchedRepository.findMatchedByUser(userId, pageable);
+        List<Matched> matchedList = matchedPage.getContent();
 
-        Set<Long> leaderIds = matchedPage.getContent().stream()
+        List<Long> postIds = matchedList.stream()
+                .map(m -> m.getPost().getId())
+                .toList();
+
+        // 북마크 조회
+        Set<Long> bookmarkedPostIds = bookmarkRepository.findPostIdsByUserIdAndPostIdIn(userId, postIds);
+
+        // 리뷰 수 조회
+        Map<Long, Long> reviewCountMap = feedbackRepository.countFeedbacksForUserByPosts(userId, postIds)
+                .stream()
+                .collect(Collectors.toMap(
+                        row -> (Long) row[0],
+                        row -> (Long) row[1]
+                ));
+
+        // 리더 프로필 일괄 조회
+        Set<Long> leaderIds = matchedList.stream()
                 .map(m -> m.getPost().getOwner().getId())
                 .collect(Collectors.toSet());
 
         Map<Long, Profile> profileMap = profileRepository.findByUserIdIn(leaderIds).stream()
                 .collect(Collectors.toMap(Profile::getUserId, p -> p));
 
-        List<MatchedPostResponse> contents = matchedPage.getContent().stream()
+        List<MatchedPostResponse> contents = matchedList.stream()
                 .map(matched -> {
                     Long postId = matched.getPost().getId();
-                    boolean bookmarked = bookmarkRepository.existsByUserIdAndPostId(userId, postId);
-
+                    boolean bookmarked = bookmarkedPostIds.contains(postId);
                     Long leaderId = matched.getPost().getOwner().getId();
                     Profile leaderProfile = profileMap.get(leaderId);
+                    long reviewCount = reviewCountMap.getOrDefault(postId, 0L); // 리뷰 수
 
-                    return MatchedPostResponse.from(matched, bookmarked, leaderProfile);
+                    return MatchedPostResponse.from(matched, bookmarked, leaderProfile, reviewCount);
                 })
                 .toList();
 
