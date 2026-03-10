@@ -12,6 +12,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import swyp.dodream.domain.feedback.dto.request.FeedbackCreateRequest;
 import swyp.dodream.domain.feedback.dto.response.FeedbackCreateResponse;
+import swyp.dodream.domain.feedback.dto.response.FeedbackMemberResponse;
 import swyp.dodream.domain.feedback.dto.response.FeedbackReceivedResponse;
 import swyp.dodream.domain.feedback.service.FeedbackService;
 import swyp.dodream.jwt.dto.UserPrincipal;
@@ -123,5 +124,15 @@ public class FeedbackController {
         List<FeedbackReceivedResponse> response = feedbackService.getReceivedFeedbacksByPost(
                 userPrincipal.getUserId(), postId);
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{postId}/members")
+    public ResponseEntity<List<FeedbackMemberResponse>> getPostMembers(
+            Authentication authentication,
+            @PathVariable("postId") Long postId
+    ) {
+        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
+        return ResponseEntity.ok(feedbackService.getPostMembers(
+                userPrincipal.getUserId(), postId));
     }
 }

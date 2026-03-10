@@ -42,7 +42,7 @@ public record FeedbackReceivedResponse(
                 .postTitle(feedback.getPost().getTitle())
                 .feedbackType(feedback.getFeedbackType().name())
                 .options(feedback.getOptions().stream()
-                        .map(FeedbackOption::getDescription)
+                        .map(FeedbackOption::name)
                         .collect(Collectors.toList()))
                 .receivedAt(feedback.getCreatedAt())
                 .build();

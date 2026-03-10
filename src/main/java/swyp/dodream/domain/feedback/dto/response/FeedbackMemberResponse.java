@@ -24,10 +24,10 @@ public record FeedbackMemberResponse(
     /**
      * User + 작성 여부 → FeedbackMemberResponse
      */
-    public static FeedbackMemberResponse of(User user, boolean alreadyWritten) {
+    public static FeedbackMemberResponse of(User user, String nickname, boolean alreadyWritten) {
         return FeedbackMemberResponse.builder()
                 .userId(user.getId())
-                .nickname(user.getName())
+                .nickname(nickname)
                 .profileImage(user.getProfileImageUrl())
                 .alreadyWritten(alreadyWritten)
                 .build();

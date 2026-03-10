@@ -25,6 +25,7 @@ import swyp.dodream.domain.user.repository.UserRepository;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -76,14 +77,24 @@ public class FeedbackService {
                             post.getId(), PageRequest.of(0, 100)
                     ).getContent();
 
-                    // 4. 본인 제외 & 피드백 작성 여부 확인
+                    // 4. 프로필 한 번에 조회
+                    List<Long> userIds = members.stream()
+                            .map(m -> m.getUser().getId())
+                            .toList();
+                    Map<Long, Profile> profileMap = profileRepository.findByUserIdIn(userIds)
+                            .stream()
+                            .collect(Collectors.toMap(Profile::getUserId, p -> p));
+
+                    // 5. 본인 제외 & 피드백 작성 여부 확인
                     List<FeedbackMemberResponse> memberResponses = members.stream()
                             .filter(m -> !m.getUser().getId().equals(userId))
                             .map(m -> {
                                 boolean alreadyWritten = feedbackRepository.existsByPostAndFromUserAndToUser(
                                         post.getId(), userId, m.getUser().getId()
                                 );
-                                return FeedbackMemberResponse.of(m.getUser(), alreadyWritten);
+                                Profile profile = profileMap.get(m.getUser().getId());
+                                String nickname = profile != null ? profile.getNickname() : m.getUser().getName();
+                                return FeedbackMemberResponse.of(m.getUser(), nickname, alreadyWritten);
                             })
                             .collect(Collectors.toList());
 
@@ -246,5 +257,31 @@ public class FeedbackService {
         return feedbacks.stream()
                 .map(FeedbackReceivedResponse::from)
                 .toList();
+    }
+
+    public List<FeedbackMemberResponse> getPostMembers(Long userId, Long postId) {
+        List<Matched> members = matchedRepository.findMembersByPost(
+                postId, PageRequest.of(0, 100)
+        ).getContent();
+
+        List<Matched> filtered = members.stream()
+                .filter(m -> !m.getUser().getId().equals(userId))
+                .toList();
+
+        List<Long> userIds = filtered.stream()
+                .map(m -> m.getUser().getId())
+                .toList();
+
+        Map<Long, Profile> profileMap = profileRepository.findByUserIdIn(userIds)
+                .stream()
+                .collect(Collectors.toMap(Profile::getUserId, p -> p));
+
+        return filtered.stream()
+                .map(m -> {
+                    Profile profile = profileMap.get(m.getUser().getId());
+                    String nickname = profile != null ? profile.getNickname() : m.getUser().getName();
+                    return FeedbackMemberResponse.of(m.getUser(), nickname, false);
+                })
+                .collect(Collectors.toList());
     }
 }
