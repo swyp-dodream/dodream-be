@@ -62,21 +62,18 @@ public class FeedbackController {
     }
 
     @Operation(
-            summary = "내가 받은 피드백 조회",
-            description = "내가 받은 모든 피드백을 익명으로 조회합니다. 작성자 정보는 노출되지 않습니다."
+            summary = "특정 유저가 받은 피드백 조회",
+            description = "특정 유저가 받은 모든 피드백을 익명으로 조회합니다. 작성자 정보는 노출되지 않습니다."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "조회 성공"),
             @ApiResponse(responseCode = "401", description = "인증 필요")
     })
-    @GetMapping("/my")
+    @GetMapping("/users/{userId}")  // /{userId} → /users/{userId}
     public ResponseEntity<List<FeedbackReceivedResponse>> getReceivedFeedbacks(
-            Authentication authentication
+            @PathVariable("userId") Long targetUserId
     ) {
-        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
-        List<FeedbackReceivedResponse> response = feedbackService.getReceivedFeedbacks(
-                userPrincipal.getUserId());
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(feedbackService.getReceivedFeedbacks(targetUserId));
     }
 
     @Operation(

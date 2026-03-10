@@ -192,13 +192,13 @@ public class FeedbackService {
     }
 
     /**
-     * 내가 받은 피드백 조회 (익명)
+     * 특정 유저가 받은 피드백 조회 (익명)
      *
-     * @param userId 유저 ID
+     * @param targetUserId 유저 ID
      * @return 받은 피드백 목록
      */
-    public List<FeedbackReceivedResponse> getReceivedFeedbacks(Long userId) {
-        List<Feedback> feedbacks = feedbackRepository.findByToUser(userId);
+    public List<FeedbackReceivedResponse> getReceivedFeedbacks(Long targetUserId) {
+        List<Feedback> feedbacks = feedbackRepository.findByToUser(targetUserId);
 
         return feedbacks.stream()
                 .map(FeedbackReceivedResponse::from)
