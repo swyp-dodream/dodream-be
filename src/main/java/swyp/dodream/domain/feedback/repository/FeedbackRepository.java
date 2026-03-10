@@ -11,6 +11,8 @@ import java.util.List;
 
 public interface FeedbackRepository extends JpaRepository<Feedback, Long> {
 
+    long countByPostId(Long postId);
+
     /**
      * 특정 유저가 특정 게시글에서 특정 유저에게 이미 피드백을 작성했는지 확인
      *

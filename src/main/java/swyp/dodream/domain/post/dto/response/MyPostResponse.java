@@ -20,7 +20,8 @@ public record MyPostResponse(
         List<RoleRequirementDto> roleRequirements,  // 모집 역할
         List<String> stacks,     // 기술 스택 리스트
         LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        LocalDateTime updatedAt,
+        long reviewCount
 ) {
     /**
      * 역할 모집 정보 DTO
@@ -38,7 +39,7 @@ public record MyPostResponse(
      * @param viewCount 조회수
      * @return MyPostResponse DTO
      */
-    public static MyPostResponse from(Post post, Long viewCount) {
+    public static MyPostResponse from(Post post, Long viewCount, long reviewCount) {
         return MyPostResponse.builder()
                 .postId(post.getId())
                 .title(post.getTitle())
@@ -53,6 +54,7 @@ public record MyPostResponse(
                 .stacks(extractStacks(post))
                 .createdAt(post.getCreatedAt())
                 .updatedAt(post.getUpdatedAt())
+                .reviewCount(reviewCount)
                 .build();
     }
 
