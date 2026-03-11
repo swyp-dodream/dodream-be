@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 @Getter
 @Builder
 public class NotificationResponse {
-    private Long id;
+    private String id;
     private Long senderId;
     private Long receiverId;
     private NotificationType type;
@@ -23,7 +23,7 @@ public class NotificationResponse {
 
     public static NotificationResponse of(Notification notification, Integer profileImageCode) {
         return NotificationResponse.builder()
-                .id(notification.getId())
+                .id(String.valueOf(notification.getId()))
                 .senderId(notification.getSenderId())
                 .receiverId(notification.getReceiverId())
                 .type(notification.getType())
