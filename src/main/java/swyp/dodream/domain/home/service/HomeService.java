@@ -5,7 +5,6 @@ import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import swyp.dodream.domain.bookmark.repository.BookmarkRepository;
 import swyp.dodream.domain.home.dto.HomeResponse;
 import swyp.dodream.domain.post.common.ActivityMode;
 import swyp.dodream.domain.post.common.PostStatus;
@@ -17,11 +16,10 @@ import swyp.dodream.domain.post.repository.PostSpecification;
 import swyp.dodream.domain.profile.domain.Profile;
 import swyp.dodream.domain.profile.repository.ProfileRepository;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
+
 
 @Service
 @RequiredArgsConstructor
@@ -30,10 +28,8 @@ public class HomeService {
 
     private final PostRepository postRepository;
     private final ProfileRepository profileRepository;
-    private final BookmarkRepository bookmarkRepository;
 
     public HomeResponse getHomePosts(
-            Long userId,
             ProjectType type,
             List<String> roles,
             List<String> techs,
@@ -43,14 +39,6 @@ public class HomeService {
             String sort,
             Pageable pageable
     ) {
-        // 사용자 프로필 이미지 코드 조회
-        Integer userProfileImageCode = null;
-        if (userId != null) {
-            userProfileImageCode = profileRepository.findByUserId(userId)
-                    .map(Profile::getProfileImageCode)
-                    .orElse(1);  // 기본값 1
-        }
-
         // 초기 스펙
         Specification<Post> spec = PostSpecification.notDeleted();
 
@@ -122,26 +110,17 @@ public class HomeService {
                         profile -> profile
                 ));
 
-        // 북마크 정보 조회
-        Set<Long> bookmarkedPostIds = userId != null
-                ? new HashSet<>(bookmarkRepository.findPostIdsByUserId(userId))
-                : new HashSet<>();
-
         // DTO 변환
         Page<PostSummaryResponse> postResponses = posts.map(post -> {
             Profile ownerProfile = profileMap.get(post.getOwner().getId());
-            boolean isBookmarked = bookmarkedPostIds.contains(post.getId());
-
             return PostSummaryResponse.fromEntity(
                     post,
                     ownerProfile != null ? ownerProfile.getProfileImageCode() : 1,
-                    ownerProfile != null ? ownerProfile.getNickname() : post.getOwner().getName(),
-                    isBookmarked
+                    ownerProfile != null ? ownerProfile.getNickname() : post.getOwner().getName()
             );
         });
 
         return HomeResponse.builder()
-                .userProfileImageCode(userProfileImageCode)
                 .posts(postResponses)
                 .build();
     }

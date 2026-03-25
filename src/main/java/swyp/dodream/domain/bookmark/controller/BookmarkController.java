@@ -16,6 +16,9 @@ import swyp.dodream.domain.bookmark.service.BookmarkService;
 import swyp.dodream.domain.post.common.ProjectType;
 import swyp.dodream.jwt.dto.UserPrincipal;
 
+import java.util.List;
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/bookmarks")
 @RequiredArgsConstructor
@@ -46,6 +49,26 @@ public class BookmarkController {
     ) {
         boolean added = bookmarkService.toggleBookmark(user.getUserId(), postId);
         return ResponseEntity.ok(added ? "북마크 추가됨" : "북마크 해제됨");
+    }
+
+    // ==============================
+    // 북마크 상태 일괄 조회
+    // ==============================
+    @Operation(
+            summary = "북마크 상태 일괄 조회",
+            description = "postId 목록을 받아 각 게시글의 북마크 여부를 반환합니다."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공"),
+            @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자")
+    })
+    @PostMapping("/status")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Map<String, List<String>>> getBookmarkStatus(
+            @AuthenticationPrincipal UserPrincipal user,
+            @RequestBody List<Long> postIds
+    ) {
+        return ResponseEntity.ok(Map.of("bookmarkedPostIds", bookmarkService.getBookmarkStatus(user.getUserId(), postIds)));
     }
 
     // ==============================

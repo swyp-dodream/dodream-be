@@ -8,6 +8,5 @@ import swyp.dodream.domain.post.dto.response.PostSummaryResponse;
 @Getter
 @Builder
 public class HomeResponse {
-    private Integer userProfileImageCode;
     private Page<PostSummaryResponse> posts;
 }

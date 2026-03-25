@@ -54,6 +54,13 @@ public class BookmarkService {
         }
     }
 
+    @Transactional(readOnly = true)
+    public List<String> getBookmarkStatus(Long userId, List<Long> postIds) {
+        return bookmarkRepository.findPostIdsByUserIdAndPostIdIn(userId, postIds).stream()
+                .map(String::valueOf)
+                .toList();
+    }
+
     public MyBookmarkPageResponse getBookmarkedPosts(Long userId, int page, int size, ProjectType projectType) {
 
         Pageable pageable = PageRequest.of(page, size);

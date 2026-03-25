@@ -23,33 +23,8 @@ public class PostSummaryResponse {
     private String status;
     private String activityMode;
     private LocalDateTime createdAt;
-    private Boolean isBookmarked;
 
-    public static PostSummaryResponse fromEntity(Post post) {
-        return PostSummaryResponse.builder()
-                .id(post.getId())
-                .title(post.getTitle())
-                .projectType(post.getProjectType().name())
-                .roles(post.getRoleRequirements().stream()
-                        .map(r -> r.getRole().getName())
-                        .toList())
-                .techs(post.getStacks().stream()
-                        .map(s -> s.getTechSkill().getName())
-                        .toList())
-                .interests(post.getFields().stream()
-                        .map(f -> f.getInterestKeyword().getName())
-                        .toList())
-                .author(post.getOwner().getName())
-                .viewCount(post.getPostView() != null ? post.getPostView().getViews() : 0L)
-                .deadline(post.getDeadlineAt())
-                .status(post.getStatus().name())
-                .activityMode(post.getActivityMode().name())
-                .createdAt(post.getCreatedAt())
-                .isBookmarked(false)
-                .build();
-    }
-
-    public static PostSummaryResponse fromEntity(Post post, Integer authorProfileImageCode, String authorNickname, Boolean isBookmarked) {
+    public static PostSummaryResponse fromEntity(Post post, Integer authorProfileImageCode, String authorNickname) {
         return PostSummaryResponse.builder()
                 .id(post.getId())
                 .title(post.getTitle())
@@ -70,8 +45,6 @@ public class PostSummaryResponse {
                 .status(post.getStatus().name())
                 .activityMode(post.getActivityMode().name())
                 .createdAt(post.getCreatedAt())
-                .isBookmarked(isBookmarked)
-
                 .build();
     }
 }
