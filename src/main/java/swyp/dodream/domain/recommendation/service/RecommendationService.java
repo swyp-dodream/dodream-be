@@ -15,6 +15,7 @@ import swyp.dodream.domain.profile.domain.Profile;
 import swyp.dodream.domain.profile.repository.ProfileRepository;
 import swyp.dodream.domain.recommendation.dto.RecommendationListResponse;
 import swyp.dodream.domain.recommendation.dto.RecommendationPostResponse;
+import swyp.dodream.domain.recommendation.dto.RecommendationReason;
 import swyp.dodream.domain.recommendation.repository.VectorRepository;
 import swyp.dodream.domain.recommendation.util.TextExtractor;
 import swyp.dodream.domain.user.domain.User;
@@ -25,6 +26,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * 게시글 추천 서비스
@@ -81,7 +84,7 @@ public class RecommendationService {
 
             // 5. 필터링 및 상세 정보 조회
             List<RecommendationPostResponse> recommendations = filterAndEnrichPosts(
-                    postSimilarities, userId, projectType
+                    postSimilarities, userId, projectType, profile
             );
 
             // 6. 커서 기반 페이징
@@ -108,7 +111,7 @@ public class RecommendationService {
      * 검색된 게시글들을 필터링하고 상세 정보 추가
      */
     private List<RecommendationPostResponse> filterAndEnrichPosts(
-            Map<Long, Double> postSimilarities, Long userId, ProjectType projectType
+            Map<Long, Double> postSimilarities, Long userId, ProjectType projectType, Profile profile
     ) {
         List<RecommendationPostResponse> result = new ArrayList<>();
         log.info("필터링 시작: postSimilarities 개수={}, userId={}, projectType={}", postSimilarities.size(), userId, projectType);
@@ -127,19 +130,55 @@ public class RecommendationService {
 
             // 필터링: 모집 중만, 본인 게시글 제외, 이미 지원한 글 제외, projectType 필터
             if (!shouldIncludePost(post, userId, projectType)) {
-                log.debug("게시글 필터링 제외: postId={}, status={}, ownerId={}, postProjectType={}", 
+                log.debug("게시글 필터링 제외: postId={}, status={}, ownerId={}, postProjectType={}",
                         postId, post.getStatus(), post.getOwner().getId(), post.getProjectType());
                 continue;
             }
 
-            // 실제 유사도 점수 사용 (Qdrant에서 반환된 Cosine Similarity 점수)
-            RecommendationPostResponse response = RecommendationPostResponse.from(post, similarity);
+            List<RecommendationReason> matchReasons = resolveMatchReasons(profile, post);
+            RecommendationPostResponse response = RecommendationPostResponse.from(post, similarity, matchReasons);
             result.add(response);
             log.debug("게시글 추가: postId={}, similarity={}", postId, similarity);
         }
 
         log.info("필터링 완료: 최종 추천 게시글 개수={}", result.size());
         return result;
+    }
+
+    private List<RecommendationReason> resolveMatchReasons(Profile profile, Post post) {
+        List<RecommendationReason> reasons = new ArrayList<>();
+
+        // 직군 매칭: 내 직군이 게시글 모집 직군에 포함되는지
+        Set<String> profileRoles = profile.getRoles().stream()
+                .map(r -> r.getName())
+                .collect(Collectors.toSet());
+        boolean roleMatch = post.getRoleRequirements().stream()
+                .anyMatch(req -> profileRoles.contains(req.getRole().getName()));
+        if (roleMatch) reasons.add(RecommendationReason.MATCHING_ROLE);
+
+        // 기술스택 매칭: 교집합 존재 여부
+        Set<String> profileTechs = profile.getTechSkills().stream()
+                .map(t -> t.getName())
+                .collect(Collectors.toSet());
+        boolean techMatch = post.getStacks().stream()
+                .anyMatch(s -> profileTechs.contains(s.getTechSkill().getName()));
+        if (techMatch) reasons.add(RecommendationReason.MATCHING_TECH);
+
+        // 활동방식 매칭
+        if (profile.getActivityMode() != null && post.getActivityMode() != null
+                && profile.getActivityMode().name().equals(post.getActivityMode().name())) {
+            reasons.add(RecommendationReason.MATCHING_MODE);
+        }
+
+        // 관심분야 매칭: 교집합 존재 여부
+        Set<String> profileFields = profile.getInterestKeywords().stream()
+                .map(k -> k.getName())
+                .collect(Collectors.toSet());
+        boolean fieldMatch = post.getFields().stream()
+                .anyMatch(f -> profileFields.contains(f.getInterestKeyword().getName()));
+        if (fieldMatch) reasons.add(RecommendationReason.MATCHING_FIELD);
+
+        return reasons.stream().limit(2).toList();
     }
 
     /**

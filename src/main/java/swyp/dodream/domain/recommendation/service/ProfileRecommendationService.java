@@ -15,6 +15,7 @@ import swyp.dodream.domain.profile.domain.Profile;
 import swyp.dodream.domain.profile.repository.ProfileRepository;
 import swyp.dodream.domain.recommendation.dto.RecommendationProfileListResponse;
 import swyp.dodream.domain.recommendation.dto.RecommendationProfileResponse;
+import swyp.dodream.domain.recommendation.dto.RecommendationReason;
 import swyp.dodream.domain.recommendation.repository.VectorRepository;
 import swyp.dodream.domain.recommendation.util.TextExtractor;
 import swyp.dodream.domain.suggestion.repository.SuggestionRepository;
@@ -138,15 +139,15 @@ public class ProfileRecommendationService {
                 continue;
             }
 
-            // 태그 생성
-            List<String> tags = generateTags(profile, post);
+            // 매칭 이유 생성
+            List<RecommendationReason> matchReasons = generateMatchReasons(profile, post);
 
             // 제안 ID 여부 확인
             List<SuggestionStatus> validStatuses = List.of( SuggestionStatus.SENT, SuggestionStatus.ACCEPTED );
             Long suggestionId = suggestionRepository.findValidSuggestionId(postId, userId, validStatuses).orElse(null);
 
             // 실제 유사도 점수 사용 (Qdrant에서 반환된 Cosine Similarity 점수)
-            RecommendationProfileResponse response = RecommendationProfileResponse.from(profile, similarity, tags, suggestionId);
+            RecommendationProfileResponse response = RecommendationProfileResponse.from(profile, similarity, matchReasons, suggestionId);
             result.add(response);
         }
 
@@ -176,59 +177,44 @@ public class ProfileRecommendationService {
     }
 
     /**
-     * 추천 태그 생성 (최대 2개)
-     * 우선순위: #선호하는활동방식 > #사용하는기술스택 > #선호하는분야
+     * 매칭 이유 생성 (최대 2개)
+     * 우선순위: MATCHING_MODE > MATCHING_TECH > MATCHING_FIELD
      */
-    private List<String> generateTags(Profile profile, Post post) {
-        List<String> tags = new ArrayList<>();
+    private List<RecommendationReason> generateMatchReasons(Profile profile, Post post) {
+        List<RecommendationReason> reasons = new ArrayList<>();
 
-        // #선호하는활동방식: 모집글의 활동방식과 프로필의 활동방식이 일치
-        // Post.ActivityMode (ONLINE, OFFLINE, HYBRID)와 Profile.ActivityMode (온라인, 오프라인, 하이브리드) 매핑
         if (post.getActivityMode() != null && profile.getActivityMode() != null) {
             ActivityMode postMode = post.getActivityMode();
             swyp.dodream.domain.profile.enums.ActivityMode profileMode = profile.getActivityMode();
-            
+
             boolean matches = (postMode == ActivityMode.ONLINE && profileMode == swyp.dodream.domain.profile.enums.ActivityMode.온라인) ||
                              (postMode == ActivityMode.OFFLINE && profileMode == swyp.dodream.domain.profile.enums.ActivityMode.오프라인) ||
                              (postMode == ActivityMode.HYBRID && profileMode == swyp.dodream.domain.profile.enums.ActivityMode.하이브리드);
-            
-            if (matches) {
-                tags.add("#선호하는활동방식");
-            }
+
+            if (matches) reasons.add(RecommendationReason.MATCHING_MODE);
         }
 
-        // #사용하는기술스택: 모집글의 기술스택과 프로필의 기술스택이 교집합
         Set<String> postTechStacks = post.getStacks().stream()
                 .map(stack -> stack.getTechSkill().getName())
                 .collect(Collectors.toSet());
         Set<String> profileTechStacks = profile.getTechSkills().stream()
                 .map(tech -> tech.getName())
                 .collect(Collectors.toSet());
-        
         Set<String> commonTechStacks = new HashSet<>(postTechStacks);
         commonTechStacks.retainAll(profileTechStacks);
-        if (!commonTechStacks.isEmpty()) {
-            tags.add("#사용하는기술스택");
-        }
+        if (!commonTechStacks.isEmpty()) reasons.add(RecommendationReason.MATCHING_TECH);
 
-        // #선호하는분야: 모집글의 분야와 프로필의 관심 분야가 교집합
         Set<String> postFields = post.getFields().stream()
                 .map(field -> field.getInterestKeyword().getName())
                 .collect(Collectors.toSet());
         Set<String> profileInterests = profile.getInterestKeywords().stream()
                 .map(keyword -> keyword.getName())
                 .collect(Collectors.toSet());
-        
         Set<String> commonFields = new HashSet<>(postFields);
         commonFields.retainAll(profileInterests);
-        if (!commonFields.isEmpty()) {
-            tags.add("#선호하는분야");
-        }
+        if (!commonFields.isEmpty()) reasons.add(RecommendationReason.MATCHING_FIELD);
 
-        // 최대 2개만 반환 (우선순위 순서대로)
-        return tags.stream()
-                .limit(2)
-                .toList();
+        return reasons.stream().limit(2).toList();
     }
 }
 

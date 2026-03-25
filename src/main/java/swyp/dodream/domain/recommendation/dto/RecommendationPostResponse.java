@@ -26,7 +26,8 @@ public record RecommendationPostResponse(
         List<RoleRequirementDto> roles,
 
         String authorNickname,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        List<RecommendationReason> matchReasons
 ) {
     /**
      * 역할 모집 정보 DTO
@@ -40,7 +41,7 @@ public record RecommendationPostResponse(
     /**
      * Post 엔티티를 RecommendationPostResponse로 변환
      */
-    public static RecommendationPostResponse from(Post post, Double similarity) {
+    public static RecommendationPostResponse from(Post post, Double similarity, List<RecommendationReason> matchReasons) {
         return RecommendationPostResponse.builder()
                 .postId(post.getId())
                 .title(post.getTitle())
@@ -56,6 +57,7 @@ public record RecommendationPostResponse(
                 .roles(extractRoles(post))
                 .authorNickname(post.getOwner() != null ? post.getOwner().getName() : "알 수 없음")
                 .createdAt(post.getCreatedAt())
+                .matchReasons(matchReasons)
                 .build();
     }
 
