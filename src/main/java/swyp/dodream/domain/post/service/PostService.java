@@ -14,7 +14,6 @@ import swyp.dodream.common.exception.CustomException;
 import swyp.dodream.common.exception.ExceptionType;
 import swyp.dodream.common.snowflake.SnowflakeIdService;
 import swyp.dodream.domain.application.dto.request.ApplicationRequest;
-import swyp.dodream.domain.bookmark.repository.BookmarkRepository;
 import swyp.dodream.domain.feedback.repository.FeedbackRepository;
 import swyp.dodream.domain.master.domain.ApplicationStatus;
 import swyp.dodream.domain.master.domain.InterestKeyword;
@@ -74,7 +73,6 @@ public class PostService {
     private final SuggestionRepository suggestionRepository;
     private final NotificationService notificationService;
     private final ProfileRepository profileRepository;
-    private final BookmarkRepository bookmarkRepository;
     private final FeedbackRepository feedbackRepository;
 
     // 벡터 임베딩 관련 (옵션) - NCP 배포 시에만 활성화
@@ -583,7 +581,6 @@ public class PostService {
 
         Long applicationId = null;
         Long matchedId = null;
-        Boolean isBookmarked = false;
 
         if (currentUserId != null) {
             if (!isOwner) {
@@ -614,8 +611,6 @@ public class PostService {
                     .findByPostIdAndUserIdOrderByCanceledStatus(post.getId(), currentUserId)
                     .map(Matched::getId)
                     .orElse(null);
-
-            isBookmarked = bookmarkRepository.existsByUserIdAndPostId(currentUserId, post.getId());
         }
 
         return PostResponse.from(
@@ -624,8 +619,7 @@ public class PostService {
                 ownerNickname,
                 ownerProfileImageUrl,
                 applicationId,
-                matchedId,
-                isBookmarked
+                matchedId
         );
     }
 }

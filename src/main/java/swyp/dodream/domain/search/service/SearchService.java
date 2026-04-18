@@ -3,7 +3,6 @@ package swyp.dodream.domain.search.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import swyp.dodream.domain.bookmark.repository.BookmarkRepository;
 import swyp.dodream.domain.post.domain.Post;
 import swyp.dodream.domain.post.dto.response.PostResponse;
 import swyp.dodream.domain.post.repository.PostRepository;
@@ -23,7 +22,6 @@ public class SearchService {
     private final PostDocumentRepository postDocumentRepository;
     private final PostRepository postRepository;
     private final ProfileRepository profileRepository;
-    private final BookmarkRepository bookmarkRepository;
 
     /**
      * 게시글 검색
@@ -90,19 +88,13 @@ public class SearchService {
                 ? profileImageCode.toString()
                 : null;
 
-        Boolean isBookmarked = false;
-        if (userId != null) {
-            isBookmarked = bookmarkRepository.existsByUserIdAndPostId(userId, post.getId());
-        }
-
         return PostResponse.from(
                 post,
                 isOwner,
                 ownerNickname,
                 ownerProfileImageUrl,
                 null,
-                null,
-                isBookmarked
+                null
         );
     }
 }
