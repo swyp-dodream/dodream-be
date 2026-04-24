@@ -83,11 +83,9 @@ public class PostRecruitController {
     })
     @GetMapping("/{postId}/recruits/members")
     public ResponseEntity<RecruitListResponse> getMembers(
-            @PathVariable Long postId,
-            @RequestParam(required = false) Long cursor,
-            @RequestParam(defaultValue = "10") Integer size
+            @PathVariable Long postId
     ) {
-        RecruitListResponse response = recruitService.getMembers(postId, cursor, size);
+        RecruitListResponse response = recruitService.getMembers(postId);
         return ResponseEntity.ok(response);
     }
 }
