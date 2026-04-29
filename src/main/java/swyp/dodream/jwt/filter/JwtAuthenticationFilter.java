@@ -44,36 +44,32 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         // Authorization 헤더 또는 쿠키에서 Access Token 추출
         String token = resolveToken(request);
 
-        if (token != null) {
+        if (token != null && jwtUtil.validateToken(token)) {
             // Access Token이 유효한 경우
-            if (jwtUtil.validateToken(token)) {
-                setAuthentication(token);
-            } 
-            // Access Token이 만료된 경우 자동 재발급 시도
-            else if (jwtUtil.isTokenExpired(token)) {
-                log.info("Access Token 만료 감지, 자동 재발급 시도");
-                
-                String refreshToken = getRefreshTokenFromCookie(request);
-                if (refreshToken != null && jwtUtil.validateToken(refreshToken)) {
-                    try {
-                        // Refresh Token으로 새 Access Token 발급
-                        TokenResponse tokenResponse = authService.reissueToken(refreshToken);
-                        String newAccessToken = tokenResponse.getAccessToken();
-                        
-                        // 새 Access Token을 쿠키에 저장 (설정 파일의 만료 시간 사용)
-                        Cookie accessTokenCookie = createCookie("accessToken", newAccessToken, jwtUtil.getAccessTokenExpirationInSeconds(), request.isSecure());
-                        response.addCookie(accessTokenCookie);
-                        
-                        log.info("Access Token 자동 재발급 완료");
-                        
-                        // 새 토큰으로 인증 설정
-                        setAuthentication(newAccessToken);
-                    } catch (Exception e) {
-                        log.warn("자동 재발급 실패: {}", e.getMessage());
-                        // 재발급 실패 시 그냥 진행 (인증 실패로 처리됨)
-                    }
-                } else {
-                    log.warn("Refresh Token이 없거나 유효하지 않음");
+            setAuthentication(token);
+        } else {
+            // Access Token이 없거나 만료된 경우 Refresh Token으로 재발급 시도
+            // (브라우저가 만료된 accessToken 쿠키를 자동 삭제해도 갱신 가능하도록)
+            log.info("Access Token 없음 또는 만료, 자동 재발급 시도");
+
+            String refreshToken = getRefreshTokenFromCookie(request);
+            if (refreshToken != null && jwtUtil.validateToken(refreshToken)) {
+                try {
+                    // Refresh Token으로 새 Access Token 발급
+                    TokenResponse tokenResponse = authService.reissueToken(refreshToken);
+                    String newAccessToken = tokenResponse.getAccessToken();
+
+                    // 새 Access Token을 쿠키에 저장 (설정 파일의 만료 시간 사용)
+                    Cookie accessTokenCookie = createCookie("accessToken", newAccessToken, jwtUtil.getAccessTokenExpirationInSeconds(), request.isSecure());
+                    response.addCookie(accessTokenCookie);
+
+                    log.info("Access Token 자동 재발급 완료");
+
+                    // 새 토큰으로 인증 설정
+                    setAuthentication(newAccessToken);
+                } catch (Exception e) {
+                    log.warn("자동 재발급 실패: {}", e.getMessage());
+                    // 재발급 실패 시 그냥 진행 (인증 실패로 처리됨)
                 }
             }
         }
