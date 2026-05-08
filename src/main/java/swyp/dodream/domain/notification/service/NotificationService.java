@@ -148,7 +148,7 @@ public class NotificationService {
                                                 Integer profileImageCode) {
 
         boolean exists = notificationRepository
-                .existsByReceiverIdAndTypeAndTargetPostId(leaderId, NotificationType.APPLICATION_ACCEPTED, postId);
+                .existsByReceiverIdAndTypeAndTargetPostId(leaderId, NotificationType.APPLICANT_ACCEPTED, postId);
         if (exists) return;
 
         Long id = snowflakeIdService.generateId();
@@ -158,7 +158,7 @@ public class NotificationService {
                 id,
                 senderId,
                 leaderId,
-                NotificationType.APPLICATION_ACCEPTED,
+                NotificationType.APPLICANT_ACCEPTED,
                 msg,
                 postId,
                 postTitle
@@ -166,7 +166,7 @@ public class NotificationService {
         notificationRepository.save(notification);
 
         redisPublisher.publish(
-                new NotificationPayload(leaderId, NotificationType.APPLICATION_ACCEPTED, msg, postId, profileImageCode)
+                new NotificationPayload(leaderId, NotificationType.APPLICANT_ACCEPTED, msg, postId, profileImageCode)
         );
     }
 
